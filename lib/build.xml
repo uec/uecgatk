@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="genomeLibs">
+    <property environment="env"/>
+    <property name="prefuse.location" value="../prefuse"/>
+    <property name="ECLIPSE_HOME" value="../../../../../../Applications/eclipse"/>
+    <property name="ChIP.location" value="../ChIP"/>
+    <property name="picard.location" value="../picard"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.5"/>
+    <property name="source" value="1.5"/>
+    <path id="ChIP.classpath">
+        <pathelement location="${ChIP.location}/."/>
+        <pathelement location="${prefuse.location}/classes"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/biojava-1.4.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/bytecode-0.92.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/commons-cli.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/commons-collections-2.1.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/commons-dbcp-1.1.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/biojava-1.4/commons-pool-1.1.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/itext/itext-1.4.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/jfreechart-1.0.9/lib/jcommon-1.0.12.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/jfreechart-1.0.9/lib/jfreechart-1.0.9.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/mysql-connector-java-5.0.4-bin.jar"/>
+        <pathelement location="${ChIP.location}/../../Java/commons-math-1.1/commons-math-1.1.jar"/>
+    </path>
+    <path id="picard.classpath">
+        <pathelement location="${picard.location}/bin"/>
+        <pathelement location="${picard.location}/lib/testng/testng-5.5-jdk15.jar"/>
+        <pathelement location="${picard.location}/lib/ant/bcel-5.2.jar"/>
+    </path>
+    <path id="genomeLibs.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="biojava-live_1.6/biojava-live.jar"/>
+        <pathelement location="biojava-live_1.6/bytecode.jar"/>
+        <pathelement location="biojava-live_1.6/commons-cli.jar"/>
+        <pathelement location="biojava-live_1.6/commons-collections-2.1.jar"/>
+        <pathelement location="biojava-live_1.6/commons-dbcp-1.1.jar"/>
+        <pathelement location="biojava-live_1.6/commons-pool-1.1.jar"/>
+        <pathelement location="commons-math-1.1.jar"/>
+        <pathelement location="jfreechar-1.0.9-libs/jcommon-1.0.12.jar"/>
+        <pathelement location="jfreechar-1.0.9-libs/jfreechart-1.0.9.jar"/>
+        <path refid="ChIP.classpath"/>
+        <path refid="picard.classpath"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src" excludes="**/*.launch, **/*.java"/>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall">
+        <ant antfile="${ChIP.location}/build.xml" inheritAll="false" target="clean"/>
+        <ant antfile="${picard.location}/build.xml" inheritAll="false" target="clean"/>
+    </target>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects">
+        <ant antfile="${ChIP.location}/build.xml" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="${picard.location}/build.xml" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+    </target>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+            <src path="src"/>
+            <classpath refid="genomeLibs.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="BisulfiteConvertFasta">
+        <java classname="edu.usc.epigenome.scripts.BisulfiteConvertFasta" failonerror="true" fork="yes">
+            <classpath refid="genomeLibs.classpath"/>
+        </java>
+    </target>
+    <target name="SamFiveprimeConversion">
+        <java classname="edu.usc.epigenome.testScripts.SamFiveprimeConversion" failonerror="true" fork="yes">
+            <arg line="/Volumes/uec-00/bberman/BSseq/CpH-based-filtering/test2.sam"/>
+            <classpath refid="genomeLibs.classpath"/>
+        </java>
+    </target>
+</project>
