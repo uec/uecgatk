@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2011 USC Epigenome Center
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -24,28 +24,23 @@
  */
 
 package edu.usc.epigenome.uecgatk.readmetrics;
-
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.collections.PrimitivePair;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
-
 import java.util.*;
 import java.io.*;
 
 /**
  * Zack Ramjan
- * USC Epigenome Center
- 
+ * USC Epigenome Center 
+ * 03/23/2011
  */
 
 /**
@@ -58,7 +53,8 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
 
     @Argument(fullName="mappedOnly", shortName="mo", doc="when this flag is set (default), statistics will be collected "+
                 "on ALIGNED reads only, while unmapped reads will be discarded", required=false)
-    protected boolean MAPPED_ONLY = true;
+    protected boolean MAPPED_ONLY = false;
+    
     @Argument(fullName="label",shortName="p",doc="label for the csv report",required=true)
     protected String LABEL = null;
 
@@ -70,20 +66,15 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
 
     public HashMap<String,Long> map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) 
     {
-
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) return null;
         
         byte [] quals = read.getBaseQualities();
         byte [] bases =  read.getReadBases();
-        
-        
+
         HashMap<String,Long> countRead = new HashMap<String,Long>();
-        //a,+,8,27,156335
+        //postAlignment,a,+,8,27,156335
         for (short i = 0; i < bases.length; i++)
-        {
         	countRead.put((char)bases[i] + ",+," + (i+1) + "," + quals[i] , 1L);
-        }
-        
         
         return countRead;
     }
@@ -93,7 +84,8 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
      *
      * @return Initial value of reduce.
      */
-    public HashMap<String,Long> reduceInit() {
+    public HashMap<String,Long> reduceInit() 
+    {
         return  new HashMap<String,Long>();  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -118,9 +110,9 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
 
     public void onTraversalDone(HashMap<String,Long> result) 
     {
-    	for(String s : result.keySet())
-    	{
-    		out.println(LABEL + "," + s + "," + result.get(s));
-    	}
+    	Vector<String> sortedKeys = new Vector<String>(result.keySet());
+    	Collections.sort(sortedKeys);
+    	for(String s : sortedKeys)
+    		out.println(LABEL + "," + s + "," + result.get(s));    	
     }
  }
