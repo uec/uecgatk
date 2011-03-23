@@ -59,12 +59,12 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
     @Argument(fullName="mappedOnly", shortName="mo", doc="when this flag is set (default), statistics will be collected "+
                 "on ALIGNED reads only, while unmapped reads will be discarded", required=false)
     protected boolean MAPPED_ONLY = true;
+    @Argument(fullName="label",shortName="p",doc="label for the csv report",required=true)
+    protected String LABEL = null;
 
-    private HashMap<String,Long> bqmap = null;
-    
     public void initialize() 
     {
-    	bqmap = new HashMap<String,Long>();
+    	 if ( LABEL == null ) throw new ReviewedStingException("Prefix for output file(s) must be specified");
     }
 
 
@@ -81,7 +81,7 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
         //a,+,8,27,156335
         for (short i = 0; i < bases.length; i++)
         {
-        	countRead.put(bases[i] + ",+," + (i+1) + "," + quals[i] , 1L);
+        	countRead.put((char)bases[i] + ",+," + (i+1) + "," + quals[i] , 1L);
         }
         
         
@@ -112,7 +112,6 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
     			sum.put(s, sum.get(s) + 1L);
     		else
     			sum.put(s, 1L);
-    			
     	}
     	return sum;
     }
@@ -121,55 +120,7 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
     {
     	for(String s : result.keySet())
     	{
-    		out.println(s + "," + result.get(s));
+    		out.println(LABEL + "," + s + "," + result.get(s));
     	}
     }
-
- 
-
-   
-
-
-   
-
-
-    static class CycleStats {
-        private long readCount = 0;
-        private double[] cycleQualsAv = null;
-        private double[] cycleQualsSd = null;
-        private int minL = 1000000000; // read min. length
-        private int maxL = 0; // read max. length
-
-        public CycleStats(int N) {
-            readCount = 0;
-            cycleQualsAv = new double[N];
-            cycleQualsSd = new double[N];
-        }
-
-        public void add(byte[] quals) {
-            if ( quals.length > cycleQualsAv.length )
-                throw new UserException("A read of length "+quals.length+" encountered, which exceeds specified maximum read length");
-            if ( quals.length > maxL ) maxL = quals.length;
-            if ( quals.length < minL ) minL = quals.length;
-            readCount++;
-            for ( int i = 0 ; i < quals.length ; i++ ) {
-                // NOTE: in the update equaltions below, there is no need to check if readCount == 1 (i.e.
-                // we are initializing with the very first record) or not. Indeed, the arrays are initialized with
-                // 0; when the very first value arrives, readCount is 1 and cycleQuals[i] gets set to quals[i] (correct!);
-                // this will also make the second term in the update equation for Sd (quals[i]-cycleQualsAv[i]) equal
-                // to 0, so Sd will be initially set to 0.
-                double oldAvg = cycleQualsAv[i]; // save old mean, will need it for calculation of the variance
-                cycleQualsAv[i] += ( quals[i] - cycleQualsAv[i] ) / readCount; // update mean
-                cycleQualsSd[i] += ( quals[i] - oldAvg ) * ( quals[i] - cycleQualsAv[i] );
-            }
-        }
-
-        public long getReadCount() { return readCount; }
-        public int getMaxReadLength() { return maxL; }
-        public int getMinReadLength() { return minL; }
-//        long [] getCycleQualSums() { return cycleQuals; }
-//        long getCycleQualSum(int i) { return cycleQuals[i]; }
-        double getCycleQualAverage(int i) { return cycleQualsAv[i]; }
-        double getCycleQualStdDev(int i) { return Math.sqrt( cycleQualsSd[i]/(readCount-1) ); }
-    }
-}
+ }
