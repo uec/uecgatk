@@ -1,17 +1,8 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.broadinstitute.sting.utils.collections.Pair;
-
-import edu.usc.epigenome.genomeLibs.ListUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
+
 
 /**
  * @author benb
