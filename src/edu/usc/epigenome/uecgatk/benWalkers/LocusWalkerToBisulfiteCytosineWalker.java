@@ -164,12 +164,13 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 //    		prevC = thisC;
     		
     		// Make the Cytosine
-    		Cpg thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context);
+       		CpgBackedByGatk thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context,tracker);
     		
-    		if (this.outputCph || !thisC.isCph(false, 0.101))
+//			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
+//					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+
+			if (this.outputCph || !thisC.isCph(false, 0.101))
     		{
-//    			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
-//    					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
 
 
     			// And process it
@@ -187,7 +188,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
         return mapout;
     }
 
-   abstract protected MapType processCytosine(Cpg thisC);
+   abstract protected MapType processCytosine(CpgBackedByGatk thisC);
 
    
 	/**
@@ -221,12 +222,12 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	 * @param context This has all reads relative to the reference genome, so reverse strand cytosines will have to be revcomped
 	 * @return
 	 */
-    protected Cpg makeCytosine(GenomeLoc thisLoc, ReferenceContext ref,
+    protected CpgBackedByGatk makeCytosine(GenomeLoc thisLoc, ReferenceContext ref,
     		byte[] contextSeqStrandedIupac, boolean cytosineNegStrand,
-    		AlignmentContext context) 
+    		AlignmentContext context, RefMetaDataTracker tracker) 
     {
 
-    	Cpg cOut = new Cpg(thisLoc.getStart(),cytosineNegStrand);
+    	CpgBackedByGatk cOut = new CpgBackedByGatk(thisLoc.getStart(),cytosineNegStrand, context, tracker, ref);
     	short totalReadsOpposite = 0;
     	short aReadOpposite = 0;
 

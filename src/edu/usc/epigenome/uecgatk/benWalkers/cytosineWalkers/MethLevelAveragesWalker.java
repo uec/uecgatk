@@ -8,9 +8,8 @@ import java.util.Set;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import edu.usc.epigenome.genomeLibs.ListUtils;
-import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
 /**
@@ -77,6 +76,7 @@ public class MethLevelAveragesWalker
 			{
 				// SHOULD NOT BE HERE
 				logger.error(String.format("MethLevelAveragesWalker::treeReduce() - How did we get key \"%s\" when neither lhs and rhs contain it??",key)); 
+				System.exit(1);
 			}
 			else
 			{
@@ -112,7 +112,7 @@ public class MethLevelAveragesWalker
 	 ***************************************************/
 	
 	@Override
-	protected Pair<String,Double> processCytosine(Cpg thisC)
+	protected Pair<String,Double> processCytosine(CpgBackedByGatk thisC)
 	{
 		String context = thisC.context();
 		double meth = thisC.fracMeth(false);

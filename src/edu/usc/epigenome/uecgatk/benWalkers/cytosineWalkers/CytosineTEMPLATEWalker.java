@@ -1,6 +1,6 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
-import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
 
@@ -59,7 +59,7 @@ public class CytosineTEMPLATEWalker extends LocusWalkerToBisulfiteCytosineWalker
 	 ***************************************************/
 	
 	@Override
-	protected Integer processCytosine(Cpg thisC)
+	protected Integer processCytosine(CpgBackedByGatk thisC)
 	{
 		String context = thisC.context();
 		double meth = thisC.fracMeth(false);
