@@ -3,6 +3,8 @@ package edu.usc.epigenome.uecgatk.benWalkers;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.jfree.util.Log;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 
@@ -78,6 +80,24 @@ public class CpgBackedByGatk extends Cpg {
 		this.refContext = refContext;
 	}
 	
+	public String getChrom()
+	{
+		return this.refContext.getLocus().getContig();
+	}
+	
+	public GenomeLoc getGenomeLoc()
+	{
+		GenomeLoc out = this.refContext.getLocus();
+
+		// ***** REMOVE ***** DEBUGGING ONLY **** 
+		if (out.getStart() != this.chromPos)
+		{
+			System.err.printf("CpgBackedByGatk::getGenomeLoc() refContextPos(%d) != chromPos(%d)\n", out.getStart(), this.chromPos);
+			System.exit(1);
+		}
+		
+		return out;
+	}
 	
 	
 
