@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -19,6 +20,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.io.PrintStream;
@@ -29,11 +31,17 @@ import java.util.Iterator;
  * Translates GATK loci into cytosine objects (along with original GATK data structures). 
  * Keeps a window of cytosines upstream and downstram of current CpG (note that this
  * is not guaranteed to work well with out-of-order sharding strategies.
+ * 
+ * Must implement tree-reducible to get parallel execution.
  */
 @ReadFilters( {MappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
-public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Long> {
+public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
 
+    @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
+    public boolean outputCph = false;
+	
+	
 	/**** GATK Walker implementation ******/
     @Output
     PrintStream out;
@@ -150,8 +158,11 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     		// Make the Cytosine
     		Cpg thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context);
     		
-    		out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
-    				new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+    		if (this.outputCph || !thisC.isCph(false, 0.101))
+    		{
+    			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
+    					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+    		}
 
 
     		// And process it
@@ -283,6 +294,14 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
         return sum + value;
     }
 
+
+
+	@Override
+	public Long treeReduce(Long lhs, Long rhs) {
+		// TODO Auto-generated method stub
+		return lhs + rhs;
+	}
+	
     /**
      * Retrieves the final result of the traversal.
      * @param result The ultimate value of the traversal, produced when map[n] is combined with reduce[n-1]
@@ -292,5 +311,7 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     public void onTraversalDone(Long result) {
         out.println("Number of loci viewed is: " + result);
     }
+
+
 
 }
