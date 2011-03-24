@@ -1,15 +1,24 @@
 package edu.usc.epigenome.uecgatk.benWalkers;
 
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.samtools.SAMRecord;
+
+import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
+import edu.usc.epigenome.genomeLibs.MethylDb.CpgRead;
+
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.io.PrintStream;
 import java.util.Iterator;
+
 
 /**
  * Translates GATK loci into cytosine objects (along with original GATK data structures). 
@@ -18,7 +27,10 @@ import java.util.Iterator;
  */
 public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Long> {
 
-	
+	/**** GATK Walker implementation ******/
+    @Output
+    PrintStream out;
+
 	private CpgBackedByGatk prevC = null;
 	
 	
@@ -31,6 +43,20 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 		// Check sharding strategy
 		//this.getToolkit().
 	}
+	
+	
+
+	/* (non-Javadoc)
+	 * @see org.broadinstitute.sting.gatk.walkers.Walker#initialize()
+	 */
+	@Override
+	public void initialize() {
+		// TODO Auto-generated method stub
+		super.initialize();
+		
+	}
+
+
 
 //	/*** Cpg iterator implementation *****/
 //
@@ -48,13 +74,9 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 //		// TODO Auto-generated method stub
 //		
 //	}	
-//	
 	
 	
-	/**** GATK Walker implementation ******/
-    @Output
-    PrintStream out;
-
+	
     /**
      * The map function runs once per single-base locus, and accepts a 'context', a
      * data structure consisting of the reads which overlap the locus, the sites over
@@ -69,13 +91,15 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 
     	// Are we on a new chrom?
     	GenomeLoc thisLoc = ref.getLocus();
+    	int centerCoord = thisLoc.getStart();
+    	String thisContig = ref.getLocus().getContig();
     	
 		if ( (prevC==null) || !ref.getLocus().onSameContig( prevC.getRefContext().getLocus()))
     	{
-    		logger.info(String.format("On AAAAA new contig: %s",ref.getLocus().getContig()));
+    		logger.info(String.format("On new contig: %s",thisContig));
     	}
-    	
-    	boolean isC = false;
+ 
+		boolean isC = false;
     	boolean negStrand = false;
     	if (ref.getBase() == BaseUtils.C)
     	{
@@ -87,23 +111,162 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     		isC = true;
     		negStrand = true;
     	}
-    	// Check strand.
-    	
-    	
-    	if (isC)
-    	{
-    		CpgBackedByGatk thisC = new CpgBackedByGatk(thisLoc.getStart(),negStrand,context, tracker, ref);
-    		logger.info(String.format("Found cytosine: %d: %s", thisC.chromPos, context.getBasePileup().getPileupString(null)));
 
-    		// Increment
-    		prevC = thisC;
+       	if (isC)
+    	{
+
+       		byte[] contextSeq = 
+       			this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, centerCoord-1, centerCoord+1).getBases();
+       		byte[] contextSeqStranded = contextSeq;
+       		if (negStrand) contextSeqStranded = BaseUtils.simpleReverseComplement(contextSeq);
+
+       		byte[] contextSeqStrandedIupac = new byte[contextSeqStranded.length];
+       		for (int i = 0; i < contextSeqStranded.length; i++)
+       		{
+       			if (i == 1) // Exclude central base, always a C
+       			{
+       				contextSeqStrandedIupac[i] = contextSeqStranded[i];
+       			}
+       			else
+       			{
+
+       				switch (contextSeqStranded[i])
+       				{
+       				case BaseUtils.A:
+       				case BaseUtils.C:
+       				case BaseUtils.T:
+       					contextSeqStrandedIupac[i] = (byte)'H';
+       					break;
+       				default:
+       					contextSeqStrandedIupac[i] = contextSeqStranded[i];
+       					break;		
+       				}
+       			}
+       		}
+
+ 
+    	
+    	
+ 
+//    		logger.info(String.format("pos=%d\tcontext(%d,%d)=%s (strand=%d)",centerCoord,0,0,new String(windowBases),
+//    				(negStrand?-1:1)));
+//    		
+
+//    		CpgBackedByGatk thisC = new CpgBackedByGatk(thisLoc.getStart(),negStrand,context, tracker, ref);
+//    		logger.info(String.format("Found cytosine: %d: %s", thisC.chromPos, context.getBasePileup().getPileupString(null)));
+//
+//    		// Increment
+//    		prevC = thisC;
+    		
+    		// Make the Cytosine
+    		Cpg thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context);
+    		
+    		out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
+    				new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+
+
+    		// And process it
+    		processCytosine(thisC);
 
     	}
     	
         return 1;
     }
 
-    /**
+    protected void processCytosine(Cpg thisC) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+
+	/**
+	 * @param thisLoc
+	 * @param ref
+	 * @param contextSeqStrandedIupac This has already been reverse complemented so that middle base is a cytosine
+	 * @param cytosineNegStrand
+	 * @param context This has all reads relative to the reference genome, so reverse strand cytosines will have to be revcomped
+	 * @return
+	 */
+    protected Cpg makeCytosine(GenomeLoc thisLoc, ReferenceContext ref,
+    		byte[] contextSeqStrandedIupac, boolean cytosineNegStrand,
+    		AlignmentContext context) 
+    {
+
+    	Cpg cOut = new Cpg(thisLoc.getStart(),cytosineNegStrand);
+    	short totalReadsOpposite = 0;
+    	short aReadOpposite = 0;
+
+    	//**************************************************************
+    	//*** These would ideally be set based on the reads rather than the reference
+    	boolean nextBaseG = BaseUtils.basesAreEqual(contextSeqStrandedIupac[2],BaseUtils.G);
+    	char nextBase = (char)contextSeqStrandedIupac[2];
+    	char prevBase = (char)contextSeqStrandedIupac[0];
+    	//**************************************************************
+
+
+    	ReadBackedPileup pileup = context.getBasePileup();
+    	Iterator<PileupElement> pileupIt = pileup.iterator();
+
+    	//		int onRead = 0;
+    	//		boolean finished = false;
+    	//		int curChrPos = -1;
+    	while (pileupIt.hasNext())
+    	{
+    		PileupElement pe = pileupIt.next();
+
+    		byte qual = pe.getQual();
+
+    		// Make sure to handle the strand correctly
+    		SAMRecord read = pe.getRead();
+    		boolean readOnCytosineStrand = (read.getReadNegativeStrandFlag() == cytosineNegStrand);
+    		byte base = pe.getBase();
+    		if (!readOnCytosineStrand)
+    		{
+    			base = BaseUtils.simpleComplement(base);
+    			totalReadsOpposite++;
+    			if (BaseUtils.basesAreEqual(base, BaseUtils.A)) aReadOpposite++;
+    		}
+    		else
+    		{
+
+    			boolean isC = BaseUtils.basesAreEqual(base, BaseUtils.C);
+    			boolean isT = BaseUtils.basesAreEqual(base, BaseUtils.T);
+    			boolean isAG = BaseUtils.basesAreEqual(base, BaseUtils.A) || BaseUtils.basesAreEqual(base, BaseUtils.G);
+
+    			//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
+    			//**** TO THE SAME INT
+    			//**************************************************************
+    			String readName = read.getReadName();
+    			int readCode = readName.hashCode();
+    			//**************************************************************
+
+
+    			CpgRead cRead = new CpgRead(
+    					readCode,
+    					(short)(isC?1:0),
+    					(short)0,
+    					(short)(isT?1:0),
+    					(short)((isC||isT)?0:1),
+    					(short)(nextBaseG?1:0),
+    					nextBase
+    			);
+    			cOut.addRead(cRead);
+    			out.printf("\tAdding read: %s\n", cRead.toString());
+    		}
+    	}
+
+    	// Now finish it off
+    	cOut.totalReadsOpposite = totalReadsOpposite;
+    	cOut.aReadsOpposite = aReadOpposite;
+    	cOut.setNextBaseRef(nextBase);
+    	cOut.setPrevBaseRef(prevBase);
+
+    	return cOut;
+    }
+
+
+	/**
      * Provides an initial value for the reduce function.  Hello walker counts loci,
      * so the base case for the inductive step is 0, indicating that the walker has seen 0 loci.
      * @return 0.
