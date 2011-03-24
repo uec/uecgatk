@@ -41,7 +41,12 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
     public boolean outputCph = false;
 	
-	
+    @Argument(fullName = "minCT", shortName = "mct", doc = "Minimum number of C/T bases to process cytosine (default=1)", required = false)
+    public int minCT = 1;
+    
+    @Argument(fullName = "maxOppAfrac", shortName = "maxa", doc = "Maximum fraction of opposite strand reads being A (default=0.101)", required = false)
+    public double maxOppAfrac = 0.101;
+
 	/**** GATK Walker implementation ******/
     @Output
     protected PrintStream out;
@@ -163,13 +168,19 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     		
     		if (this.outputCph || !thisC.isCph(false, 0.101))
     		{
-    			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
-    					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+//    			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
+//    					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
+
+
+    			// And process it
+    			boolean minCTpasses = ((thisC.cReads + thisC.totalReads) >= this.minCT);
+    			boolean maxOppAfracPasses = (thisC.fracOppositeA() <= maxOppAfrac);
+    			
+    			if (minCTpasses & maxOppAfracPasses)
+    			{
+    				mapout = processCytosine(thisC);
+    			}
     		}
-
-
-    		// And process it
-    		mapout = processCytosine(thisC);
 
     	}
     	

@@ -1,10 +1,35 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.broadinstitute.sting.utils.collections.Pair;
+
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
+import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
+import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
-public class MethLevelAveragesWalker extends LocusWalkerToBisulfiteCytosineWalker<Integer, Long> {
+/**
+ * @author benb
+ * 
+ * Maptype = Pair<String,Double>. String is the cytosine context, Double is the percent meth.
+ * Reducetype = Map<String,CpgMethLevelSummarizer>. The key is the cytosine context, the value is a meth summarizer
+ *
+ */
+public class MethLevelAveragesWalker 
+	extends LocusWalkerToBisulfiteCytosineWalker<Pair<String,Double>, Map<String,CpgMethLevelSummarizer>> {
 
+
+//	public MethLevelAveragesWalker() {
+//		super();
+//	}
+
+
+	/**
+	 * locus walker overrides
+	 */
 
 
 	/**
@@ -13,21 +38,43 @@ public class MethLevelAveragesWalker extends LocusWalkerToBisulfiteCytosineWalke
 	 * @return 0.
 	 */
 	@Override
-	public Long reduceInit() { return 0L; }
-
-
-
-
-
-	@Override
-	protected Long reduceCytosines(Integer value, Long sum) {
-		return value + sum;
+	public Map<String,CpgMethLevelSummarizer> reduceInit()
+	{ 
+		Map<String,CpgMethLevelSummarizer> out = 
+			new HashMap<String,CpgMethLevelSummarizer>();
+		return out;
 	}
 
+
+
 	@Override
-	public Long treeReduce(Long lhs, Long rhs) {
-		// TODO Auto-generated method stub
-		return lhs + rhs;
+	public Map<String, CpgMethLevelSummarizer> treeReduce(
+			Map<String, CpgMethLevelSummarizer> lhs,
+			Map<String, CpgMethLevelSummarizer> rhs) 
+	{
+		Map<String,CpgMethLevelSummarizer> out = 
+			new HashMap<String,CpgMethLevelSummarizer>();
+		
+		Set<String> keys = lhs.keySet();
+		keys.addAll(rhs.keySet());
+		for (String key : keys)
+		{
+			if (lhs.containsKey(key) && !rhs.containsKey(key))
+			{
+				out.put(key, lhs.get(key));
+			}
+			else if (!lhs.containsKey(key) && rhs.containsKey(key))
+			{
+				out.put(key, lhs.get(key));
+			}
+			else
+			{
+				// They must both contain the key.  Merge
+				out.put(key, (CpgMethLevelSummarizer)CpgMethLevelSummarizer.sumSummarizers(lhs.get(key), rhs.get(key)));
+			}
+		}
+		
+		return out;
 	}
 
 	/**
@@ -36,13 +83,50 @@ public class MethLevelAveragesWalker extends LocusWalkerToBisulfiteCytosineWalke
 	 *               by the reduce function. 
 	 */
 	@Override
-	public void onTraversalDone(Long result) {
+	public void onTraversalDone(Map<String, CpgMethLevelSummarizer> result) 
+	{
 		out.println("Number of cytosines viewed is: " + result);
+		
+		for (String key : result.keySet())
+		{
+			CpgMethLevelSummarizer summarizer = result.get(key);
+			out.printf("%s:\t%d\t%.2f%%\n",key,(int)summarizer.getNumVals(), summarizer.getValMean()*100);
+		}
 	}
 
+	
+	/***************************************************
+	 * cytosine walker overrides
+	 ***************************************************/
+	
 	@Override
-	protected Integer processCytosine(Cpg thisC)
+	protected Pair<String,Double> processCytosine(Cpg thisC)
 	{
-		return 1;
+		String context = thisC.context();
+		double meth = thisC.fracMeth(false);
+		return new Pair<String,Double>(context, meth);
 	}
+
+
+	@Override
+	protected Map<String, CpgMethLevelSummarizer> reduceCytosines(
+			Pair<String, Double> value, Map<String, CpgMethLevelSummarizer> sum) 
+	{
+		String context = value.first;
+		CpgMethLevelSummarizer summarizer = null;
+		if (sum.containsKey(context))
+		{
+			summarizer = sum.get(context);
+		}
+		else
+		{
+			summarizer = new CpgMethLevelSummarizer();
+			sum.put(context, summarizer);
+		}
+		// Stream cytosine
+		summarizer.streamValue(value.second,1);
+		
+		return sum;
+	}
+	
 }
