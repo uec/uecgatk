@@ -1,11 +1,13 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import edu.usc.epigenome.genomeLibs.ListUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
@@ -55,7 +57,11 @@ public class MethLevelAveragesWalker
 		Map<String,CpgMethLevelSummarizer> out = 
 			new HashMap<String,CpgMethLevelSummarizer>();
 		
-		Set<String> keys = lhs.keySet();
+//		String[] a = new String[1];
+//		logger.info(String.format("Adding keys:\n\tlhs(%s)\n\trhs(%s)\n",ListUtils.excelLine(lhs.keySet().toArray(a)),ListUtils.excelLine(rhs.keySet().toArray(a))));
+
+		Set<String> keys = new HashSet<String>();
+		keys.addAll(lhs.keySet());
 		keys.addAll(rhs.keySet());
 		for (String key : keys)
 		{
@@ -65,12 +71,20 @@ public class MethLevelAveragesWalker
 			}
 			else if (!lhs.containsKey(key) && rhs.containsKey(key))
 			{
-				out.put(key, lhs.get(key));
+				out.put(key, rhs.get(key));
+			}
+			else if (!lhs.containsKey(key) && !rhs.containsKey(key))
+			{
+				// SHOULD NOT BE HERE
+				logger.error(String.format("MethLevelAveragesWalker::treeReduce() - How did we get key \"%s\" when neither lhs and rhs contain it??",key)); 
 			}
 			else
 			{
 				// They must both contain the key.  Merge
-				out.put(key, (CpgMethLevelSummarizer)CpgMethLevelSummarizer.sumSummarizers(lhs.get(key), rhs.get(key)));
+				//logger.info(String.format("About to combine lhs and rhs for key \"%s\"",key)); 
+				CpgMethLevelSummarizer combined = (CpgMethLevelSummarizer)CpgMethLevelSummarizer.sumSummarizers(lhs.get(key), rhs.get(key));
+				//logger.info(String.format("\tcombined=%s\tlhs(%s)=%s\trhs(%s)=%s",combined,key,lhs.get(key),key,rhs.get(key)));
+				out.put(key, combined);
 			}
 		}
 		
@@ -85,8 +99,6 @@ public class MethLevelAveragesWalker
 	@Override
 	public void onTraversalDone(Map<String, CpgMethLevelSummarizer> result) 
 	{
-		out.println("Number of cytosines viewed is: " + result);
-		
 		for (String key : result.keySet())
 		{
 			CpgMethLevelSummarizer summarizer = result.get(key);
