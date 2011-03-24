@@ -5,8 +5,13 @@ import net.sf.samtools.SAMRecord;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgRead;
+import edu.usc.epigenome.uecgatk.BaseUtilsMore;
 
+import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -25,6 +30,8 @@ import java.util.Iterator;
  * Keeps a window of cytosines upstream and downstram of current CpG (note that this
  * is not guaranteed to work well with out-of-order sharding strategies.
  */
+@ReadFilters( {MappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
+@Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Long> {
 
 	/**** GATK Walker implementation ******/
@@ -55,25 +62,6 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 		super.initialize();
 		
 	}
-
-
-
-//	/*** Cpg iterator implementation *****/
-//
-//	public boolean hasNext() {
-//		// TODO Auto-generated method stub
-//		return false;
-//	}
-//
-//	public Cpg next() {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
-//
-//	public void remove() {
-//		// TODO Auto-generated method stub
-//		
-//	}	
 	
 	
 	
@@ -94,10 +82,10 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     	int centerCoord = thisLoc.getStart();
     	String thisContig = ref.getLocus().getContig();
     	
-		if ( (prevC==null) || !ref.getLocus().onSameContig( prevC.getRefContext().getLocus()))
-    	{
-    		logger.info(String.format("On new contig: %s",thisContig));
-    	}
+//		if ( (prevC==null) || !ref.getLocus().onSameContig( prevC.getRefContext().getLocus()))
+//    	{
+//    		logger.info(String.format("On new contig: %s",thisContig));
+//    	}
  
 		boolean isC = false;
     	boolean negStrand = false;
@@ -117,6 +105,7 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 
        		byte[] contextSeq = 
        			this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, centerCoord-1, centerCoord+1).getBases();
+       		contextSeq = BaseUtilsMore.toUpperCase(contextSeq);
        		byte[] contextSeqStranded = contextSeq;
        		if (negStrand) contextSeqStranded = BaseUtils.simpleReverseComplement(contextSeq);
 
@@ -221,18 +210,26 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     		SAMRecord read = pe.getRead();
     		boolean readOnCytosineStrand = (read.getReadNegativeStrandFlag() == cytosineNegStrand);
     		byte base = pe.getBase();
+    		
+    		// We change the base to the cytosine-strand
+    		byte baseCstrand = (cytosineNegStrand) ? BaseUtils.simpleComplement(base) : base;
+    		
+    		
     		if (!readOnCytosineStrand)
     		{
-    			base = BaseUtils.simpleComplement(base);
+        		byte baseGstrand = BaseUtils.simpleComplement(baseCstrand);
+
+//        		out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
     			totalReadsOpposite++;
-    			if (BaseUtils.basesAreEqual(base, BaseUtils.A)) aReadOpposite++;
+    			if (BaseUtils.basesAreEqual(baseGstrand, BaseUtils.A)) aReadOpposite++;
     		}
     		else
     		{
+//        		out.printf("Got base on C strand: %c\n", (char)baseCstrand);
 
-    			boolean isC = BaseUtils.basesAreEqual(base, BaseUtils.C);
-    			boolean isT = BaseUtils.basesAreEqual(base, BaseUtils.T);
-    			boolean isAG = BaseUtils.basesAreEqual(base, BaseUtils.A) || BaseUtils.basesAreEqual(base, BaseUtils.G);
+    			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
+    			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
+    			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
 
     			//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
     			//**** TO THE SAME INT
@@ -252,7 +249,7 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     					nextBase
     			);
     			cOut.addRead(cRead);
-    			out.printf("\tAdding read: %s\n", cRead.toString());
+//    			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
     		}
     	}
 
