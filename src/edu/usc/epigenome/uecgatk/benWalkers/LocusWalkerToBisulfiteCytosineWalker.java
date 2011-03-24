@@ -36,7 +36,7 @@ import java.util.Iterator;
  */
 @ReadFilters( {MappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
-public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
+public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> extends LocusWalker<MapType,ReduceType> implements TreeReducible<ReduceType> {
 
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
     public boolean outputCph = false;
@@ -44,7 +44,7 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 	
 	/**** GATK Walker implementation ******/
     @Output
-    PrintStream out;
+    protected PrintStream out;
 
 	private CpgBackedByGatk prevC = null;
 	
@@ -83,8 +83,11 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
      * @return In this case, returns a count of how many loci were seen at this site (1).
      */
     @Override
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public MapType map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
+    	MapType mapout = null;
+    	
+    	
     	// Are we on a new chrom?
     	GenomeLoc thisLoc = ref.getLocus();
     	int centerCoord = thisLoc.getStart();
@@ -166,17 +169,36 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
 
 
     		// And process it
-    		processCytosine(thisC);
+    		mapout = processCytosine(thisC);
 
     	}
     	
-        return 1;
+        return mapout;
     }
 
-    protected void processCytosine(Cpg thisC) {
-		// TODO Auto-generated method stub
-		
+   abstract protected MapType processCytosine(Cpg thisC);
+
+   
+	/**
+	 * Combines the result of the latest map with the accumulator.  In inductive terms,
+	 * this represents the step loci[x + 1] = loci[x] + 1
+	 * @param value result of the map.
+	 * @param sum accumulator for the reduce.
+	 * @return The total count of loci processed so far.
+	 * 
+	 * We implement this to ignore non-cytosines.  Subclasses should implement reduceCytosines
+	 */
+	@Override
+	public ReduceType reduce(MapType value, ReduceType sum) {
+		ReduceType out = sum;
+		if (value != null)
+		{
+			out = reduceCytosines(value, sum);
+		}
+		return out;
 	}
+
+	abstract protected ReduceType reduceCytosines(MapType value, ReduceType sum);
 
 
 
@@ -274,43 +296,7 @@ public class LocusWalkerToBisulfiteCytosineWalker extends LocusWalker<Integer,Lo
     }
 
 
-	/**
-     * Provides an initial value for the reduce function.  Hello walker counts loci,
-     * so the base case for the inductive step is 0, indicating that the walker has seen 0 loci.
-     * @return 0.
-     */
-    @Override
-    public Long reduceInit() { return 0L; }
 
-    /**
-     * Combines the result of the latest map with the accumulator.  In inductive terms,
-     * this represents the step loci[x + 1] = loci[x] + 1
-     * @param value result of the map.
-     * @param sum accumulator for the reduce.
-     * @return The total count of loci processed so far.
-     */
-    @Override
-    public Long reduce(Integer value, Long sum) {
-        return sum + value;
-    }
-
-
-
-	@Override
-	public Long treeReduce(Long lhs, Long rhs) {
-		// TODO Auto-generated method stub
-		return lhs + rhs;
-	}
-	
-    /**
-     * Retrieves the final result of the traversal.
-     * @param result The ultimate value of the traversal, produced when map[n] is combined with reduce[n-1]
-     *               by the reduce function. 
-     */
-    @Override
-    public void onTraversalDone(Long result) {
-        out.println("Number of loci viewed is: " + result);
-    }
 
 
 
