@@ -58,6 +58,13 @@ public class CytosineTEMPLATEWalker extends LocusWalkerToBisulfiteCytosineWalker
 	 * cytosine walker overrides
 	 ***************************************************/
 	
+	
+	@Override
+	protected void alertNewContig(String newContig) 
+	{
+	}
+
+	
 	@Override
 	protected Integer processCytosine(CpgBackedByGatk thisC)
 	{
@@ -65,6 +72,9 @@ public class CytosineTEMPLATEWalker extends LocusWalkerToBisulfiteCytosineWalker
 		double meth = thisC.fracMeth(false);
 		return 1;
 	}
+
+
+
 
 
 	@Override

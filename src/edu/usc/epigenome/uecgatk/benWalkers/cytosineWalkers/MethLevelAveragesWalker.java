@@ -112,6 +112,12 @@ public class MethLevelAveragesWalker
 	 ***************************************************/
 	
 	@Override
+	protected void alertNewContig(String newContig) 
+	{
+	}
+
+	
+	@Override
 	protected Pair<String,Double> processCytosine(CpgBackedByGatk thisC)
 	{
 		String context = thisC.context();

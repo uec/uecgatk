@@ -108,6 +108,11 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 	 ***************************************************/
 	
 	@Override
+	protected void alertNewContig(String newContig) 
+	{
+	}
+
+	@Override
 	protected Map<String,WiggleWriterReducible> processCytosine(CpgBackedByGatk thisC)
 	{
 		writeCoverage(thisC);

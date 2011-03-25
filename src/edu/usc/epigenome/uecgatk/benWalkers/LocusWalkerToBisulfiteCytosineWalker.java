@@ -51,7 +51,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Output
     protected PrintStream out;
 
-	private CpgBackedByGatk prevC = null;
+	protected String prevContig = null;
 	
 	
 	/**
@@ -98,10 +98,11 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     	int centerCoord = thisLoc.getStart();
     	String thisContig = ref.getLocus().getContig();
     	
-//		if ( (prevC==null) || !ref.getLocus().onSameContig( prevC.getRefContext().getLocus()))
-//    	{
-//    		logger.info(String.format("On new contig: %s",thisContig));
-//    	}
+		if ( (prevContig==null) || !thisContig.equalsIgnoreCase(prevContig) )
+    	{
+    		logger.info(String.format("On new contig: (%s, %s, %s)",prevContig,thisContig,this));
+    		this.alertNewContig(thisContig);
+    	}
  
 		boolean isC = false;
     	boolean negStrand = false;
@@ -157,12 +158,6 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 //    				(negStrand?-1:1)));
 //    		
 
-//    		CpgBackedByGatk thisC = new CpgBackedByGatk(thisLoc.getStart(),negStrand,context, tracker, ref);
-//    		logger.info(String.format("Found cytosine: %d: %s", thisC.chromPos, context.getBasePileup().getPileupString(null)));
-//
-//    		// Increment
-//    		prevC = thisC;
-    		
     		// Make the Cytosine
        		CpgBackedByGatk thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context,tracker);
     		
@@ -182,12 +177,15 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     				mapout = processCytosine(thisC);
     			}
     		}
-
     	}
     	
-        return mapout;
+		// Increment
+		prevContig = thisContig;
+
+		return mapout;
     }
 
+   abstract protected void alertNewContig(String newContig);
    abstract protected MapType processCytosine(CpgBackedByGatk thisC);
 
    
