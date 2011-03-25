@@ -1,5 +1,7 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -101,17 +103,20 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 		for (AutocorrConditions cond : AutocorrConditions.values())
 		{
 			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
-			if (count==0)
-			{
-				out.printf("type,%s\n", walker.headerStr());
-			}
 			
 			try {
-				out.printf(walker.toCsvStr(cond.toString()));
+
+				String outfn = String.format("%s-%s.csv", this.outPrefix, cond.toString());
+				PrintWriter pw = new PrintWriter(new FileOutputStream(outfn));
+				pw.println(walker.headerStr());
+
+				pw.println(walker.toCsvStr());
+				pw.close();
 			} catch (Exception e) {
 				logger.error("Error CpgWalkerAllpairsAutocorrByread::toCsvStr\n" + e.toString());
 				e.printStackTrace();
 			}
+			
 
 			count++;
 		}
