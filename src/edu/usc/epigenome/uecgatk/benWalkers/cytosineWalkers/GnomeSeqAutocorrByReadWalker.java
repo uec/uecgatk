@@ -251,9 +251,11 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	{
 		HCG_HCG_SAMEREAD ("HCG", "HCG", true, false),
 		HCG_GCH_SAMEREAD ("HCG", "GCH", true, false),
+		GCH_HCG_SAMEREAD ("GCH", "HCG", true, false),
 		GCH_GCH_SAMEREAD ("GCH", "GCH", true, false),
 		HCG_HCG_ANYREAD ("HCG", "HCG", false, false),
 		HCG_GCH_ANYREAD ("HCG", "GCH", false, false),
+		GCH_HCG_ANYREAD ("GCH", "HCG", false, false),
 		GCH_GCH_ANYREAD ("GCH", "GCH", false, false);
 		
 		private final String fromContext;
