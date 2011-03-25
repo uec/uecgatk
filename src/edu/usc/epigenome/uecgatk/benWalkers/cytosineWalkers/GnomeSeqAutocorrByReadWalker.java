@@ -10,6 +10,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.kohsuke.args4j.Option;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByread;
+import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByreadWcontext;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerParams;
 import edu.usc.epigenome.uecgatk.WiggleWriterReducible;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
@@ -31,22 +32,13 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
     public String outPrefix = null;
 
 
-    Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> walkerByCondition = 
-    	new HashMap<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread>();
+    Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> walkerByCondition = null;
     
     
-	/**
-	 * locus walker overrides
-	 */
-
-
-    @Override
-	public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> reduceInit()
-	{
-		//Long out = 0L;
+    public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> emptyMap()
+    {
 		Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> out = 
 			new HashMap<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread>();
-		
 		for (AutocorrConditions cond : AutocorrConditions.values())
 		{
 			CpgWalkerAllpairsAutocorrByread walker = cond.createWalker(this.windSize);
@@ -56,6 +48,26 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 		return out;
 	}
 
+    
+	/**
+	 * locus walker overrides
+	 */
+
+    @Override
+	public void initialize() {
+		// TODO Auto-generated method stub
+		super.initialize();
+		walkerByCondition = this.emptyMap();
+		this.outputCph = true; // Because GNOME-seq used GCH
+	}   
+
+    @Override
+	public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> reduceInit()
+	{
+    	return this.emptyMap();
+	}
+    
+ 
 
 
 	@Override
@@ -76,6 +88,24 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	@Override
 	public void onTraversalDone(Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> result) 
 	{
+		int count = 0;
+		for (AutocorrConditions cond : AutocorrConditions.values())
+		{
+			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
+			if (count==0)
+			{
+				out.printf("type\t%s\n", walker.headerStr());
+			}
+			
+			try {
+				out.printf("%s\t%s\n",cond, walker.toCsvStr());
+			} catch (Exception e) {
+				logger.error("Error CpgWalkerAllpairsAutocorrByread::toCsvStr\n" + e.toString());
+				e.printStackTrace();
+			}
+
+			count++;
+		}
 	}
 
 	
@@ -84,11 +114,25 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	 ***************************************************/
 	
 	@Override
-	protected Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> processCytosine(CpgBackedByGatk thisC)
+	protected void alertNewContig(String newContig) 
 	{
-		String context = thisC.context();
-		double meth = thisC.fracMeth(false);
+		for (AutocorrConditions cond : AutocorrConditions.values())
+		{
+			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
+			walker.setCurChr(newContig);
+		}
+	}
 
+	
+	@Override
+	protected Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> 
+	processCytosine(CpgBackedByGatk thisC)
+	{
+		for (AutocorrConditions cond : AutocorrConditions.values())
+		{
+			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
+			walker.streamCpg(thisC);
+		}
 		
 		return this.walkerByCondition;
 	}
@@ -186,12 +230,16 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 			params.minScanningWindSize = windSize;
 			params.minScanningWindCpgs = 2;
 
-			CpgWalkerAllpairsAutocorrByread out = new CpgWalkerAllpairsAutocorrByread(
+			CpgWalkerAllpairsAutocorrByread out = new CpgWalkerAllpairsAutocorrByreadWcontext(
 					params,
 					this.sameStrand,
 					false,
 					this.sameRead,
-					false);
+					false,
+					fromContext,
+					toContext);
+			
+			out.useOnlyCG(false);
 			return out;
 		}
 		
