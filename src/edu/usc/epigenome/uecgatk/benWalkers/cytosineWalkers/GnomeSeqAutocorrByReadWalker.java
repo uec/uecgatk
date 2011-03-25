@@ -57,7 +57,7 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 		// TODO Auto-generated method stub
 		super.initialize();
 		walkerByCondition = this.emptyMap();
-		logger.info(String.format("Initializing map (%d)",walkerByCondition.hashCode()));
+		//logger.info(String.format("Initializing map (%d)",walkerByCondition.hashCode()));
 		this.outputCph = true; // Because GNOME-seq used GCH
 	}   
 
@@ -71,7 +71,6 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> reduceInit()
 	{
     	Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> out = null; // this.emptyMap();
-//		logger.info(String.format("reduceInit() empty map (%d)",out.hashCode()));
 		
 		return out;
 	}
@@ -150,7 +149,8 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 			grandTotal += walker.totalCount();
 		}
 		
-		//logger.info(String.format("processCytosine() returning walker with %d pairs (%s)",grandTotal,this.walkerByCondition.hashCode()));
+//		logger.info(String.format("processCytosine(%s,%d) returning walker with %d pairs (this=%s, map=%s)",
+//				thisC.getChrom(),thisC.chromPos, grandTotal, this.hashCode(), this.walkerByCondition.hashCode()));
 		return this.walkerByCondition;
 	}
 
