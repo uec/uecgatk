@@ -1,18 +1,15 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.broadinstitute.sting.commandline.Argument;
-import org.kohsuke.args4j.Option;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByread;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByreadWcontext;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerParams;
-import edu.usc.epigenome.uecgatk.WiggleWriterReducible;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
@@ -58,13 +55,23 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 		// TODO Auto-generated method stub
 		super.initialize();
 		walkerByCondition = this.emptyMap();
+		logger.info(String.format("Initializing map (%d)",walkerByCondition.hashCode()));
 		this.outputCph = true; // Because GNOME-seq used GCH
 	}   
 
+    /**
+     * This can get called tons of times before even the first cytosine gets processed.
+     * We can avoid the merges if we set it to null here and then make the merger know
+     * how to deal with nulls.
+     * @return
+     */
     @Override
 	public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> reduceInit()
 	{
-    	return this.emptyMap();
+    	Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> out = null; // this.emptyMap();
+//		logger.info(String.format("reduceInit() empty map (%d)",out.hashCode()));
+		
+		return out;
 	}
     
  
@@ -74,6 +81,8 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	public Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread>
 	treeReduce(Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> a, Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> b)
 	{
+		// I am still getting errors from out-of-order cytosines given to the CpgWalker.
+		// **** FIX LATER ***
 		System.err.println("GnomeSeqAutocorrByReadWalker does not yet implement multi-threaded mode. Use -nt 1");
 		System.exit(1);
 		
@@ -94,11 +103,11 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
 			if (count==0)
 			{
-				out.printf("type\t%s\n", walker.headerStr());
+				out.printf("type,%s\n", walker.headerStr());
 			}
 			
 			try {
-				out.printf("%s\t%s\n",cond, walker.toCsvStr());
+				out.printf(walker.toCsvStr(cond.toString()));
 			} catch (Exception e) {
 				logger.error("Error CpgWalkerAllpairsAutocorrByread::toCsvStr\n" + e.toString());
 				e.printStackTrace();
@@ -128,12 +137,15 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	protected Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> 
 	processCytosine(CpgBackedByGatk thisC)
 	{
+		int grandTotal = 0;
 		for (AutocorrConditions cond : AutocorrConditions.values())
 		{
 			CpgWalkerAllpairsAutocorrByread walker = this.walkerByCondition.get(cond);
 			walker.streamCpg(thisC);
+			grandTotal += walker.totalCount();
 		}
 		
+		//logger.info(String.format("processCytosine() returning walker with %d pairs (%s)",grandTotal,this.walkerByCondition.hashCode()));
 		return this.walkerByCondition;
 	}
 
@@ -145,14 +157,34 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	{
 		Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> outMap = null;
 		
-		if (newMap.hashCode() == oldMap.hashCode())
+		if (newMap == null)
+		{
+			outMap = oldMap;
+		}
+		else if (oldMap == null)
+		{
+			outMap = newMap;
+		}
+		else if (newMap.hashCode() == oldMap.hashCode())
 		{
 			// Do nothing, same object
 			outMap = oldMap;
 		}
 		else
 		{
-			logger.info(String.format("Actually combining maps: (%s,%s)\n",newMap.hashCode(),oldMap.hashCode()));
+			logger.info(String.format("Actually combining maps: (%s,%d pairs) + (%s, %d pairs)",
+					newMap.hashCode(),mapTotal(newMap),oldMap.hashCode(),mapTotal(oldMap)));
+			
+			try
+			{
+				throw new Exception("FAIL");
+			}
+			catch (Exception e)
+			{
+//				e.printStackTrace();
+//				System.exit(1);
+			}
+			
 			outMap = this.actuallyReduceCytosines(newMap, oldMap);
 		}
 		
@@ -163,7 +195,7 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	actuallyReduceCytosines(Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> newMap, 
 			Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> oldMap) 
 	{
-		Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> outmap = oldMap; //new HashMap<String,WiggleWriterReducible>();
+		Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> outmap = newMap; //new HashMap<String,WiggleWriterReducible>();
 		
 		Set<GnomeSeqAutocorrByReadWalker.AutocorrConditions> keys = new HashSet<GnomeSeqAutocorrByReadWalker.AutocorrConditions>();
 		keys.addAll(newMap.keySet());
@@ -199,7 +231,16 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 	
 
 
-
+	public static int mapTotal(Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> in)
+	{
+		int grandTotal = 0;
+		for (AutocorrConditions cond : AutocorrConditions.values())
+		{
+			CpgWalkerAllpairsAutocorrByread walker = in.get(cond);
+			grandTotal += walker.totalCount();
+		}
+		return grandTotal;
+	}
 
 	public enum AutocorrConditions
 	{
@@ -238,6 +279,7 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 					false,
 					fromContext,
 					toContext);
+			out.useSummarizers(false); // These summarizers don't work with merging
 			
 			out.useOnlyCG(false);
 			return out;
