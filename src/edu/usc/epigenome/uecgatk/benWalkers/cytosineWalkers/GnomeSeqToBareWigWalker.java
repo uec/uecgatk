@@ -10,10 +10,12 @@ import java.util.Set;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.wiggle.WiggleHeader;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
+import edu.usc.epigenome.uecgatk.benWalkers.WiggleHeaderCytosines;
 import edu.usc.epigenome.uecgatk.WiggleWriterReducible;
 
 /**
@@ -108,6 +110,8 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 	@Override
 	protected Map<String,WiggleWriterReducible> processCytosine(CpgBackedByGatk thisC)
 	{
+		writeCoverage(thisC);
+		
 		String context = thisC.context();
 
 		// Skip optional contexts
@@ -128,9 +132,13 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 		{
 			// We use the wigByContext for merging
 //			String outfn = String.format("%s.%s.wig.%s",this.outPrefix,context,this.wigByContext.hashCode());
-			String outfn = String.format("%s.%s.wig",this.outPrefix,context);
+			String name = String.format("%s.%s", this.outPrefix, context);
+			String outfn = String.format("%s.wig",name,context);
 			logger.info("NEW wig " + outfn);
 			wig = new WiggleWriterReducible(new File(outfn));
+			
+			WiggleHeader head = new WiggleHeaderCytosines(name, name);
+			wig.writeHeader(head);
 			this.wigByContext.put(context, wig);
 		}
 		
@@ -138,6 +146,33 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 		//logger.info(String.format("\tWriting pos %d to wig \"%s\" (this=%s)\n", thisC.chromPos, context,this));
 		
 		return this.wigByContext;
+	}
+
+
+	private void writeCoverage(CpgBackedByGatk thisC)
+	{
+		String context = "readcvg";
+		WiggleWriterReducible wig = null;
+		if (this.wigByContext.containsKey(context))
+		{
+			wig = this.wigByContext.get(context);
+			//logger.info("Found wig " + wig.toString());
+		}
+		else
+		{
+			// We use the wigByContext for merging
+//			String outfn = String.format("%s.%s.wig.%s",this.outPrefix,context,this.wigByContext.hashCode());
+			String name = String.format("%s.%s", this.outPrefix, context);
+			String outfn = String.format("%s.wig",name,context);
+			logger.info("NEW wig " + outfn);
+			wig = new WiggleWriterReducible(new File(outfn));
+			
+			WiggleHeader head = new WiggleHeaderCytosines(name, name);
+			wig.writeHeader(head);
+			this.wigByContext.put(context, wig);
+		}
+		
+		wig.writeData(thisC.getGenomeLoc(), thisC.totalReads);
 	}
 
 
