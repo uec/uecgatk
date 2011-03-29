@@ -59,12 +59,12 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteAlignmentUtils;
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteAlignmentUtils;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
 
 public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 
-	protected boolean bisulfiteSpace = false;
+	public boolean bisulfiteSpace = false;
 	
 	public BisulfiteGenotyperEngine(GenomeAnalysisEngine toolkit,
 			UnifiedArgumentCollection UAC) {
@@ -298,9 +298,9 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
             }            
 
             BitSet mismatches;
-            //System.out.println(bisulfiteSpace);
-            if(bisulfiteSpace){
-            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, bisulfiteSpace);
+            //System.out.println(UAC.bisulfiteSpace);
+            if(UAC.bisulfiteSpace){
+            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, UAC.bisulfiteSpace);
             }
             else{
             	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
