@@ -214,9 +214,57 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	}
 	
 	protected void initializeBestAndAlternateAlleleFromPosterior(double[] posterior, int location){
-		int[] qualCounts = new int[4];
-		
+		double maxCount = Double.NEGATIVE_INFINITY;
+        double secondMaxCount = Double.NEGATIVE_INFINITY;
+        DiploidGenotype bestGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
+        DiploidGenotype secondGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
+        bestAllele = null;
+        alternateAllele = null;
         
+        for ( DiploidGenotype g : DiploidGenotype.values() ){
+			if(posterior[g.ordinal()] > maxCount){
+				secondMaxCount = maxCount;
+				maxCount = posterior[g.ordinal()];
+				if(bestGenotype.base1 != secondGenotype.base1){
+            		secondGenotype = bestGenotype;
+            	}
+				bestGenotype = g;
+			}
+			else if (posterior[g.ordinal()] > secondMaxCount && posterior[g.ordinal()] <= maxCount){
+	            	secondMaxCount = posterior[g.ordinal()];
+	            	secondGenotype = g;
+	        }
+		}
+        if(bestGenotype.isHom()){
+        	bestAllele = bestGenotype.base1;
+        	if(secondGenotype.isHom()){
+        		alternateAllele = secondGenotype.base1;
+        	}	
+        	else{
+        		if(secondGenotype.base1 == bestAllele){
+        			alternateAllele = secondGenotype.base2;
+        		}
+        		else{
+        			alternateAllele = secondGenotype.base1;
+        		}
+        	}
+        		
+        }
+        else{
+        	DiploidGenotype temp1 = DiploidGenotype.createHomGenotype(bestGenotype.base1);
+        	DiploidGenotype temp2 = DiploidGenotype.createHomGenotype(bestGenotype.base2);
+        	if(posterior[temp1.ordinal()] > posterior[temp2.ordinal()]){
+        		bestAllele = bestGenotype.base1;
+        		alternateAllele = bestGenotype.base2;
+        	}
+        	else{
+        		bestAllele = bestGenotype.base2;
+        		alternateAllele = bestGenotype.base1;
+        	}
+        }
+        
+		
+        /*
         for ( byte altAllele : BaseUtils.BASES ) {
         	for ( DiploidGenotype g : DiploidGenotype.values() ){
     			if(g.base1 == altAllele){
@@ -252,14 +300,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             }
             //System.err.println();
         }
-		
+		*/
         if(location == testLoc){
         	for ( DiploidGenotype g : DiploidGenotype.values() ){
         		System.err.println(g.base1 + "-" + g.base2 + ": " + posterior[g.ordinal()]);
-        	}
-        	for ( byte altAllele : BaseUtils.BASES ) {
-        		int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
-        		System.err.println(altAllele + ": " + qualCounts[index]);
         	}
         	System.err.println("bestAllele: " + bestAllele + "\t" + maxCount);
         	if(alternateAllele != null){
