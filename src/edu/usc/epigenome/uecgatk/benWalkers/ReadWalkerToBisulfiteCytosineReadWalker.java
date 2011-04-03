@@ -3,6 +3,7 @@ package edu.usc.epigenome.uecgatk.benWalkers;
 import net.sf.samtools.SAMRecord;
 
 import edu.usc.epigenome.genomeLibs.PicardUtils;
+import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 
 import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -18,6 +19,8 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -31,7 +34,7 @@ import java.io.PrintStream;
  */
 @ReadFilters( {MappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
-public abstract class ReadWalkerToBisulfiteCytosineReadWalker<ReduceType> extends ReadWalker<ReduceType,ReduceType> implements TreeReducible<ReduceType> {
+public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType> extends ReadWalker<MapType,ReduceType> implements TreeReducible<ReduceType> {
 
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
     public boolean outputCph = true;
@@ -57,7 +60,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<ReduceType> extend
 	
 
 	abstract protected void alertNewContig(String newContig);
-	abstract protected ReduceType processReadCytosine(int positionInRead, String cContext, boolean isMethylated);
+	abstract protected MapType processReadCytosines(List<Cpg> cpgsCyclePositions);
 
 //	/* (non-Javadoc)
 //	 * @see org.broadinstitute.sting.gatk.walkers.Walker#initialize()
@@ -85,7 +88,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<ReduceType> extend
 
 
 	@Override
-	public ReduceType map(ReferenceContext ref, SAMRecord read,
+	public MapType map(ReferenceContext ref, SAMRecord read,
 			ReadMetaDataTracker metaDataTracker) 
 	{
     	GenomeLoc thisLoc = ref.getLocus();
@@ -112,7 +115,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<ReduceType> extend
     	
     	
     	// Don't do first and last one because they don't have context.
-		ReduceType out = this.reduceInit();
+		List<Cpg> cList = new ArrayList<Cpg>();
     	for (int i = 1; i < (readSeq.length-1); i++)
     	{
     		byte refBase = refSeq[i];
@@ -127,12 +130,27 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<ReduceType> extend
 				{
 					String cContext = getCytosineContext(i, readSeq, refSeq);
 					boolean isMethylated = BaseUtils.basesAreEqual(readBase, BaseUtils.C);
-					ReduceType thisOut = processReadCytosine(i, cContext, isMethylated);
 					
-					out = this.reduce(out, thisOut);
+					Cpg c = new Cpg();
+					c.chromPos = i+1;
+					if (isMethylated)
+					{
+						c.cReads++;
+					}
+					else
+					{
+						c.totalReads++;
+					}
+					c.totalReads++;
+					c.setNextBaseRef(cContext.charAt(2));
+					c.setPrevBaseRef(cContext.charAt(0));
+					
+					cList.add(c);
 				}
 			}
     	}
+    	
+    	MapType out = this.processReadCytosines(cList);
     	
    // 	logger.info(String.format("Got read:\n\tref =%s\n\tread=%s", new String(refSeq), new String(readSeq)))
 		
