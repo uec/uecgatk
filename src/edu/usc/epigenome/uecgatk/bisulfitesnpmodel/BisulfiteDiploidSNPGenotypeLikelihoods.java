@@ -29,6 +29,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 
     protected double BISULFITE_CONVERSION_RATE;
     protected static double CPG_METHYLATION_RATE = 0;
+    protected static double CPH_METHYLATION_RATE = 0;
+    
     public static final double HUMAN_HETEROZYGOSITY = 1e-3;
     public static final double CEU_HETEROZYGOSITY = 1e-3;
     public static final double YRI_HETEROZYGOSITY = 1.0 / 850;
@@ -60,11 +62,12 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 	}
 	
 	public BisulfiteDiploidSNPGenotypeLikelihoods(
-			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double cpgMethyRate) {
+			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet) {
 		this.priors = priors;
 		this.BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
 		this.CPG_METHYLATION_RATE = cpgMethyRate;
-		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, CPG_METHYLATION_RATE);
+		this.CPH_METHYLATION_RATE = cphMethyRate;
+		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, CPG_METHYLATION_RATE, CPH_METHYLATION_RATE, novelDbsnpHet, validateDbsnpHet );
         setToZeroBs();
 	}
 	
@@ -163,8 +166,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 									}
 								}
 								else{
-									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * (1.0-BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0) * (1.0-BISULFITE_CONVERSION_RATE);
-									likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) * (1.0-BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0) * (1.0-BISULFITE_CONVERSION_RATE);
+									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE ) : pOfBase1 * (error/3.0) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE );
+									likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE ) : pOfBase2 * (error/3.0) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE );
 									if ( VERBOSE ) {
 									//	System.out.println("flag2: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 									}
@@ -179,8 +182,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 									}
 								}
 								else{
-									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.C ? pOfBase1 * (error/3.0 + BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
-									likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.C ? pOfBase2 * (error/3.0 + BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
+									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.C ? pOfBase1 * (error/3.0 + (1.0-CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
+									likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.C ? pOfBase2 * (error/3.0 + (1.0-CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
 									if ( VERBOSE ) {
 									//	System.out.println("flag4: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 									}
@@ -207,8 +210,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 								}
 							}
 							else{
-								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * (1.0-BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0) * (1.0-BISULFITE_CONVERSION_RATE);
-								likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) * (1.0-BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0) * (1.0-BISULFITE_CONVERSION_RATE);
+								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) : pOfBase1 * (error/3.0) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+								likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) : pOfBase2 * (error/3.0) * ((1.0-CPH_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
 								if ( VERBOSE ) {
 									//System.out.println("flag7: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 								}
@@ -223,8 +226,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 								}
 							}
 							else{
-								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.G ? pOfBase1 * (error/3.0 + BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
-								likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.G ? pOfBase2 * (error/3.0 + BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
+								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.G ? pOfBase1 * (error/3.0 + (1.0-CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
+								likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.G ? pOfBase2 * (error/3.0 + (1.0-CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
 								if ( VERBOSE ) {
 									//System.out.println("flag9: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 								}

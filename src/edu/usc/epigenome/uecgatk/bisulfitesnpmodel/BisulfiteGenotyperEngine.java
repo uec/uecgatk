@@ -59,8 +59,8 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteAlignmentUtils;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteAlignmentUtils;
+import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
 
 public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 

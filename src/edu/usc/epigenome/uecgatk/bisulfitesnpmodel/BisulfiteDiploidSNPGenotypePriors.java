@@ -2,9 +2,12 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
 import java.util.Arrays;
 
+import org.broad.tribble.Feature;
+import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -20,7 +23,8 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     public static final double HUMAN_HETEROZYGOSITY = 1e-3;
     public static final double CEU_HETEROZYGOSITY = 1e-3;
     public static final double YRI_HETEROZYGOSITY = 1.0 / 850;
-    public static final double DBSNP_HETEROZYGOSITY = 0.1;
+    public static double DBSNP_VALIDATE_HETEROZYGOSITY = 0.1;
+    public static double DBSNP_NOVAL_HETEROZYGOSITY = 0.02;
 
     
     /**
@@ -30,8 +34,9 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
      */
     public static final double PROB_OF_REFERENCE_ERROR = 1e-6;  // the reference is
     
-    protected static double BISULFITE_CONVERSION_RATE = 0.95;
+    protected static double BISULFITE_CONVERSION_RATE = 0; // it is the wrong concept here. it is means Cytosine methylation rate here, not means the bisulfite conversion rate!!!
     protected static double CPG_METHYLATION_RATE = 0;
+    protected static double CPH_METHYLATION_RATE = 0;
     
  
     private final static double[] flatPriors = new double[DiploidGenotype.values().length];
@@ -89,16 +94,40 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return priors;
     }
     
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cpgMethyRate) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet) {
     	BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
     	CPG_METHYLATION_RATE = cpgMethyRate;
-    	String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-    	if ( rsID != null ){
-    		priors = getReferencePolarizedPriors(ref.getBase(), DBSNP_HETEROZYGOSITY, probOfTriStateGenotype);
-    	}
-    	else{
-    		priors = getReferencePolarizedPriors(ref.getBase(), heterozygosity, probOfTriStateGenotype);
-    	}
+    	CPH_METHYLATION_RATE = cphMethyRate;
+    	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
+    	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
+        //System.err.println(refWindow.length);
+    	byte[] refWindow = ref.getBasesAtLocus(2);
+        //System.err.println(refWindow.length);
+        byte refBase = refWindow[0];
+        byte refNextBase = refWindow[1];
+        
+        
+        DbSNPFeature d = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        if(rsID != null){
+        	//System.err.println("is dbsnp");
+        	if(d.getValidationStatus().equalsIgnoreCase("unknown"))
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase);
+        	else
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase);
+        }
+        else{
+        	priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, heterozygosity, probOfTriStateGenotype, refNextBase);
+        }
+    	//String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+    	//if ( rsID != null ){
+    		
+    		//priors = getReferencePolarizedPriors(ref.getBase(), DBSNP_HETEROZYGOSITY, probOfTriStateGenotype);
+    	//}
+    	//else{
+    		
+    		//priors = getReferencePolarizedPriors(ref.getBase(), heterozygosity, probOfTriStateGenotype);
+    	//}
     	
     }
 
@@ -412,6 +441,262 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return priors;
     }
     
+    
+    public static double[] getReferencePolarizedPriorsBasedOnMethyStatus(byte ref, double heterozyosity, double pRefError, byte refNextBase) {
+        if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
+            throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
+        }
+
+        double pTriStateGenotype = heterozyosity * pRefError;
+//        if ( pTriStateGenotype >= heterozyosity ) {
+//            throw new RuntimeException(String.format("p Tristate genotype %f is greater than the heterozygosity %f", pTriStateGenotype, heterozyosity));
+//        }
+
+        double pHomRef = heterozygosity2HomRefProbability(heterozyosity);
+        double pHet    = heterozygosity2HetProbability(heterozyosity);
+        double pHomVar = heterozygosity2HomVarProbability(heterozyosity);
+
+        if (MathUtils.compareDoubles(pHomRef + pHet + pHomVar, 1.0) != 0) {
+            throw new RuntimeException(String.format("BUG: Prior probabilities don't sum to one => %f, %f, %f", pHomRef, pHet, pHomVar));
+        }
+
+        double[] priors = new double[DiploidGenotype.values().length];
+
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            double POfG;
+
+            final double transitionRate = 2.0/3.0;
+            final double transversionRate = 1.0/6.0;
+            //final double nHomVars = 3;
+
+            if ( g.isHomRef(ref) ){  
+            	if(ref == BaseUtils.C){
+            		if(refNextBase == BaseUtils.G){
+            			POfG = pHomRef * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            		}
+            		else {
+            			POfG = pHomRef * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            		}
+            		
+            	}
+            	else if(ref == BaseUtils.T){
+            		if(refNextBase == BaseUtils.G){
+            			POfG = pHomRef + (pHet - pTriStateGenotype) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		}
+            		else {
+            			POfG = pHomRef + (pHet - pTriStateGenotype) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		}
+            	}
+            	else{
+            		POfG = pHomRef;
+            	}
+            }
+            else if ( g.isHomVar(ref) ){ 
+            	if(ref == BaseUtils.C && g.base1 == BaseUtils.T){
+            		if(refNextBase == BaseUtils.G){
+            			POfG = pHomVar * transitionRate + (pHet - pTriStateGenotype) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		}
+            		else{
+            			POfG = pHomVar * transitionRate + (pHet - pTriStateGenotype) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		}
+            		
+            	}
+            	else if((ref == BaseUtils.A || ref == BaseUtils.G || ref == BaseUtils.T) && g.base1 == BaseUtils.C){
+            		
+            		if(isTransition(g.base1,ref)){
+            			if(refNextBase == BaseUtils.G){
+            				POfG = (pHomVar * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            			}
+            			else{
+            				POfG = (pHomVar * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            			}
+            			
+            		}
+            		else{
+            			if(refNextBase == BaseUtils.G){
+            				POfG = (pHomVar * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            			}
+            			else{
+            				POfG = (pHomVar * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            			}
+            			
+            		}
+            		
+            	}
+            	else if((ref == BaseUtils.A || ref == BaseUtils.G) && g.base1 == BaseUtils.T){
+            		if(refNextBase == BaseUtils.G){
+            			POfG = pHomVar * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            		}
+            		else{
+            			POfG = pHomVar * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            		}
+            		 
+            	}
+            	else{
+            		if(isTransition(g.base1,ref)){
+            			POfG = pHomVar * transitionRate;
+            		}
+            		else{
+            			POfG = pHomVar * transversionRate;
+            		}
+            		
+            	}
+            }
+            else if ( g.isHetRef(ref) ){ 
+            	if(ref == BaseUtils.C){
+            	     if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == BaseUtils.C)){
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + pHomRef * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 }
+            	    	 else{
+            	    		 POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + pHomRef * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 }
+            	    	 
+            	     }
+            	     else{
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = ((pHet - pTriStateGenotype) * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            	    	 }
+            	    	 else{
+            	    		 POfG = ((pHet - pTriStateGenotype) * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            	    	 }
+            	    	 
+            	     }
+            	}
+            	else if(ref == BaseUtils.T){
+            		if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == BaseUtils.C)){
+            			if(refNextBase == BaseUtils.G){
+            				POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	    	 	}
+           	    	 	else{
+           	    	 		POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	    	 	}
+            			
+           	     	}
+           	     	else{
+           	     		if(refNextBase == BaseUtils.G){
+           	     			POfG = (pHet - pTriStateGenotype) * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	     		}
+           	     		else{
+           	     			POfG = (pHet - pTriStateGenotype) * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	     		}
+           	     		
+           	     	}
+            	}
+            	else{
+            	     if((g.base1 == ref && g.base2 == BaseUtils.C)|| (g.base1 == BaseUtils.C && g.base2 == ref)){
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            	    	 }
+            	    	 else{
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            	    	 }
+            	    	 
+            	     }
+            	     else if((g.base1 == ref && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == ref)){
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * (1 + (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE);
+            	    	 }
+            	    	 else{
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * (1 + (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE);
+            	    	 }
+            	    	 
+            	     }
+            	     else{
+            	    	 POfG = (pHet - pTriStateGenotype ) * transitionRate;
+            	     }
+            	}
+            }
+            else{ 
+            	if(ref == BaseUtils.C){
+            	     if((g.base1 == BaseUtils.A && g.base2 == BaseUtils.G)|| (g.base1 == BaseUtils.G && g.base2 == BaseUtils.A)){
+            	    	 POfG = pTriStateGenotype * transversionRate;
+            	     }
+            	     else{
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = pTriStateGenotype * transitionRate + ((pHet - pTriStateGenotype) * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 }
+            	    	 else{
+            	    		 POfG = pTriStateGenotype * transitionRate + ((pHet - pTriStateGenotype) * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 }
+            	    	 
+            	     }
+            	}
+            	else if(ref == BaseUtils.T){
+            	     if((g.base1 == BaseUtils.A && g.base2 == BaseUtils.G)|| (g.base1 == BaseUtils.G && g.base2 == BaseUtils.A)){
+            	    	 POfG = pTriStateGenotype * transversionRate;
+            	     }
+            	     else{
+            	    	 if(refNextBase == BaseUtils.G){
+            	    		 POfG = (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+            	    	 }
+            	    	 else{
+            	    		 POfG = (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+            	    	 }
+            	    	 
+            	     } 
+            	}
+            	else{
+            	     if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.G)|| (g.base1 == BaseUtils.G && g.base2 == BaseUtils.C)){
+            	    	 if(isTransition(g.base1,ref) || isTransition(g.base2,ref)){
+            	    		 if(refNextBase == BaseUtils.G){
+            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+                	    	 }
+                	    	 else{
+                	    		 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+                	    	 }
+            	    		 
+            	    	 }
+            	    	 else{
+            	    		 if(refNextBase == BaseUtils.G){
+            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
+                	    	 }
+                	    	 else{
+                	    		 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
+                	    	 }
+            	    		 
+            	    	 }
+            	    	 
+            	     }
+            	     else if((g.base1 == BaseUtils.G && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == BaseUtils.G)){
+            	    	 if(isTransition(g.base1,ref) || isTransition(g.base2,ref)){
+            	    		 POfG = pTriStateGenotype * transitionRate;
+            	    	 }
+            	    	 else{
+            	    		 POfG = pTriStateGenotype * transversionRate;
+            	    	 }
+            	    	 
+            	     }
+            	     else{
+            	    	 if(isTransition(g.base1,ref) || isTransition(g.base2,ref)){
+            	    		 if(refNextBase == BaseUtils.G){
+            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 }
+                	    	 else{
+                	    		 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 }
+            	    		 
+            	    	 }
+            	    	 else{
+            	    		 if(refNextBase == BaseUtils.G){
+            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 }
+                	    	 else{
+                	    		 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 }
+            	    		 
+            	    	 }
+            	    	 
+            	     }
+            	}
+            	 
+            }
+
+            priors[g.ordinal()] = Math.log10(POfG);
+        }
+
+        return priors;
+    }
 
     static {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {

@@ -5,6 +5,7 @@ import java.util.Map;
 import net.sf.samtools.SAMRecord;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.Feature;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypeLikelihoods;
@@ -33,7 +34,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	protected final boolean useAlleleFromVCF;
 	protected long testLoc;
 	protected static double BISULFITE_CONVERSION_RATE;
-	protected static double CPG_METHYLATION_RATE = 0.75;
+	protected static double CPG_METHYLATION_RATE = 0;
+	protected static double CPH_METHYLATION_RATE = 0;
+	protected boolean isCGI = false;
+	
 	
 	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(
 			UnifiedArgumentCollection UAC, Logger logger) {
@@ -41,7 +45,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
 		this.testLoc = UAC.testLocus;
 		BISULFITE_CONVERSION_RATE = UAC.bsRate;
-		CPG_METHYLATION_RATE = UAC.CpgMethy;
+		CPG_METHYLATION_RATE = UAC.CpgMethyNonCGI;
+		CPH_METHYLATION_RATE = UAC.CphMethy;
 		// TODO Auto-generated constructor stub
 	}
 
@@ -121,7 +126,12 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         }
 */
        //System.err.println(refBase+"\t"+bestAllele+"\t"+alternateAllele);
-        
+        Feature cgi = CGIHelper.getCGIFeature(tracker.getReferenceMetaData(CGIHelper.STANDARD_CGI_TRACK_NAME));
+        if(cgi != null){
+        	isCGI = true;
+        	CPG_METHYLATION_RATE = UAC.CpgMethyCGI;
+        }
+      
 
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
@@ -132,6 +142,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             	boolean negStrand = samRecord.getReadNegativeStrandFlag();
 				int alignmentS = samRecord.getAlignmentStart();
 				int	onRefCoord = (negStrand) ? samRecord.getUnclippedEnd() : alignmentS;
+				
+				
+									
 
 				if((pileup.getLocation().getStart()) == testLoc){
 					System.out.println("before filter:\t" + onRefCoord + "\t" + p.getOffset() + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
@@ -143,8 +156,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             }
             
             
+            
             // do not use this prior, this prior is flat prior intiated in genotypeEngine, so we actually do not transfer this priors...
-            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, UAC.PCR_error, UAC.bsRate, UAC.CpgMethy);
+            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, UAC.PCR_error, UAC.bsRate, CPG_METHYLATION_RATE, UAC.CphMethy, UAC.novelDbsnpHet, UAC.validateDbsnpHet);
             if((pileup.getLocation().getStart()) == testLoc)
             	GL.VERBOSE=true;
             int nGoodBases = GL.add(pileup, true, true, refNextBase);
@@ -192,8 +206,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             	System.out.println("sample: " + sample.getKey());
             	System.out.println("sample location: " + pileup.getPileupString((char)refBase));
             	System.out.println("sample: " + sample.getValue().getLocation().getStart());
-            	System.out.println("refBase: " + refBase + "refNextBase: " + refNextBase + " bestAllele: " + bestAllele + "alternateAllele: " + alternateAllele);
-            	System.out.println("nGoodBases " + nGoodBases);
+            	System.out.println("refBase: " + refBase + " refNextBase: " + refNextBase + " bestAllele: " + bestAllele + " alternateAllele: " + alternateAllele);
+            	System.out.println("nGoodBases " + nGoodBases + " isCGI: " + isCGI);
             	System.out.println("AAGenotype " + likelihoods[AAGenotype.ordinal()] + "\t" + prio[AAGenotype.ordinal()] + "\t" + posterior[AAGenotype.ordinal()]);
             	System.out.println("ABGenotype " + likelihoods[ABGenotype.ordinal()] + "\t" + prio[ABGenotype.ordinal()] + "\t" + posterior[ABGenotype.ordinal()]);
             	System.out.println("BBGenotype " + likelihoods[BBGenotype.ordinal()] + "\t" + prio[BBGenotype.ordinal()] + "\t" + posterior[BBGenotype.ordinal()]);
