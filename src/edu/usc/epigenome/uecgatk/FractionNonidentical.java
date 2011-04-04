@@ -8,6 +8,8 @@ package edu.usc.epigenome.uecgatk;
 public class FractionNonidentical extends Number implements Comparable<Number> {
     protected int numerator;
     protected int denominator;
+    
+    protected boolean useIdentical = false;
 
     public FractionNonidentical(int numerator, int denominator) {
         if(denominator == 0) {
@@ -21,7 +23,15 @@ public class FractionNonidentical extends Number implements Comparable<Number> {
         this.denominator = denominator;
     }
 
-    public FractionNonidentical(int numerator) {
+    public boolean isUseIdentical() {
+		return useIdentical;
+	}
+
+	public void setUseIdentical(boolean useIdentical) {
+		this.useIdentical = useIdentical;
+	}
+
+	public FractionNonidentical(int numerator) {
         this.numerator = numerator;
         this.denominator = 1;
     }
@@ -129,13 +139,17 @@ public class FractionNonidentical extends Number implements Comparable<Number> {
 			else
 			{
 				// Equal values, sort by denominator
-				result = (new Integer(this.getDenominator())).compareTo(new Integer(frac.getDenominator()));
+				// Fraction value is identical .  what do we want to do
+				if (!this.useIdentical)
+				{
+					result = (new Integer(this.getDenominator())).compareTo(new Integer(frac.getDenominator()));
+				}
 			}
 			//System.err.printf("compareTo(%s,%s)=%d\n",this, frac, result);
 		}
 		else
 		{
-			result = (new Float(this.floatValue())).compareTo(new Float(num.floatValue()));
+				result = (new Float(this.floatValue())).compareTo(new Float(num.floatValue()));
 		}
 
 		return result;	
