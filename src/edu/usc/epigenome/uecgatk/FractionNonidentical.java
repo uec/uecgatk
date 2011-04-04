@@ -5,7 +5,7 @@ package edu.usc.epigenome.uecgatk;
  *
  * Representation of a fraction where 1/2 does not equal 2/4
  */
-public class FractionNonidentical extends Number {
+public class FractionNonidentical extends Number implements Comparable<Number> {
     protected int numerator;
     protected int denominator;
 
@@ -49,50 +49,98 @@ public class FractionNonidentical extends Number {
     	this.denominator++;
     }
     
+    
+    @Override
+	public String toString() {
+		String out = String.format("%d/%d", this.getNumerator(), this.getDenominator());
+		return out;
+	}
 
-    public byte byteValue() {
+    @Override
+	public byte byteValue() {
         return (byte) this.doubleValue();
     }
 
+    @Override
     public double doubleValue() {
         return ((double) numerator)/((double) denominator);
     }
 
+    @Override
     public float floatValue() {
         return (float) this.doubleValue();
     }
 
+    @Override
     public int intValue() {
         return (int) this.doubleValue();
     }
 
+    @Override
     public long longValue() {
         return (long) this.doubleValue();
     }
 
+    @Override
     public short shortValue() {
         return (short) this.doubleValue();
     }
 
-    public boolean equals(FractionNonidentical frac) {
-        return this.compareTo(frac) == 0;
-    }
+	@Override
+	public boolean equals(Object obj) {
+		if (this.getClass().isAssignableFrom(obj.getClass()))
+		{
+			//System.err.println("Equals 1");
+			return (this.compareTo((FractionNonidentical)obj) == 0);
+		}
+		else
+		{
+			System.err.println("Equals 2");
+	       return super.equals(obj);
+		}
+	       
+	}
 
-    public int compareTo(FractionNonidentical frac) {
-        long t = this.getNumerator() * frac.getDenominator();
-        long f = frac.getNumerator() * this.getDenominator();
-        int result = 0;
-        if(t>f) {
-            result = 1;
-        }
-        else if(f>t) {
-            result = -1;
-        }
-        else
-        {
-        	// Equal values, sort by denominator
-        	result = (new Integer(this.getDenominator())).compareTo(new Integer(frac.getDenominator()));
-        }
-        return result;
-    }
+	
+	
+	@Override
+	public int hashCode() {
+		return (new Float(this.floatValue())).hashCode();
+	}
+
+	@Override
+	public int compareTo(Number num) 
+	{
+		int result = 0;
+	
+		if (this.getClass().isAssignableFrom(num.getClass()))
+		{
+			FractionNonidentical frac = (FractionNonidentical)num;
+			
+			long t = this.getNumerator() * frac.getDenominator();
+			long f = frac.getNumerator() * this.getDenominator();
+			
+			if(t>f) {
+				result = 1;
+			}
+			else if(f>t) {
+				result = -1;
+			}
+			else
+			{
+				// Equal values, sort by denominator
+				result = (new Integer(this.getDenominator())).compareTo(new Integer(frac.getDenominator()));
+			}
+			//System.err.printf("compareTo(%s,%s)=%d\n",this, frac, result);
+		}
+		else
+		{
+			result = (new Float(this.floatValue())).compareTo(new Float(num.floatValue()));
+		}
+
+		return result;	
+	}
+
+
+    
 }
