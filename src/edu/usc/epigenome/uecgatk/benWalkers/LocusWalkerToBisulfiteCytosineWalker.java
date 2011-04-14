@@ -47,6 +47,10 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "maxOppAfrac", shortName = "maxa", doc = "Maximum fraction of opposite strand reads being A (default=0.101)", required = false)
     public double maxOppAfrac = 0.101;
 
+    @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=0)", required = false)
+    public int minConv = 0;
+    
+    
 	/**** GATK Walker implementation ******/
     @Output
     protected PrintStream out;
