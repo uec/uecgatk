@@ -108,6 +108,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     		this.alertNewContig(thisContig);
     	}
  
+		// *** NOTE :: JUST USING POSITIONS THAT ARE C IN REFERENCE :: NEED TO CHECK SAMPLE GENOME ****
 		boolean isC = false;
     	boolean negStrand = false;
     	if (ref.getBase() == BaseUtils.C)
@@ -153,15 +154,11 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
        				}
        			}
        		}
-
- 
-    	
     	
  
-//    		logger.info(String.format("pos=%d\tcontext(%d,%d)=%s (strand=%d)",centerCoord,0,0,new String(windowBases),
+//    		logger.info(String.format("pos=%d\tcontext(%d,%d)=%s (strand=%d)",centerCoord,0,0,new String(contextSeqStrandedIupac),
 //    				(negStrand?-1:1)));
-//    		
-
+    		
     		// Make the Cytosine
        		CpgBackedByGatk thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context,tracker);
     		
@@ -181,6 +178,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     				mapout = processCytosine(thisC);
     			}
     		}
+			
+			
     	}
     	
 		// Increment
@@ -251,52 +250,57 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     	{
     		PileupElement pe = pileupIt.next();
 
+
     		byte qual = pe.getQual();
 
     		// Make sure to handle the strand correctly
     		SAMRecord read = pe.getRead();
     		boolean readOnCytosineStrand = (read.getReadNegativeStrandFlag() == cytosineNegStrand);
     		byte base = pe.getBase();
-    		
+
     		// We change the base to the cytosine-strand
     		byte baseCstrand = (cytosineNegStrand) ? BaseUtils.simpleComplement(base) : base;
-    		
-    		
+
+
     		if (!readOnCytosineStrand)
     		{
-        		byte baseGstrand = BaseUtils.simpleComplement(baseCstrand);
+    			byte baseGstrand = BaseUtils.simpleComplement(baseCstrand);
 
-//        		out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
+    			//        		out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
     			totalReadsOpposite++;
     			if (BaseUtils.basesAreEqual(baseGstrand, BaseUtils.A)) aReadOpposite++;
     		}
     		else
     		{
-//        		out.printf("Got base on C strand: %c\n", (char)baseCstrand);
+    			boolean passesFiveprimeFilter = PassesFiveprimeFilter(pe, ref);
+    			if (passesFiveprimeFilter)
+    			{
+    				//        		out.printf("Got base on C strand: %c\n", (char)baseCstrand);
 
-    			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
-    			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
-    			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
+    				boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
+    				boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
+    				boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
 
-    			//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
-    			//**** TO THE SAME INT
-    			//**************************************************************
-    			String readName = read.getReadName();
-    			int readCode = readName.hashCode();
-    			//**************************************************************
+    				//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
+    				//**** TO THE SAME INT
+    				//**************************************************************
+    				String readName = read.getReadName();
+    				int readCode = readName.hashCode();
+    				//**************************************************************
 
 
-    			CpgRead cRead = new CpgRead(
-    					readCode,
-    					(short)(isC?1:0),
-    					(short)0,
-    					(short)(isT?1:0),
-    					(short)((isC||isT)?0:1),
-    					(short)(nextBaseG?1:0),
-    					nextBase
-    			);
-    			cOut.addRead(cRead);
-//    			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
+    				CpgRead cRead = new CpgRead(
+    						readCode,
+    						(short)(isC?1:0),
+    						(short)0,
+    						(short)(isT?1:0),
+    						(short)((isC||isT)?0:1),
+    						(short)(nextBaseG?1:0),
+    						nextBase
+    				);
+    				cOut.addRead(cRead);
+    				//    			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
+    			}
     		}
     	}
 
@@ -308,6 +312,67 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
     	return cOut;
     }
+
+
+
+	/**
+	 * ******* You should only pass in PileupElements on the cytosine strand. *******
+	 * 
+	 * @param pe
+	 * @param ref
+	 * @return
+	 */
+	protected boolean PassesFiveprimeFilter(PileupElement pe, ReferenceContext ref) 
+	{
+		boolean passes = false;
+		if (this.minConv == 0)
+		{
+			passes = true;
+		}
+		else
+		{
+			SAMRecord read = pe.getRead();
+			int readLen = read.getReadLength();
+	    	String thisContig = ref.getLocus().getContig();
+	    	boolean revStrand = read.getReadNegativeStrandFlag();
+	    	
+	    	byte[] readBases = read.getReadBases();
+			if (revStrand) readBases = BaseUtils.simpleReverseComplement(readBases);
+
+	    	int thisOffset = (revStrand) ? ((readLen-1)-pe.getOffset()) : pe.getOffset(); // It's unexpected that it's relative to genomic coords
+	    	int currentLoc = ref.getLocus().getStart();
+	    	
+	    	int readStartPos = (revStrand) ? read.getAlignmentEnd() : read.getAlignmentStart();
+	    	int increment = (revStrand) ? -1 : 1;
+
+	    	int contigCoord = 0;
+	    	int numConv = 0;
+	    	for (int offset = 0; (offset<=thisOffset)&& (numConv<this.minConv) ; offset++) // 
+	    	{
+	    		contigCoord = readStartPos + (increment * offset);
+	    		byte[] refBases = BaseUtilsMore.toUpperCase(this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, contigCoord, contigCoord).getBases());
+	    		byte refBase = (revStrand) ? BaseUtils.simpleComplement(refBases[0]) : refBases[0];
+	    		byte readBase = readBases[offset];
+	    		
+	    		boolean conv = ((refBase==BaseUtils.C) && (readBase==BaseUtils.T));
+	    		if (conv) numConv++;
+	    		
+//	    		logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
+	    		
+	    		
+	    	}
+
+    		if (numConv>=this.minConv) passes = true;
+	    	
+	    	
+//	    	int lastCoordDiff = Math.abs(contigCoord-currentLoc); // Debugging
+//	    	if (lastCoordDiff>0) logger.info(String.format("\t%s -- Passes(%d) got pe: %c (%d) diff=%d [read %s:%d-%d]",  passes, currentLoc, pe.getBase(), thisOffset, lastCoordDiff, thisContig, read.getAlignmentStart(), read.getAlignmentEnd()));			
+			
+
+		}
+
+		return passes;
+	}
 
 
 
