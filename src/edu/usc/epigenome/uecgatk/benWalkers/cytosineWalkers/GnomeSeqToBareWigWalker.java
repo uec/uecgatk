@@ -68,7 +68,7 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 			System.exit(1);
 		}
 		
-		this.outputCph = true; // Because GNOME-seq used GCH
+//		this.outputCph = true; // Because GNOME-seq used GCH
 	}
 
 
