@@ -51,6 +51,10 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     public int minConv = 0;
     
     
+    final static protected String END1_SUFFIX = String.format("%c1", '/');
+    final static protected String END2_SUFFIX = String.format("%c2", '/');
+    
+    
 	/**** GATK Walker implementation ******/
     @Output
     protected PrintStream out;
@@ -170,9 +174,12 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 
     			// And process it
-    			boolean minCTpasses = ((thisC.cReads + thisC.totalReads) >= this.minCT);
-    			boolean maxOppAfracPasses = (thisC.fracOppositeA() <= maxOppAfrac);
-    			
+    			boolean minCTpasses = ((thisC.cReads + thisC.tReads) >= this.minCT);
+    			double fracOppA = thisC.fracOppositeA();
+    			if (Double.isNaN(fracOppA)) fracOppA = 0.0;
+    			boolean maxOppAfracPasses = (fracOppA <= maxOppAfrac);
+//				logger.info(String.format("Processing cytosine=%s\tCT=%d\toppA=%.2f\n",minCTpasses&&maxOppAfracPasses,(thisC.cReads+thisC.tReads),fracOppA));
+   			
     			if (minCTpasses & maxOppAfracPasses)
     			{
     				mapout = processCytosine(thisC);
@@ -253,10 +260,23 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
     		byte qual = pe.getQual();
 
-    		// Make sure to handle the strand correctly
+    		// Make sure to handle the strand correctly. Remember to treat second end reads as the opposite strand!
     		SAMRecord read = pe.getRead();
-    		boolean readOnCytosineStrand = (read.getReadNegativeStrandFlag() == cytosineNegStrand);
+     		
+    		//!read.getFirstOfPairFlag();	 // This is unreliable in BSMAP, they always make the forward strand read 1
+    		String readName = read.getReadName();
+    		boolean secondOfPair = getSecondOfPair(read);
+    		
+    		boolean readStrandNegativeStrand = read.getReadNegativeStrandFlag();
+//    		out.printf("secondOfPair=%s\treverseStrand=%s\n", secondOfPair, readStrandNegativeStrand);
+    		if (secondOfPair) readStrandNegativeStrand = !readStrandNegativeStrand;
+    		boolean readOnCytosineStrand = (readStrandNegativeStrand == cytosineNegStrand);
+//    		out.printf("\tsecondOfPair=%s\tadjustedReverseStrand=%s\treadOnCytosineStrand=%s\n", secondOfPair, readStrandNegativeStrand, readOnCytosineStrand);    		
     		byte base = pe.getBase();
+    		
+    		
+    		// We don't complement it, because forward and reverse strands aren't strand relative in pileup format. //if (secondOfPair) base = BaseUtils.simpleComplement(base);
+    		
 
     		// We change the base to the cytosine-strand
     		byte baseCstrand = (cytosineNegStrand) ? BaseUtils.simpleComplement(base) : base;
@@ -266,41 +286,38 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     		{
     			byte baseGstrand = BaseUtils.simpleComplement(baseCstrand);
 
-    			//        		out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
+//    			out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
     			totalReadsOpposite++;
     			if (BaseUtils.basesAreEqual(baseGstrand, BaseUtils.A)) aReadOpposite++;
     		}
     		else
     		{
     			boolean passesFiveprimeFilter = PassesFiveprimeFilter(pe, ref);
-    			if (passesFiveprimeFilter)
-    			{
-    				//        		out.printf("Got base on C strand: %c\n", (char)baseCstrand);
 
-    				boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
-    				boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
-    				boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
+    			//    				out.printf("\t\tGot base on C strand: %c\n", (char)baseCstrand);
 
-    				//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
-    				//**** TO THE SAME INT
-    				//**************************************************************
-    				String readName = read.getReadName();
-    				int readCode = readName.hashCode();
-    				//**************************************************************
+    			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
+    			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
+    			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
+
+    			//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
+    			//**** TO THE SAME INT
+    			//**************************************************************
+    			int readCode = readName.hashCode();
+    			//**************************************************************
 
 
-    				CpgRead cRead = new CpgRead(
-    						readCode,
-    						(short)(isC?1:0),
-    						(short)0,
-    						(short)(isT?1:0),
-    						(short)((isC||isT)?0:1),
-    						(short)(nextBaseG?1:0),
-    						nextBase
-    				);
-    				cOut.addRead(cRead);
-    				//    			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
-    			}
+    			CpgRead cRead = new CpgRead(
+    					readCode,
+    					(short)((isC&passesFiveprimeFilter)?1:0),
+    					(short)((isC&!passesFiveprimeFilter)?1:0),
+    					(short)(isT?1:0),
+    					(short)((isC||isT)?0:1),
+    					(short)(nextBaseG?1:0),
+    					nextBase
+    			);
+    			cOut.addRead(cRead);
+ //   			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
     		}
     	}
 
@@ -310,8 +327,32 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     	cOut.setNextBaseRef(nextBase);
     	cOut.setPrevBaseRef(prevBase);
 
+//		out.printf("Adding cytosine: %s\n", cOut.toString());
+
     	return cOut;
     }
+
+
+
+	protected static boolean getSecondOfPair(SAMRecord read) {
+		boolean secondOfPair = false;
+		String readName = read.getReadName();
+		if (readName.endsWith(END1_SUFFIX))
+		{
+			secondOfPair = false;
+		}
+		else if (readName.endsWith(END2_SUFFIX))
+		{
+			secondOfPair = true;   			
+		}
+		else
+		{
+			System.err.println("Got a read that doesn't end with /1 or /2: " + readName + ".  Can't tell which end it is.");
+			System.exit(1);
+		}	
+		
+		return secondOfPair;
+	}
 
 
 
@@ -339,7 +380,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    	byte[] readBases = read.getReadBases();
 			if (revStrand) readBases = BaseUtils.simpleReverseComplement(readBases);
 
-	    	int thisOffset = (revStrand) ? ((readLen-1)-pe.getOffset()) : pe.getOffset(); // It's unexpected that it's relative to genomic coords
+	    	int thisOffset = (revStrand) ? ((readLen-1)-pe.getOffset()) : pe.getOffset(); // It's unexpected that Offset is relative to genomic coords
 	    	int currentLoc = ref.getLocus().getStart();
 	    	
 	    	int readStartPos = (revStrand) ? read.getAlignmentEnd() : read.getAlignmentStart();
@@ -347,6 +388,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 	    	int contigCoord = 0;
 	    	int numConv = 0;
+    		boolean secondEnd = getSecondOfPair(read);
 	    	for (int offset = 0; (offset<=thisOffset)&& (numConv<this.minConv) ; offset++) // 
 	    	{
 	    		contigCoord = readStartPos + (increment * offset);
@@ -354,10 +396,20 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    		byte refBase = (revStrand) ? BaseUtils.simpleComplement(refBases[0]) : refBases[0];
 	    		byte readBase = readBases[offset];
 	    		
-	    		boolean conv = ((refBase==BaseUtils.C) && (readBase==BaseUtils.T));
+	    		boolean conv = false;
+	    		if (secondEnd)
+	    		{
+	    			conv = ((refBase==BaseUtils.G) && (readBase==BaseUtils.A));
+	    		}
+	    		else
+	    		{
+	    			conv = ((refBase==BaseUtils.C) && (readBase==BaseUtils.T));
+	    		}
+	    		
+	    		
 	    		if (conv) numConv++;
 	    		
-//	    		logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
+    		// logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
 	    		
 	    		
 	    	}
