@@ -31,6 +31,9 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 
     @Argument(fullName = "outPrefix", shortName = "pre", doc = "Output prefix for all output files", required = true)
     public String outPrefix = null;
+ 
+    @Argument(fullName = "nonGnomeMode", shortName = "bs", doc = "Non-GNOMe mode (normal bisulfite). Outputs only CG and/or CH tracks", required = false)
+    public boolean nonGnomeMode = false;
     
     @Argument(fullName = "outputAllContexts", shortName = "all", doc = "Output optional contexts HCH, GCG (default)", required = false)
     public boolean outputAllContexts = false;
@@ -118,6 +121,11 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 		writeCoverage(thisC);
 		
 		String context = thisC.context();
+		
+		if (this.nonGnomeMode)
+		{
+			context = context.substring(1);
+		}
 
 		// Skip optional contexts
 		if (!this.outputAllContexts)
