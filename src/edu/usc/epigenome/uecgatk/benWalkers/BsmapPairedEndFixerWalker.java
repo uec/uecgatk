@@ -1,4 +1,13 @@
 
+/****
+ * 
+ * You must use unsafe mode if your original BAM is unsorted.
+ * You must put a -R reference file even though it really shouldn't be needed.  Seems like it's because it's required by the ReadWalker base class?
+ * 
+ * gatk -T BsmapPairedEndFixer -I s_7_1_sequence.200k.bam --out bsmapFixerTest.bam -nt 1  -R ~/genomes/hg18_unmasked/hg18_unmasked.plusContam.fa --unsafe
+ * 
+ * 
+ */
 
 package edu.usc.epigenome.uecgatk.benWalkers;
 
