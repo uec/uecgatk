@@ -267,7 +267,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
      		
     		//!read.getFirstOfPairFlag();	 // This is unreliable in BSMAP, they always make the forward strand read 1
     		String readName = read.getReadName();
-    		boolean secondOfPair = getSecondOfPair(read);
+    		boolean secondOfPair = getSecondOfPair(read); // EVENTUALLY GET RID OF THIS
+//    		boolean secondOfPair = read.getSecondOfPairFlag(); // EVENTUALLY USE THIS
     		
     		boolean readStrandNegativeStrand = read.getReadNegativeStrandFlag();
 //    		out.printf("secondOfPair=%s\treverseStrand=%s\n", secondOfPair, readStrandNegativeStrand);
