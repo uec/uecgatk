@@ -24,6 +24,8 @@ public class KaplanNucleosomePullStrongestRegions {
 	private double minScore = Double.NaN;
 	@Option(name="-dontWriteFile",usage="(default false)")
 	private boolean dontWriteFile = false;
+	@Option(name="-writeWig",usage="(default false)")
+	private boolean writeWig = false;
 	@Option(name="-nucWindSize",usage="don't output positions within this distance of each other (default=185)")
 	private int nucWindSize = 185;
 	// receives other command line parameters than options
@@ -115,6 +117,15 @@ public class KaplanNucleosomePullStrongestRegions {
 	protected long[] processFile(String fn, double inMinScore, boolean writeFile)
 	throws Exception
 	{
+		//
+		PrintWriter wigWriter = null;
+		if (writeFile && this.writeWig)
+		{
+			wigWriter = new PrintWriter(new FileOutputStream(fn + ".wig"));
+			wigWriter.printf("track type=wiggle_0 name=\"nucIntrinsic\" description=\"nucIntrinsic\" color=204,102,0 visibility=full " +
+					" graphType=points autoScale=off alwaysZero=off maxHeightPixels=64:32:10 viewLimits=0:1000\n");
+		}
+		
 		// Now read the file
 				
 		boolean gzipped = fn.endsWith(".gz");
@@ -155,9 +166,15 @@ public class KaplanNucleosomePullStrongestRegions {
 			{
 				// New chrom
 				windTrack.init();
+				lastScoreOutput = 0.0;
+				lastScoreOutputCoord = 1;
 			}
 			lastChr = chr;
 
+			// Write wig
+			if (writeFile && this.writeWig) wigWriter.printf("fixedStep\tchrom=chr%s\tstart=%d\tstep=1\n",chr,start);
+
+			
 			for (int coord = start; coord <= end; coord++)
 			{
 				//				// *****Debugging
@@ -185,6 +202,8 @@ public class KaplanNucleosomePullStrongestRegions {
 
 					if (writeFile)
 					{
+						if (this.writeWig) wigWriter.printf("%d\n",index);
+
 						// Adjust window info
 						windTrack.addToWind(coord, score);
 
@@ -203,7 +222,8 @@ public class KaplanNucleosomePullStrongestRegions {
 								//System.err.printf("\tOutputting best score\n");
 								//	chr1    BSPP    exon    149505458       149505467       .       +       .
 								int bestIndex = Math.min(999,(int)(windTrack.getBestInWindowScore()*1000.0));
-								System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\n", chr, windTrack.getBestInWindowCoord(), windTrack.getBestInWindowCoord(), bestIndex);
+								System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\t%s-%d\n", 
+										chr, windTrack.getBestInWindowCoord(), windTrack.getBestInWindowCoord(), bestIndex, chr, windTrack.getBestInWindowCoord());
 								
 								lastScoreOutputCoord = windTrack.getBestInWindowCoord();
 								lastScoreOutput = windTrack.getBestInWindowScore();
@@ -215,6 +235,7 @@ public class KaplanNucleosomePullStrongestRegions {
 		}
 
 		reader.close();
+		if (writeFile && this.writeWig) wigWriter.close();
 		return out;
 	}
 	
