@@ -2,6 +2,7 @@ package edu.usc.epigenome.uecgatk.benMiscScripts;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -112,7 +113,10 @@ public class KaplanNucleosomePullStrongestRegions {
 	throws Exception
 	{
 		// Now read the file
-		BufferedReader reader = new BufferedReader(new FileReader(fn));
+				
+		boolean gzipped = fn.endsWith(".gz");
+		BufferedReader reader = (gzipped) ? new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(fn))))
+				: new BufferedReader(new FileReader(fn));
 
 		int[] out = new int[1000];
 		
