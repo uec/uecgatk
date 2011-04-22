@@ -4,10 +4,13 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+
+import BisulfiteCytosines.CpgPair;
 
 import edu.usc.epigenome.genomeLibs.MatUtils;
 
@@ -21,8 +24,8 @@ public class KaplanNucleosomePullStrongestRegions {
 	private double minScore = Double.NaN;
 	@Option(name="-dontWriteFile",usage="(default false)")
 	private boolean dontWriteFile = false;
-	@Option(name="-nucWindSize",usage="don't output positions within this distance of each other (default=147)")
-	private int nucWindSize = 147;
+	@Option(name="-nucWindSize",usage="don't output positions within this distance of each other (default=185)")
+	private int nucWindSize = 185;
 	// receives other command line parameters than options
 	@Argument
 	private List<String> arguments = new ArrayList<String>();
@@ -54,7 +57,6 @@ public class KaplanNucleosomePullStrongestRegions {
 		catch (CmdLineException e)
 		{
 			System.err.println(e.getMessage());
-			System.err.println(C_USAGE);
 			// print the list of available options
 			parser.printUsage(System.err);
 			System.err.println();
@@ -75,24 +77,22 @@ public class KaplanNucleosomePullStrongestRegions {
 		if (!this.dontWriteFile)
 		{
 			System.err.printf("On pass 2, outputting gtf file\n", this.minQuantile);
-			outputRegions(fn, minScore, this.nucWindSize);
+			outputRegions(fn, minScore);
 		}
 
 
 	}
 
-	static protected void outputRegions(String fn, double inMinScore, int inNucWindSize) 
+	protected void outputRegions(String fn, double inMinScore) 
 	throws Exception
 	{
-		long[] scores = processFile(fn, inMinScore, true, inNucWindSize);
-		
-		
+		long[] scores = processFile(fn, inMinScore, true);
 	}
 
-	static protected double determineMinScore(String fn, int inMinQuantile) 
+	protected double determineMinScore(String fn, int inMinQuantile) 
 	throws Exception
 	{
-		long[] scores = processFile(fn, 0.0, false, 0);
+		long[] scores = processFile(fn, 0.0, false);
 		
 		// Work backwards until we're below the quantile
 		long total = 0;
@@ -112,7 +112,7 @@ public class KaplanNucleosomePullStrongestRegions {
 		return minScore;
 	}
 	
-	static protected long[] processFile(String fn, double inMinScore, boolean writeFile, int inNucWindSize)
+	protected long[] processFile(String fn, double inMinScore, boolean writeFile)
 	throws Exception
 	{
 		// Now read the file
@@ -125,8 +125,9 @@ public class KaplanNucleosomePullStrongestRegions {
 		
 		String line = null;
 		int lineCount = 0;
-		double bestScoreInWind = 0.0;
-		int bestScoreInWindCoord = 1;
+		WindowTracker windTrack = new WindowTracker(this.nucWindSize);
+		double lastScoreOutput = 0.0;
+		int lastScoreOutputCoord = 1;
 		String lastChr = "";
 		while ((line = reader.readLine()) != null)
 		{
@@ -153,14 +154,22 @@ public class KaplanNucleosomePullStrongestRegions {
 			if (!chr.equals(lastChr))
 			{
 				// New chrom
-				bestScoreInWind = 0.0;
-				bestScoreInWindCoord = 1;
+				windTrack.init();
 			}
 			lastChr = chr;
 
 			for (int coord = start; coord <= end; coord++)
 			{
-				//System.err.printf("chr%s, %d\n",chr,coord);
+				//				// *****Debugging
+				//				if (writeFile && (coord > 2000))
+				//				{
+				//					reader.close();
+				//					return out;
+				//				}
+				//				// *****Debugging
+						
+				
+				
 				if (!tok.hasMoreTokens())
 				{
 					System.err.printf("Why does line %d not have a tokent for coord %d?\n", lineCount, coord);
@@ -169,7 +178,6 @@ public class KaplanNucleosomePullStrongestRegions {
 				{
 					String token = tok.nextToken(";");
 					double score = Double.parseDouble(token);
-					//if (coord == 200) System.err.printf("chr%s, %d\tval=%.4f\n",chr,coord,score);
 
 					// Add to counts
 					int index = Math.min(999,(int)(score*1000.0));
@@ -178,21 +186,27 @@ public class KaplanNucleosomePullStrongestRegions {
 					if (writeFile)
 					{
 						// Adjust window info
-						if (score>bestScoreInWind)
-						{
-							bestScoreInWind = score;
-							bestScoreInWindCoord = coord;
-						}
+						windTrack.addToWind(coord, score);
 
 						//					if (score >= inMinScore)
-						if (bestScoreInWindCoord==(coord-inNucWindSize))
+						//if (bestScoreInWindCoord==(coord-inNucWindSize))
+						
+						int distToLast = (windTrack.getBestInWindowCoord()-lastScoreOutputCoord);
+						boolean bestScoreFarEnough = (distToLast > this.nucWindSize);
+						// System.err.printf("\tchr%s, %d, %.4f (best=%d, %.4f, dist to last=%d)\n",chr,coord,score,windTrack.getBestInWindowCoord(), windTrack.getBestInWindowScore(), distToLast);
+						if (bestScoreFarEnough)
 						{
-							System.err.printf("Best in window %d, %.3f\n", bestScoreInWindCoord, bestScoreInWind);
-							if (bestScoreInWind>=inMinScore)
+							//System.err.printf("Best in window %d, %.3f (dist to last=%d)\n", windTrack.getBestInWindowCoord(), windTrack.getBestInWindowScore(), distToLast);
+							boolean bestScoreAboveMin = (windTrack.getBestInWindowScore()>=inMinScore); 
+							if (bestScoreAboveMin) 
 							{
+								//System.err.printf("\tOutputting best score\n");
 								//	chr1    BSPP    exon    149505458       149505467       .       +       .
-								int bestIndex = Math.min(999,(int)(bestScoreInWind*1000.0));
-								System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\n", chr, bestScoreInWindCoord, bestScoreInWindCoord, bestIndex);
+								int bestIndex = Math.min(999,(int)(windTrack.getBestInWindowScore()*1000.0));
+								System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\n", chr, windTrack.getBestInWindowCoord(), windTrack.getBestInWindowCoord(), bestIndex);
+								
+								lastScoreOutputCoord = windTrack.getBestInWindowCoord();
+								lastScoreOutput = windTrack.getBestInWindowScore();
 							}
 						}
 					}
@@ -203,6 +217,104 @@ public class KaplanNucleosomePullStrongestRegions {
 		reader.close();
 		return out;
 	}
+	
+	
+	public class WindowTracker
+	{
+		protected int windLength = 0;
+		
+		public LinkedList<Pair<Integer,Double>> windowScores;
+		int bestCoordInWind;
+		double bestScoreInWind;
+
+
+		public WindowTracker(int inWindLength) {
+			super();
+			this.windLength = inWindLength;
+			init();
+		}
+
+		private void init() 
+		{
+			windowScores = new LinkedList<Pair<Integer,Double>>();
+			bestCoordInWind = -1;
+			bestScoreInWind = Double.NEGATIVE_INFINITY;
+		}
+		
+		
+		/**
+		 * @return the bestInWindowCoord
+		 */
+		public int getBestInWindowCoord() {
+			return bestCoordInWind;
+		}
+
+
+		/**
+		 * @return the bestInWindowScore
+		 */
+		public double getBestInWindowScore() {
+			return bestScoreInWind;
+		}
+
+
+		private void addToWind(int inCoord, double inScore)
+		{
+			// See if we have the best score
+			if (inScore > bestScoreInWind)
+			{
+				setBestScore(inCoord,inScore);
+			}
+			
+			// Eat off the head if necessary. Check if we are eating the best score.
+			if (windowScores.size()>=this.windLength)
+			{
+				Pair<Integer,Double> removePair = windowScores.remove();
+				if (removePair.getFirst() == bestCoordInWind)
+				{
+					resetBestScore();
+				}
+			}
+			
+			
+			// Then add the new one
+			Pair<Integer,Double> pair = new Pair<Integer,Double>(inCoord,inScore);
+			windowScores.add(pair);
+			
+			// Debugging
+			//System.err.println("\t\t" + desc());
+
+		}
+		
+		private void resetBestScore()
+		{
+			//System.err.println("resetBestScore()\n\t" + desc());
+			bestCoordInWind = -1;
+			bestScoreInWind = Double.NEGATIVE_INFINITY;
+			for (Pair<Integer,Double> cur : windowScores)
+			{
+				if (cur.getSecond() > bestScoreInWind)
+				{
+					setBestScore(cur.first, cur.second);
+				}
+			}
+		}
+		
+		private void setBestScore(int inCoord, double inScore)
+		{
+			bestCoordInWind = inCoord;
+			bestScoreInWind = inScore;
+		}
+		
+		public String desc()
+		{
+			String out = String.format("windTracker:%d els (%d-%d) bestCoord=%d  bestScore=%.3f", 
+					windowScores.size(), windowScores.getFirst().first, windowScores.getLast().first, bestCoordInWind, bestScoreInWind);
+			return out;
+		}
+		
+	}
+	
 
 }
 
