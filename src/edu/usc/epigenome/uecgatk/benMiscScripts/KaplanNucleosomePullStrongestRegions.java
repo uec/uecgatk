@@ -82,7 +82,7 @@ public class KaplanNucleosomePullStrongestRegions {
 	static protected void outputRegions(String fn, double inMinScore) 
 	throws Exception
 	{
-		int[] scores = processFile(fn, inMinScore, true);
+		long[] scores = processFile(fn, inMinScore, true);
 		
 		
 	}
@@ -90,14 +90,15 @@ public class KaplanNucleosomePullStrongestRegions {
 	static protected double determineMinScore(String fn, int inMinQuantile) 
 	throws Exception
 	{
-		int[] scores = processFile(fn, 0.0, false);
+		long[] scores = processFile(fn, 0.0, false);
 		
 		// Work backwards until we're below the quantile
-		int total = MatUtils.nanSum(scores);
-		int minNumNeeded = (int)Math.round((double)total*(double)inMinQuantile/100.0);
+		long total = 0;
+		int i;
+		for (i=0; i < scores.length; i++) total+=scores[i];
+		long minNumNeeded = (long)Math.round((double)total*(double)inMinQuantile/100.0);
 		System.err.printf("Find %d to include in %dth percentile (%d total)\n", minNumNeeded, inMinQuantile, total);
-		int totalIncluded = 0;
-		int i = 0;
+		long totalIncluded = 0;
 		for (i = scores.length-1; (totalIncluded<minNumNeeded) && (i>=0); i--)
 		{
 			totalIncluded += scores[i];
@@ -109,7 +110,7 @@ public class KaplanNucleosomePullStrongestRegions {
 		return minScore;
 	}
 	
-	static protected int[] processFile(String fn, double inMinScore, boolean writeFile)
+	static protected long[] processFile(String fn, double inMinScore, boolean writeFile)
 	throws Exception
 	{
 		// Now read the file
@@ -118,14 +119,14 @@ public class KaplanNucleosomePullStrongestRegions {
 		BufferedReader reader = (gzipped) ? new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(fn))))
 				: new BufferedReader(new FileReader(fn));
 
-		int[] out = new int[1000];
+		long[] out = new long[1000];
 		
 		String line = null;
 		int lineCount = 0;
 		while ((line = reader.readLine()) != null)
 		{
 			lineCount++;
-			if ((lineCount%100000)==0) System.err.printf("On line %d...\n",lineCount);
+			if ((lineCount%1000)==0) System.err.printf("On line %d...\n",lineCount);
 			
 //			String[] columns = line.split("\t");
 //			if (columns.length!=4)
