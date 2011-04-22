@@ -157,7 +157,7 @@ public class KaplanNucleosomePullStrongestRegions {
 					double score = Double.parseDouble(token);
 					//if (coord == 200) System.err.printf("chr%s, %d\tval=%.4f\n",chr,coord,score);
 					
-					int index = (int)(score*1000.0);
+					int index = Math.min(999,(int)(score*1000.0));
 					out[index]++;
 					
 					if (writeFile && (score >= inMinScore))
