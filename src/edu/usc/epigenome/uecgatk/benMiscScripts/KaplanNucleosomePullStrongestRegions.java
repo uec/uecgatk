@@ -21,6 +21,8 @@ public class KaplanNucleosomePullStrongestRegions {
 	private double minScore = Double.NaN;
 	@Option(name="-dontWriteFile",usage="(default false)")
 	private boolean dontWriteFile = false;
+	@Option(name="-nucWindSize",usage="don't output positions within this distance of each other (default=147)")
+	private int nucWindSize = 147;
 	// receives other command line parameters than options
 	@Argument
 	private List<String> arguments = new ArrayList<String>();
@@ -73,16 +75,16 @@ public class KaplanNucleosomePullStrongestRegions {
 		if (!this.dontWriteFile)
 		{
 			System.err.printf("On pass 2, outputting gtf file\n", this.minQuantile);
-			outputRegions(fn, minScore);
+			outputRegions(fn, minScore, this.nucWindSize);
 		}
 
 
 	}
 
-	static protected void outputRegions(String fn, double inMinScore) 
+	static protected void outputRegions(String fn, double inMinScore, int inNucWindSize) 
 	throws Exception
 	{
-		long[] scores = processFile(fn, inMinScore, true);
+		long[] scores = processFile(fn, inMinScore, true, inNucWindSize);
 		
 		
 	}
@@ -90,7 +92,7 @@ public class KaplanNucleosomePullStrongestRegions {
 	static protected double determineMinScore(String fn, int inMinQuantile) 
 	throws Exception
 	{
-		long[] scores = processFile(fn, 0.0, false);
+		long[] scores = processFile(fn, 0.0, false, 0);
 		
 		// Work backwards until we're below the quantile
 		long total = 0;
@@ -110,7 +112,7 @@ public class KaplanNucleosomePullStrongestRegions {
 		return minScore;
 	}
 	
-	static protected long[] processFile(String fn, double inMinScore, boolean writeFile)
+	static protected long[] processFile(String fn, double inMinScore, boolean writeFile, int inNucWindSize)
 	throws Exception
 	{
 		// Now read the file
@@ -123,6 +125,9 @@ public class KaplanNucleosomePullStrongestRegions {
 		
 		String line = null;
 		int lineCount = 0;
+		double bestScoreInWind = 0.0;
+		int bestScoreInWindCoord = 1;
+		String lastChr = "";
 		while ((line = reader.readLine()) != null)
 		{
 			lineCount++;
@@ -144,6 +149,14 @@ public class KaplanNucleosomePullStrongestRegions {
 			String chr = tok.nextToken("\t");
 			int start = Integer.parseInt(tok.nextToken("\t"));
 			int end = Integer.parseInt(tok.nextToken("\t"));
+			
+			if (!chr.equals(lastChr))
+			{
+				// New chrom
+				bestScoreInWind = 0.0;
+				bestScoreInWindCoord = 1;
+			}
+			lastChr = chr;
 
 			for (int coord = start; coord <= end; coord++)
 			{
@@ -157,19 +170,36 @@ public class KaplanNucleosomePullStrongestRegions {
 					String token = tok.nextToken(";");
 					double score = Double.parseDouble(token);
 					//if (coord == 200) System.err.printf("chr%s, %d\tval=%.4f\n",chr,coord,score);
-					
+
+					// Add to counts
 					int index = Math.min(999,(int)(score*1000.0));
 					out[index]++;
-					
-					if (writeFile && (score >= inMinScore))
+
+					if (writeFile)
 					{
-						//	chr1    BSPP    exon    149505458       149505467       .       +       .
-						System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\n", chr, coord, coord, index);
+						// Adjust window info
+						if (score>bestScoreInWind)
+						{
+							bestScoreInWind = score;
+							bestScoreInWindCoord = coord;
+						}
+
+						//					if (score >= inMinScore)
+						if (bestScoreInWindCoord==(coord-inNucWindSize))
+						{
+							System.err.printf("Best in window %d, %.3f\n", bestScoreInWindCoord, bestScoreInWind);
+							if (bestScoreInWind>=inMinScore)
+							{
+								//	chr1    BSPP    exon    149505458       149505467       .       +       .
+								int bestIndex = Math.min(999,(int)(bestScoreInWind*1000.0));
+								System.out.printf("chr%s\tKap08\texon\t%d\t%d\t%d\t+\t.\n", chr, bestScoreInWindCoord, bestScoreInWindCoord, bestIndex);
+							}
+						}
 					}
 				}
 			}
 		}
-		
+
 		reader.close();
 		return out;
 	}
