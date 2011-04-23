@@ -398,7 +398,9 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    		byte[] refBases = BaseUtilsMore.toUpperCase(this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, contigCoord, contigCoord).getBases());
 	    		byte refBase = (revStrand) ? BaseUtils.simpleComplement(refBases[0]) : refBases[0];
 	    		byte readBase = readBases[offset];
-	    		
+
+	    		// Conversion filter is still relative to the 5' end relative to the read, whether it's the
+	    		// bisulfite or bisulfite-rc strand
 	    		boolean conv = false;
 	    		if (secondEnd)
 	    		{
@@ -408,8 +410,6 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    		{
 	    			conv = ((refBase==BaseUtils.C) && (readBase==BaseUtils.T));
 	    		}
-	    		
-	    		
 	    		if (conv) numConv++;
 	    		
     		// logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
