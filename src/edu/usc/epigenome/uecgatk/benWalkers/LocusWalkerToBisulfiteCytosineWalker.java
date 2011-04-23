@@ -340,19 +340,23 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	protected static boolean getSecondOfPair(SAMRecord read) {
 		boolean secondOfPair = false;
 		String readName = read.getReadName();
-		if (readName.endsWith(END1_SUFFIX))
+
+		if (read.getReadPairedFlag())
 		{
-			secondOfPair = false;
+			if (readName.endsWith(END1_SUFFIX))
+			{
+				secondOfPair = false;
+			}
+			else if (readName.endsWith(END2_SUFFIX))
+			{
+				secondOfPair = true;   			
+			}
+			else
+			{
+				System.err.println("LocusWalkerToBisulfiteCytosineWalker::getSecondOfPair() Got a read that doesn't end with /1 or /2: " + readName + ".  Can't tell which end it is.");
+				System.exit(1);
+			}	
 		}
-		else if (readName.endsWith(END2_SUFFIX))
-		{
-			secondOfPair = true;   			
-		}
-		else
-		{
-			System.err.println("Got a read that doesn't end with /1 or /2: " + readName + ".  Can't tell which end it is.");
-			System.exit(1);
-		}	
 		
 		return secondOfPair;
 	}
