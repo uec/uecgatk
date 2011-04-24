@@ -320,7 +320,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     					nextBase
     			);
     			cOut.addRead(cRead);
- //   			out.printf("\tAdding read (BASEQ %d): %s\n", pe.getQual(), cRead.toString());
+    			//out.printf("\tAdding read (%d, BASEQ %d): %s\n", thisLoc.getStart(), pe.getQual(), cRead.toString());
     		}
     	}
 
@@ -416,7 +416,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    		}
 	    		if (conv) numConv++;
 	    		
-    		// logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
+    		//logger.info(String.format("\t\tChecking ref(%d),index(%d) = %c,%c (%s)",contigCoord,offset,refBase,readBase, conv));
 	    		
 	    		
 	    	}
