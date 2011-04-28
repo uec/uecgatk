@@ -94,17 +94,16 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return priors;
     }
     
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet, byte[] contextSeq) {
     	BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
     	CPG_METHYLATION_RATE = cpgMethyRate;
     	CPH_METHYLATION_RATE = cphMethyRate;
     	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
     	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
         //System.err.println(refWindow.length);
-    	byte[] refWindow = ref.getBasesAtLocus(2);
-        //System.err.println(refWindow.length);
-        byte refBase = refWindow[0];
-        byte refNextBase = refWindow[1];
+    	byte refPreBase = contextSeq[0];
+        byte refBase = ref.getBase();
+        byte refNextBase = contextSeq[2];
         
         
         DbSNPFeature d = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
@@ -112,12 +111,12 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         if(rsID != null){
         	//System.err.println("is dbsnp");
         	if(d.getValidationStatus().equalsIgnoreCase("unknown"))
-        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase);
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase, refPreBase);
         	else
-        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase);
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase, refPreBase);
         }
         else{
-        	priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, heterozygosity, probOfTriStateGenotype, refNextBase);
+        	priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, heterozygosity, probOfTriStateGenotype, refNextBase, refPreBase);
         }
     	//String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
     	//if ( rsID != null ){
@@ -442,7 +441,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     }
     
     
-    public static double[] getReferencePolarizedPriorsBasedOnMethyStatus(byte ref, double heterozyosity, double pRefError, byte refNextBase) {
+    public static double[] getReferencePolarizedPriorsBasedOnMethyStatus(byte ref, double heterozyosity, double pRefError, byte refNextBase, byte refPreBase) {
         if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
             throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }

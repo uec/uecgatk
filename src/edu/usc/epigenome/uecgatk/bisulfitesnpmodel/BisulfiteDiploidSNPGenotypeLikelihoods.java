@@ -62,32 +62,32 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 	}
 	
 	public BisulfiteDiploidSNPGenotypeLikelihoods(
-			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet) {
+			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet, byte[] contextSeq) {
 		this.priors = priors;
 		this.BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
 		this.CPG_METHYLATION_RATE = cpgMethyRate;
 		this.CPH_METHYLATION_RATE = cphMethyRate;
-		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, CPG_METHYLATION_RATE, CPH_METHYLATION_RATE, novelDbsnpHet, validateDbsnpHet );
+		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, CPG_METHYLATION_RATE, CPH_METHYLATION_RATE, novelDbsnpHet, validateDbsnpHet, contextSeq );
         setToZeroBs();
 	}
 	
 	
-	public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, byte refNextBase) {
+	public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, byte refNextBase, byte refPreBase) {
         int n = 0;
         
         ReadBackedPileup pileupPositiveStrand = pileup.getPositiveStrandPileup();
         for(PileupElement p : pileupPositiveStrand )
-        	n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, false, refNextBase);
+        	n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, false, refNextBase, refPreBase);
         
         ReadBackedPileup pileupNegativeStrand = pileup.getNegativeStrandPileup();
         for(PileupElement p : pileupNegativeStrand )
-        	n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, true, refNextBase);
+        	n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, true, refNextBase, refPreBase);
  
         return n;
     }
 	
 
-	public int add(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, boolean negStrand, byte refNextBase) {
+	public int add(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, boolean negStrand, byte refNextBase, byte refPreBase) {
         // TODO-- Right now we assume that there are at most 2 reads per fragment.  This assumption is fine
         // TODO--   given the current state of next-gen sequencing, but may need to be fixed in the future.
         // TODO--   However, when that happens, we'll need to be a lot smarter about the caching we do here.
@@ -112,7 +112,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 
 
         BisulfiteDiploidSNPGenotypeLikelihoods gl;
-        gl = getCalculateGenotypeLikelihoods(observedBase, qualityScore, negStrand, refNextBase);
+        gl = getCalculateGenotypeLikelihoods(observedBase, qualityScore, negStrand, refNextBase, refPreBase);
 
 
         // for bad bases, there are no likelihoods
@@ -146,7 +146,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 	 * 
 	 * 
 	*/
-	protected BisulfiteDiploidSNPGenotypeLikelihoods getCalculateGenotypeLikelihoods(byte observedBase, byte qualityScore, boolean negStrand, byte refNextBase){
+	protected BisulfiteDiploidSNPGenotypeLikelihoods getCalculateGenotypeLikelihoods(byte observedBase, byte qualityScore, boolean negStrand, byte refNextBase, byte refPreBase){
 
 		try {
 			BisulfiteDiploidSNPGenotypeLikelihoods gl = (BisulfiteDiploidSNPGenotypeLikelihoods)this.clone();
@@ -202,7 +202,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 				else{
 						switch(observedBase){
 						case BaseUtils.G:
-							if(refNextBase == BaseUtils.C){
+							if(refPreBase == BaseUtils.C){
 								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-CPG_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE ) : pOfBase1 * (error/3.0) * ( (1.0-CPG_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE );
 								likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) *  ( (1.0-CPG_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE ) : pOfBase2 * (error/3.0) * ( (1.0-CPG_METHYLATION_RATE) * (1.0-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE );
 								if ( VERBOSE ) {
@@ -218,7 +218,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
 							}
 							break;
 						case BaseUtils.A:
-							if(refNextBase == BaseUtils.C){
+							if(refPreBase == BaseUtils.C){
 								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.G ? pOfBase1 * (error/3.0 + (1.0-CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
 								likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.G ? pOfBase2 * (error/3.0 + (1.0-CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
 								if ( VERBOSE ) {
@@ -251,6 +251,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods extends
                 for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%s\t", g); }
                 System.out.println();
                 for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", gl.log10Likelihoods[g.ordinal()]); }
+                System.out.println();
+                for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", gl.getPriors()[g.ordinal()]); }
                 System.out.println();
             }
 

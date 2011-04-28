@@ -32,5 +32,9 @@ public class NonRefDependSNPGenotypeLikelihoodsCalculationModel extends
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	public void initialize(byte[] contextSeq){
+
+	}
 
 }

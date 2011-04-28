@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalcul
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -71,7 +72,7 @@ public class BisulfiteGenotyper extends UnifiedGenotyper {
             samples.add(UAC.ASSUME_SINGLE_SAMPLE);
         else
             samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
+        
         // initialize the verbose writer
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
@@ -93,6 +94,12 @@ public class BisulfiteGenotyper extends UnifiedGenotyper {
      * @return the VariantCallContext object
      */
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    	GenomeLoc thisLoc = refContext.getLocus();
+    	int centerCoord = thisLoc.getStart();
+    	String thisContig = refContext.getLocus().getContig();
+        byte[] contextSeq = 
+   			this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, centerCoord-1, centerCoord+1).getBases();
+        BG_engine.setContextSeq(contextSeq);
     	return BG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 	
