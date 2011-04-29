@@ -47,6 +47,10 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>
      * The map function runs once per single-base locus, and accepts a 'context', a
      * data structure consisting of the reads which overlap the locus, the sites over
      * which they fall, and the base from the reference that overlaps.
+     * 
+     * Our map and reduce data types is an array of ints (counts) for the number or trials, and their respective 
+     * dup counts. for these two lists, we use a single array and a numtrials+n offest.
+     * 
      * @param tracker The accessor for reference metadata.
      * @param ref The reference base that lines up with this locus.
      * @param context Information about reads aligning to this locus.
@@ -56,6 +60,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>
     public Integer[] map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
     	Random rand = new Random();
+    	
     	Integer[] result = new Integer[NUMTRIALS * 2];
     	for(int i = 0; i < result.length; i++)
     		result[i] = 0;
@@ -67,7 +72,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>
     		if(read.getAlignmentStart() == context.getPosition() && !read.getReadNegativeStrandFlag())
     			reads.add(read);
     	
-    	//randomly sample these reads many time and calc dups
+    	//randomly sample these reads many times and calc dups
     	for(int i = 0; i < NUMTRIALS; i++)
     	{
 	    	ArrayList<DupSamRecord> sampledPositions = new ArrayList<DupSamRecord>();
