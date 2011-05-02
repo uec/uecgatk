@@ -27,7 +27,7 @@ import java.util.Random;
  * downsample dups walker
  */
 @By(DataSource.READS)
-public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]> 
+public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  implements TreeReducible<Integer[]>
 {
     @Output
     PrintStream out;
@@ -144,4 +144,15 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>
     	for(int i = 0; i < NUMTRIALS; i++)
     		out.printf("sampled=%d dups=%d => d/s = %f%n", result[i], result[i+NUMTRIALS], (1.0 * result[i+NUMTRIALS] / result[i]) );
     }
+
+	@Override
+	public Integer[] treeReduce(Integer[] lval, Integer[] rval)
+	{
+		Integer[] result = new Integer[NUMTRIALS * 2];
+    	for(int i = 0; i < result.length; i++)
+    	{
+    		result[i] = lval[i] + rval[i];
+    	}
+    	return result;
+	}
 }

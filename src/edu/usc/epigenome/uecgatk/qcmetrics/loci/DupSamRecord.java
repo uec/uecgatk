@@ -3,11 +3,11 @@ import  net.sf.samtools.SAMRecord;
 
 public class DupSamRecord extends SAMRecord
 {
-	SAMRecord read1;
+	public SAMRecord read1;
 	public DupSamRecord(SAMRecord read)
 	{
 		super(read.getHeader());
-		read1 = read;
+		read1 = read;	
 	}
 	
 	@Override
@@ -17,11 +17,11 @@ public class DupSamRecord extends SAMRecord
 		{
 			DupSamRecord other = (DupSamRecord) obj;
 			return (
-					this.read1.getAlignmentStart() == other.getAlignmentStart() &&
-					this.read1.getAlignmentEnd() == other.getAlignmentEnd() &&
-					this.read1.getMateAlignmentStart() == other.getMateAlignmentStart() &&
-					this.read1.getReferenceIndex() == other.getReferenceIndex() &&
-					this.read1.getMateReferenceIndex() == other.getMateReferenceIndex() 
+					this.read1.getAlignmentStart() == other.read1.getAlignmentStart() &&
+					this.read1.getAlignmentEnd() == other.read1.getAlignmentEnd() &&
+					this.read1.getMateAlignmentStart() == other.read1.getMateAlignmentStart() &&
+					this.read1.getReferenceIndex() == other.read1.getReferenceIndex() &&
+					this.read1.getMateReferenceIndex() == other.read1.getMateReferenceIndex() 
 					);
 				
 		}
