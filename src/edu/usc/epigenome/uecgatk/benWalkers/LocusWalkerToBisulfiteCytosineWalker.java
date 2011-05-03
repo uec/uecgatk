@@ -20,13 +20,16 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 
 /**
@@ -180,12 +183,19 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 //    				(negStrand?-1:1)));
     		
     		// Make the Cytosine
-       		CpgBackedByGatk thisC = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context,tracker);
+       		Pair<CpgBackedByGatk,MapType> makeCytPair = makeCytosine(thisLoc, ref, contextSeqStrandedIupac,negStrand,context,tracker);
+       		CpgBackedByGatk thisC = makeCytPair.first;
+       		MapType reduction = makeCytPair.second;
     		
 //			out.printf("%d\t%s\t%s\t%s\t%d\t%s\n", centerCoord,new String(ref.getBases()),
 //					new String(contextSeqStranded),new String(contextSeqStrandedIupac),(negStrand?-1:1),thisC.toStringExpanded());
 
-			if (this.outputCph || !thisC.isCph(false, 0.101))
+       		if (reduction != null)
+       		{
+       			mapout = reduction;
+
+       		}
+       		else if (this.outputCph || !thisC.isCph(false, 0.101))
     		{
 
 
@@ -241,25 +251,27 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	/**
 	 * @param thisLoc
 	 * @param ref
-	 * @param contextSeqStrandedIupac This has already been reverse complemented so that middle base is a cytosine
+	 * @param contextSeqRefStrandedIupac This has already been reverse complemented so that middle base is a cytosine. Reference genome
 	 * @param cytosineNegStrand
 	 * @param context This has all reads relative to the reference genome, so reverse strand cytosines will have to be revcomped
 	 * @return
 	 */
-    protected CpgBackedByGatk makeCytosine(GenomeLoc thisLoc, ReferenceContext ref,
-    		byte[] contextSeqStrandedIupac, boolean cytosineNegStrand,
+    private Pair<CpgBackedByGatk,MapType> makeCytosine(GenomeLoc thisLoc, ReferenceContext ref,
+    		byte[] contextSeqRefStrandedIupac, boolean cytosineNegStrand,
     		AlignmentContext context, RefMetaDataTracker tracker) 
     {
 
     	CpgBackedByGatk cOut = new CpgBackedByGatk(thisLoc.getStart(),cytosineNegStrand, context, tracker, ref);
     	short totalReadsOpposite = 0;
     	short aReadOpposite = 0;
+    	
+    	List<MapType> baseElementMapList = new ArrayList<MapType>();
 
     	//**************************************************************
     	//*** These would ideally be set based on the reads rather than the reference
-    	boolean nextBaseG = BaseUtils.basesAreEqual(contextSeqStrandedIupac[2],BaseUtils.G);
-    	char nextBase = (char)contextSeqStrandedIupac[2];
-    	char prevBase = (char)contextSeqStrandedIupac[0];
+    	boolean nextBaseG = BaseUtils.basesAreEqual(contextSeqRefStrandedIupac[2],BaseUtils.G);
+    	char nextBase = (char)contextSeqRefStrandedIupac[2];
+    	char prevBase = (char)contextSeqRefStrandedIupac[0];
     	//**************************************************************
 
 
@@ -316,6 +328,16 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
     			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
     			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
+    			
+    			int cycle = pe.getOffset();
+    			int readCycleQual = pe.getQual();
+    			
+    			MapType mapElement = mapReferenceCytosineBase(thisLoc, cycle, qual, baseCstrand, prevBase, nextBase); 
+    			if (mapElement != null)
+    			{
+    				baseElementMapList.add(mapElement);
+    			}
+    			
 
     			//**** THIS IS NOT GUARANTEED TO BE SAFE IF TWO READ NAMES HASH 
     			//**** TO THE SAME INT
@@ -346,8 +368,39 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 //		out.printf("Adding cytosine: %s\n", cOut.toString());
 
-    	return cOut;
+    	ReduceType outReduce = null;
+    	for (MapType map : baseElementMapList)
+    	{
+    		if (outReduce == null) outReduce = this.reduceInit();
+    		outReduce = this.reduce(map, outReduce);
+
+    	}
+    	
+    	MapType outMap = null;
+    	try
+    	{
+    		outMap = (MapType)outReduce;
+    	}
+    	catch (Exception e)
+    	{
+    		System.err.printf("Fatal error: If you use LocusWalkerToBisulfiteCytosineWalker::" + 
+    				"mapReferenceCytosineBase, ReduceType must be castable to MapType\n%s",e.toString());
+    		e.printStackTrace();
+    		System.exit(1);
+
+    	}
+    	
+    	return new Pair<CpgBackedByGatk,MapType>(cOut,outMap);
     }
+
+
+
+	protected MapType mapReferenceCytosineBase(GenomeLoc thisLoc,
+			int cycle, int qual, byte baseCstrand, char prevBaseRef, char nextBaseRef) {
+		// Doesn't do anything.  Override for counters
+		MapType out = null;
+		return out;
+	}
 
 
 
