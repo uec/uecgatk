@@ -131,8 +131,22 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
        	if (isC)
     	{
 
-       		byte[] contextSeq = 
-       			this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, centerCoord-1, centerCoord+1).getBases();
+       		byte[] contextSeq = null;
+       		try
+       		{
+       			// I've had this throw an out of range exception from time to time
+       			contextSeq = 
+       				this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, centerCoord-1, centerCoord+1).getBases();
+       		}
+       		catch (Exception e)
+       		{
+				System.err.printf("Non-fatal error, could not getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(%s,%d,%d)\n%s\n",
+						thisContig, centerCoord-1, centerCoord+1,e.toString());
+				e.printStackTrace();
+				return mapout;
+       		}
+       		
+       		
        		contextSeq = BaseUtilsMore.toUpperCase(contextSeq);
        		byte[] contextSeqStranded = contextSeq;
        		if (negStrand) contextSeqStranded = BaseUtils.simpleReverseComplement(contextSeq);
@@ -399,7 +413,19 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    	for (int offset = 0; (offset<=thisOffset)&& (numConv<this.minConv) ; offset++) // 
 	    	{
 	    		contigCoord = readStartPos + (increment * offset);
-	    		byte[] refBases = BaseUtilsMore.toUpperCase(this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, contigCoord, contigCoord).getBases());
+	    		byte[] refBases = null;
+	    		try
+	    		{
+	    			refBases = BaseUtilsMore.toUpperCase(this.getToolkit().getReferenceDataSource().getReference().getSubsequenceAt(thisContig, contigCoord, contigCoord).getBases());
+	    		}
+	      		catch (Exception e)
+	       		{
+					System.err.printf("Non-fatal error, could not getToolkit()getReferenceDataSource().getReference().getSubsequenceAt(%s,%d,%d)\n%s\n",
+							thisContig, contigCoord, contigCoord,e.toString());
+					e.printStackTrace();
+					return passes;
+	       		}
+	      		
 	    		byte refBase = (revStrand) ? BaseUtils.simpleComplement(refBases[0]) : refBases[0];
 	    		byte readBase = readBases[offset];
 
