@@ -3,11 +3,16 @@ import  net.sf.samtools.SAMRecord;
 
 public class DupSamRecord extends SAMRecord
 {
-	public SAMRecord read1;
-	public DupSamRecord(SAMRecord read)
+	private SAMRecord read;
+	public SAMRecord getRead()
 	{
-		super(read.getHeader());
-		read1 = read;	
+		return read;
+	}
+
+	public DupSamRecord(SAMRecord readIn)
+	{
+		super(readIn.getHeader());
+		read = readIn;	
 	}
 	
 	@Override
@@ -17,11 +22,10 @@ public class DupSamRecord extends SAMRecord
 		{
 			DupSamRecord other = (DupSamRecord) obj;
 			return (
-					this.read1.getAlignmentStart() == other.read1.getAlignmentStart() &&
-					this.read1.getAlignmentEnd() == other.read1.getAlignmentEnd() &&
-					this.read1.getMateAlignmentStart() == other.read1.getMateAlignmentStart() &&
-					this.read1.getReferenceIndex() == other.read1.getReferenceIndex() &&
-					this.read1.getMateReferenceIndex() == other.read1.getMateReferenceIndex() 
+					this.getRead().getAlignmentStart() == other.getRead().getAlignmentStart() &&
+					this.getRead().getMateAlignmentStart() == other.getRead().getMateAlignmentStart() &&
+					this.getRead().getReferenceIndex() == other.getRead().getReferenceIndex() &&
+					this.getRead().getMateReferenceIndex() == other.getRead().getMateReferenceIndex() 
 					);
 				
 		}
@@ -32,6 +36,6 @@ public class DupSamRecord extends SAMRecord
 	@Override
 	public int hashCode()
 	{
-		return (read1.getAlignmentStart() + read1.getAlignmentEnd() + read1.getMateAlignmentStart());		
+		return (read.getAlignmentStart() + read.getMateAlignmentStart());		
 	}
 }

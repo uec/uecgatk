@@ -94,8 +94,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
 	    	//count size of subset and how many dups we had
 	    	result[i] = sampledPositions.size();
 	    	for(int v : dupPositions.values())
-	    		result[i+NUMTRIALS] += (v - 1); 
-	    	
+	    		result[i+NUMTRIALS] += (v - 1); 	    	
     	}
     	return result;
     }
@@ -148,11 +147,6 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
 	@Override
 	public Integer[] treeReduce(Integer[] lval, Integer[] rval)
 	{
-		Integer[] result = new Integer[NUMTRIALS * 2];
-    	for(int i = 0; i < result.length; i++)
-    	{
-    		result[i] = lval[i] + rval[i];
-    	}
-    	return result;
+    	return reduce(lval,rval);
 	}
 }
