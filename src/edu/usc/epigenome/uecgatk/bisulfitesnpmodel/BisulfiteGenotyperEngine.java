@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 
@@ -49,6 +50,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -61,47 +63,80 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteAlignmentUtils;
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteVCFConstants;
+import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 
-public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
+public class BisulfiteGenotyperEngine{
 
-	public boolean bisulfiteSpace = false;
-	public static byte[] CONTEXTSEQ = null;
+	private BisulfiteArgumentCollection BAC = null;
+	
+	private CytosineTypeStatus cts = null;
+	
+	// the annotation engine
+    private VariantAnnotatorEngine annotationEngine;
+	
+    
+    
+    // the model used for calculating genotypes
+    private ThreadLocal<GenotypeLikelihoodsCalculationModel> glcm = new ThreadLocal<GenotypeLikelihoodsCalculationModel>();
+
+    private Allele refAllele = null;
+    
+
+    // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
+    //private double[] log10AlleleFrequencyPriors;
+
+    // the allele frequency likelihoods (allocated once as an optimization)
+    private ThreadLocal<double[]> log10AlleleFrequencyPosteriors = new ThreadLocal<double[]>();
+
+    // the priors object
+    private GenotypePriors genotypePriors;
+
+    // samples in input
+    private Set<String> samples = new TreeSet<String>();
+
+    // the various loggers and writers
+    private Logger logger = null;
+
+    // fasta reference reader to supplement the edges of the reference sequence for long reads
+    private IndexedFastaSequenceFile referenceReader;
+
+
+
+    // the standard filter to use for calls below the confidence threshold but above the emit threshold
+    private static final Set<String> filter = new HashSet<String>(1);
+
+    private static final int MISMATCH_WINDOW_SIZE = 20;
+	
+
+	public byte[] CONTEXTREF = null;
+	public Integer[] CYTOSINE_STATUS = null;
+	
 	protected double MAX_PHRED = 1000000;
 	//public static double phredLiklihoodConfidance;
 	
-	public BisulfiteGenotyperEngine(GenomeAnalysisEngine toolkit,
-			UnifiedArgumentCollection UAC) {
-		super(toolkit, UAC);
-		
-
-		// TODO Auto-generated constructor stub
-	}
+	
 
 	public BisulfiteGenotyperEngine(GenomeAnalysisEngine toolkit,
-			UnifiedArgumentCollection UAC, Logger logger,
-			PrintStream verboseWriter, VariantAnnotatorEngine engine,
+			BisulfiteArgumentCollection BAC, Logger logger,
+			VariantAnnotatorEngine engine,
 			Set<String> samples) {
-		super(toolkit, UAC, logger, verboseWriter, engine, samples);
-
+		//super(toolkit, BAC, logger, verboseWriter, engine, samples);
+		this.samples = new TreeSet<String>(samples);
+		initialize(toolkit, BAC, logger, engine, samples.size());
 		// TODO Auto-generated constructor stub
 	}
 	
-	@Override
-	protected void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
+
+	protected void initialize(GenomeAnalysisEngine toolkit, BisulfiteArgumentCollection BAC, Logger logger, VariantAnnotatorEngine engine, int numSamples) {
         // note that, because we cap the base quality by the mapping quality, minMQ cannot be less than minBQ
-        this.UAC = UAC.clone();
-        this.UAC.MIN_MAPPING_QUALTY_SCORE = Math.max(UAC.MIN_MAPPING_QUALTY_SCORE, UAC.MIN_BASE_QUALTY_SCORE);
-        this.bisulfiteSpace = UAC.bisulfiteSpace;
+        this.BAC = BAC.clone();
+        
+        
         this.logger = logger;
-        this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
-
-        N = 2 * numSamples;
-        log10AlleleFrequencyPriors = new double[N+1];
-        computeAlleleFrequencyPriors(N);
-        genotypePriors = BisulfiteGenotyperEngine.createGenotypePriors(UAC);
-
-        filter.add(LOW_QUAL_FILTER_NAME);
+        
+        genotypePriors = BisulfiteGenotyperEngine.createGenotypePriors(BAC);
 
         try {
             referenceReader = new CachingIndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
@@ -111,11 +146,12 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
         }
     }
 	
-	public static void setContextSeq(byte[] contextSeq){
-		CONTEXTSEQ = contextSeq;
+	public void setCytosineTypeStatus(CytosineTypeStatus cts, byte[] contextRef){
+		this.cts = cts;
+		this.CONTEXTREF = contextRef;
 	}
 	
-	@Override
+	//@Override
 	/**
      * Compute full calls at a given locus.
      *
@@ -124,20 +160,17 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
      * @param rawContext contextual information around the locus
      * @return the VariantCallContext object
      */
-    public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null);
-        if ( vc == null ){
-        	
-        //	System.out.println("vc null--position: " + refContext.getLocus().getStart() + " refBase: " + refContext.getBase());
-        	
-        	return null;
-        }
+    public BisulfiteVariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+        Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(BAC, refContext, rawContext);
+        Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null, GLs);
+        if ( vc == null )
+            return null;
             
 
-        VariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
+        BisulfiteVariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, GLs, vc);
         //System.out.println(vcc.vc.getGenotypesSortedByName());
-        vcc.vc = GLsToPLs(vcc.vc);
+       
        // if ( vcc == null ){
         	
        // 	System.out.println("vcc null--position: " + refContext.getLocus().getStart() + " refBase: " + refContext.getBase());
@@ -150,30 +183,13 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
     }
 	
 	//can not override unifiedGenotyperEngine, as it is static method
-	protected static GenotypePriors createGenotypePriors(UnifiedArgumentCollection UAC) {
-        GenotypePriors priors;
-        switch ( UAC.GLmodel ) {
-        	case SNP:
-            // use flat priors for GLs
-        		priors = new DiploidSNPGenotypePriors();
-        		break;
-        	case DINDEL:
-            // create flat priors for Indels, actual priors will depend on event length to be genotyped
-        		priors = new DiploidIndelGenotypePriors();
-        		break;
-        	case BSSNP:
-            // create flat priors for Indels, actual priors will depend on event length to be genotyped
-        		priors = new BisulfiteDiploidSNPGenotypePriors();
-        		break;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.GLmodel);
-        }
-
-        return priors;
+	protected static GenotypePriors createGenotypePriors(BisulfiteArgumentCollection BAC) {
+        return new BisulfiteDiploidSNPGenotypePriors();
     }
 	
 
-	@Override
-    protected VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
+
+    protected VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse, Map<String, BiallelicGenotypeLikelihoods> GLs) {
 		if ( stratifiedContexts == null ){
 			//System.out.println("no stratifiedContexts now");
 			 return null;
@@ -181,249 +197,216 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
-            glcm.set(BisulfiteGenotyperEngine.getGenotypeLikelihoodsCalculationObject(logger, UAC));
+            glcm.set(BisulfiteGenotyperEngine.getGenotypeLikelihoodsCalculationObject(logger, BAC));
             
         }
 
-        Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
+        
         BisulfiteSNPGenotypeLikelihoodsCalculationModel bglcm = (BisulfiteSNPGenotypeLikelihoodsCalculationModel) glcm.get();
-        bglcm.initialize(CONTEXTSEQ);
-        Allele refAllele = bglcm.getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
+        bglcm.initialize(cts, BAC, CONTEXTREF);
+        refAllele = bglcm.getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
         
+        CYTOSINE_STATUS = bglcm.getCytosineStatus();
+        //CYTOSINE_TYPE_STATUS = bglcm.getCytosineTypeStatus();
+        if (refAllele != null)
+            return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
+        else
+            return null;
+          
         
-        
-        if (refAllele != null){
-        	//System.out.println("there is refAllele now");
-        	return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
-        }   
-        else{
-        	//System.out.println("no refAllele now");
-			 return null;
-        }
+    }
+    
+    protected void assignAFPosteriors(double[]likelihoods, double[] log10AFPosteriors){
+    	for(int i = 0; i < likelihoods.length; i++){
+    		//System.err.println(likelihoods[i]);
+    		
+    		log10AFPosteriors[i] = likelihoods[i];
+    	}
+    		
     }
 	
-	@Override
-	protected VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+
+	protected BisulfiteVariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, Map<String, BiallelicGenotypeLikelihoods> GLs, VariantContext vc) {
 		// initialize the data for this thread if that hasn't been done yet
-        if ( afcm.get() == null ) {
-            log10AlleleFrequencyPosteriors.set(new double[N+1]);
-            afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
+        if ( glcm.get() == null ) {
+            return null;
         }
-
-        // estimate our confidence in a reference call and return
-        if ( vc.getNSamples() == 0 )
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0);
-
-        // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
-        clearAFarray(log10AlleleFrequencyPosteriors.get());
-        afcm.get().getLog10PNonRef(tracker, refContext, vc.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
-
-        // find the most likely frequency
-        int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
-        int secondAFguess = MathUtils.minElementIndex(log10AlleleFrequencyPosteriors.get());
-        for (int i = 0; i <= N; i++){
-        	if(i != bestAFguess){	
-        		if(log10AlleleFrequencyPosteriors.get()[i] >= log10AlleleFrequencyPosteriors.get()[secondAFguess]){
-        			secondAFguess = i;
-        		}
-        	}
-        }
-        // calculate p(f>0)
-        double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get());
-        double logRatio;
-        if(Double.isInfinite( Math.log10(normalizedPosteriors[secondAFguess]))){
-        	logRatio = MAX_PHRED;
-        }
-        else{
-        	logRatio = 10*(Math.log10(normalizedPosteriors[bestAFguess]) - Math.log10(normalizedPosteriors[secondAFguess]));
-        }
-       
-        //for (int i = 0; i <= N; i++){
-        //	System.out.println("AFposterior: " + log10AlleleFrequencyPosteriors.get()[i]);
-        //	System.out.println("normalizeAFposterior: " + normalizedPosteriors[i]);
-        //}
-        //System.out.println("normalizeBestAFposterior: " + sum);
-        //for (int i = 1; i <= N; i++)       	
-        	//sum += normalizedPosteriors[i];
+        log10AlleleFrequencyPosteriors.set(new double[3]);
+        for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
+        	assignAFPosteriors(GL.getLikelihoods(),log10AlleleFrequencyPosteriors.get());
+        	int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
+            int secondAFguess = MathUtils.minElementIndex(log10AlleleFrequencyPosteriors.get());
+            for (int i = 0; i < log10AlleleFrequencyPosteriors.get().length; i++){
+            	if(i != bestAFguess){	
+            		if(log10AlleleFrequencyPosteriors.get()[i] >= log10AlleleFrequencyPosteriors.get()[secondAFguess]){
+            			secondAFguess = i;
+            		}
+            	}
+            }
+            double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get());
+            double logRatio;
+            if(Double.isInfinite( Math.log10(normalizedPosteriors[secondAFguess]))){
+            	logRatio = MAX_PHRED;
+            }
+            else{
+            	logRatio = 10*(Math.log10(normalizedPosteriors[bestAFguess]) - Math.log10(normalizedPosteriors[secondAFguess]));
+            }
             
-        //double PofF = Math.min(sum, 1.0); // deal with precision errors
-
-       // double phredScaledConfidence;
-       
-           // phredScaledConfidence = QualityUtils.phredScaleErrorRate(1.0 - PofF);
-          //  if ( Double.isInfinite(phredScaledConfidence) ) {
-          //  	phredScaledConfidence = MAX_PHRED;
-            	//   sum = 0.0;
-                //for (int i = 1; i <= N; i++) {
-                 //   if ( log10AlleleFrequencyPosteriors.get()[i] == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED )
-                  //      break;
-                   // sum += log10AlleleFrequencyPosteriors.get()[i];
-                //}
-               // phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
-        //    }
+            if ( BAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(logRatio, bestAFguess) ) {
+                // technically, at this point our confidence in a reference call isn't accurately estimated
+                //  because it didn't take into account samples with no data, so let's get a better estimate
+            	double sum = 0.0;
+            	for (int j = 1; j < log10AlleleFrequencyPosteriors.get().length; j++)       	
+                	sum += normalizedPosteriors[j];
+                    
+               double PofF = Math.min(sum, 1.0);
+                return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
+            }
             
-       // System.out.println("phredScaledConfidence: " + phredScaledConfidence);
-        // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(logRatio, bestAFguess) ) {
-            // technically, at this point our confidence in a reference call isn't accurately estimated
-            //  because it didn't take into account samples with no data, so let's get a better estimate
-        	double sum = 0.0;
-        	for (int j = 1; j <= N; j++)       	
-            	sum += normalizedPosteriors[j];
-                
-           double PofF = Math.min(sum, 1.0);
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
+            HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
+            
+            HashMap<String, Object> attributes = new HashMap<String, Object>();
+
+            String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+            if ( rsID != null )
+                attributes.put(VariantContext.ID_KEY, rsID);
+
+            // if the site was downsampled, record that fact
+            if ( rawContext.hasPileupBeenDownsampled() )
+                attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
+
+            Set<Allele> myAlleles = vc.getAlleles();
+ 
+            GenomeLoc loc = refContext.getLocus();
+
+            int endLoc = calculateEndPos(vc.getAlleles(), vc.getReference(), loc);
+            
+            assignGenotypes(vc,log10AlleleFrequencyPosteriors.get(),bestAFguess, genotypes, logRatio/10.0, GL);
+            
+            // strip out the alternate allele if it's a ref call
+           // if ( bestAFguess == 0 && BAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
+           //     myAlleles = new HashSet<Allele>(1);
+           //     myAlleles.add(refAllele);
+           // }
+            
+            
+            
+            double cytosineMethyLevel = 0;
+            //System.err.println("myAlleles: " + genotypes.values().toString());
+            //genotypes.put(GL.getSample(), new Genotype(GL.getSample(), myAlleles, logRatio/10.0, null, attributes, false));
+            
+            if(BAC.ASSUME_SINGLE_SAMPLE != null){
+            	 if(passesCallThreshold(logRatio)){
+            		 
+            		 for(Genotype genotypeTemp : genotypes.values()){
+            			 //System.err.println("genotype: " + genotypeTemp.getGenotypeString() + "\tloc" + loc.getStart());
+            			 //System.err.println("genotype: " + (char)genotypeTemp.getAllele(0).getBases()[0]);
+            			 //System.err.println("genotype: " + genotypeTemp.getType());
+            			 if(genotypeTemp.isHomRef()){
+                 			 if(genotypeTemp.getAllele(0).getBases()[0]==BaseUtils.C){
+                 				attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, CYTOSINE_STATUS[1]);
+                                attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, CYTOSINE_STATUS[3]);
+                                attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, false);
+                                cytosineMethyLevel = (double)CYTOSINE_STATUS[1]/(double)(CYTOSINE_STATUS[1] + CYTOSINE_STATUS[3]);
+                                attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(false, cytosineMethyLevel));
+                               
+                                
+                 			 }
+                 			 else if(genotypeTemp.getAllele(0).getBases()[0]==BaseUtils.G){
+                 				attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, CYTOSINE_STATUS[0]);
+                                attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, CYTOSINE_STATUS[2]);
+                                attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, true);
+                                cytosineMethyLevel = (double)CYTOSINE_STATUS[0]/(double)(CYTOSINE_STATUS[0] + CYTOSINE_STATUS[2]);
+                                attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(true, cytosineMethyLevel));
+                                
+                 			 }
+                 		 }
+                 		 else if(genotypeTemp.isHomVar()){
+                 			if(genotypeTemp.getAllele(1).getBases()[0]==BaseUtils.C){
+                 				attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, CYTOSINE_STATUS[1]);
+                                attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, CYTOSINE_STATUS[3]);
+                                attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, false);
+                                cytosineMethyLevel = (double)CYTOSINE_STATUS[1]/(double)(CYTOSINE_STATUS[1] + CYTOSINE_STATUS[3]);
+                                attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(false, cytosineMethyLevel));
+                                
+                 			 }
+                 			 else if(genotypeTemp.getAllele(1).getBases()[0]==BaseUtils.G){
+                 				attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, CYTOSINE_STATUS[0]);
+                                attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, CYTOSINE_STATUS[2]);
+                                attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, true);
+                                cytosineMethyLevel = (double)CYTOSINE_STATUS[0]/(double)(CYTOSINE_STATUS[0] + CYTOSINE_STATUS[2]);
+                                attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(true, cytosineMethyLevel));
+                                
+                 			 }
+                 		 }
+            			 attributes.put(genotypeTemp.getType().toString(), true);
+                 	 }
+            		 if(CYTOSINE_STATUS[0] + CYTOSINE_STATUS[1] > 0 && loc.getStart() == BAC.testLocus){
+            			// System.err.println("CYTOSINE_STATUS[0]: " + CYTOSINE_STATUS[0] + "\tCYTOSINE_STATUS[1]: " + CYTOSINE_STATUS[1] + "\tCYTOSINE_STATUS[2]: " + CYTOSINE_STATUS[2] + "\tCYTOSINE_STATUS[3]: " + CYTOSINE_STATUS[3]);
+                		// System.err.println("cytosineMethyLevel: " + cytosineMethyLevel + "\tcts: " + cts.chgMethyLevel + "\t" + cts.chhMethyLevel + "\t" + cts.cpgMethyLevel + "\t" + logRatio);
+                		 
+            		 }
+            		 
+                 }
+            }
+           
+           // genotypes.put(GL.getSample(), new Genotype(GL.getSample(), myAlleles, logRatio/10.0, null, attributes, false));
+            
+            VariantContext vcCall = new VariantContext("BG_call", loc.getContig(), loc.getStart(), endLoc,
+                    myAlleles, genotypes, logRatio/10.0, passesCallThreshold(logRatio) ? null : filter, attributes);
+
+            if ( annotationEngine != null ) {
+                // first off, we want to use the *unfiltered* context for the annotations
+                ReadBackedPileup pileup = null;
+                if (rawContext.hasExtendedEventPileup())
+                    pileup = rawContext.getExtendedEventPileup();
+                else if (rawContext.hasBasePileup())
+                    pileup = rawContext.getBasePileup();
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, BAC.ASSUME_SINGLE_SAMPLE);
+
+                Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
+                vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
+            }
+            //if(vcCall != null){
+            //	 System.out.println(vcCall.getChr() + "\t" + vcCall.getStart() + "\t" + vcCall.getEnd());
+            //}
+            
+            
+           
+           
+            BisulfiteVariantCallContext call = new BisulfiteVariantCallContext(vcCall, passesCallThreshold(logRatio), cts);
+            call.setRefBase(refContext.getBase());
+            return call;
         }
-
-        // create the genotypes
-        Map<String, Genotype> genotypes = afcm.get().assignGenotypes(vc, log10AlleleFrequencyPosteriors.get(), bestAFguess);
-
-        // print out stats if we have a writer
-        if ( verboseWriter != null )
-            printVerboseData(refContext.getLocus().toString(), vc, logRatio, logRatio, normalizedPosteriors);
-
-        // *** note that calculating strand bias involves overwriting data structures, so we do that last
-        HashMap<String, Object> attributes = new HashMap<String, Object>();
-
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-        if ( rsID != null )
-            attributes.put(VariantContext.ID_KEY, rsID);
-
-        // if the site was downsampled, record that fact
-        if ( rawContext.hasPileupBeenDownsampled() )
-            attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
-
-/*
-        if ( !UAC.NO_SLOD && bestAFguess != 0 ) {
-            final boolean DEBUG_SLOD = false;
-
-            // the overall lod
-            //double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double overallLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
-
-            // the forward lod
-            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, vc.getAlternateAllele(0));
-            clearAFarray(log10AlleleFrequencyPosteriors.get());
-            afcm.get().getLog10PNonRef(tracker, refContext, vcForward.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
-            //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
-            double forwardLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double forwardLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
-
-            // the reverse lod
-            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, vc.getAlternateAllele(0));
-            clearAFarray(log10AlleleFrequencyPosteriors.get());
-            afcm.get().getLog10PNonRef(tracker, refContext, vcReverse.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
-            //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
-            double reverseLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double reverseLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors.get(), 1);
-            if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
-
-            double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;
-            double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofF;
-            if ( DEBUG_SLOD ) System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
-
-            // strand score is max bias between forward and reverse strands
-            double strandScore = Math.max(forwardLod, reverseLod);
-            // rescale by a factor of 10
-            strandScore *= 10.0;
-            //logger.debug(String.format("SLOD=%f", strandScore));
-
-            attributes.put("SB", Double.valueOf(strandScore));
-        }
-*/
-        GenomeLoc loc = refContext.getLocus();
-
-        int endLoc = calculateEndPos(vc.getAlleles(), vc.getReference(), loc);
-
-        Set<Allele> myAlleles = vc.getAlleles();
-        // strip out the alternate allele if it's a ref call
-        if ( bestAFguess == 0 && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
-            myAlleles = new HashSet<Allele>(1);
-            myAlleles.add(vc.getReference());
-        }
-        VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, logRatio/10.0, passesCallThreshold(logRatio) ? null : filter, attributes);
-
-        if ( annotationEngine != null ) {
-            // first off, we want to use the *unfiltered* context for the annotations
-            ReadBackedPileup pileup = null;
-            if (rawContext.hasExtendedEventPileup())
-                pileup = rawContext.getExtendedEventPileup();
-            else if (rawContext.hasBasePileup())
-                pileup = rawContext.getBasePileup();
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
-
-            Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
-            vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
-        }
-        //if(vcCall != null){
-        //	 System.out.println(vcCall.getChr() + "\t" + vcCall.getStart() + "\t" + vcCall.getEnd());
-        //}
-       
-        VariantCallContext call = new VariantCallContext(vcCall, passesCallThreshold(logRatio));
-        call.setRefBase(refContext.getBase());
-        return call;
+		return null;
 	}
 	
-	@Override
 	protected boolean passesEmitThreshold(double conf, int bestAFguess) {
-        return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || bestAFguess != 0) && conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING;
+        return (BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || bestAFguess != 0) && conf >= BAC.STANDARD_CONFIDENCE_FOR_CALLING;
     }
 	
 	
-	protected static GenotypeLikelihoodsCalculationModel getGenotypeLikelihoodsCalculationObject(Logger logger, UnifiedArgumentCollection UAC) {
-		GenotypeLikelihoodsCalculationModel glcm;
-        switch ( UAC.GLmodel ) {
-            case SNP:
-                glcm = new SNPGenotypeLikelihoodsCalculationModel(UAC, logger);
-                break;
-           case DINDEL:
-                glcm = new DindelGenotypeLikelihoodsCalculationModel(UAC, logger);
-                break;
-           case BSSNP:
-               glcm = new BisulfiteSNPGenotypeLikelihoodsCalculationModel(UAC, logger);
-               break;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.GLmodel);
-        }
-
-        return glcm;
+	protected static GenotypeLikelihoodsCalculationModel getGenotypeLikelihoodsCalculationObject(Logger logger, BisulfiteArgumentCollection BAC) {		
+        	return new BisulfiteSNPGenotypeLikelihoodsCalculationModel(BAC, logger);  	
     }
 
 	
 	
-	@Override
-	protected Map<String, StratifiedAlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext) {
-		BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(refContext, UAC);
+	
+	protected Map<String, StratifiedAlignmentContext> getFilteredAndStratifiedContexts(BisulfiteArgumentCollection BAC, ReferenceContext refContext, AlignmentContext rawContext) {
+		BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(refContext, BAC);
 
         Map<String, StratifiedAlignmentContext> stratifiedContexts = null;
        
-        if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL && rawContext.hasExtendedEventPileup() ) {
-
-            ReadBackedExtendedEventPileup rawPileup = rawContext.getExtendedEventPileup();
-
-            // filter the context based on min mapping quality
-            ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
-
-            // don't call when there is no coverage
-            if ( pileup.size() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES )
-                return null;
-
-            // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
-
-        } else if ( (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BSSNP) && !rawContext.hasExtendedEventPileup() ) {
+        if ( !rawContext.hasExtendedEventPileup() ) {
 
             byte ref = refContext.getBase();
             if ( !BaseUtils.isRegularBase(ref) )
                 return null;
 
-            // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
-            //System.out.println("here!");
-            //System.out.println(rawContext.getBasePileup().size());
-            // filter the reads (and test for bad pileups)
+            
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(rawContext.getBasePileup(), BAC.ASSUME_SINGLE_SAMPLE);
+            
             if ( !filterPileupBisulfite(stratifiedContexts, badReadPileupFilter) )
                 return null;
         }
@@ -442,8 +425,8 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 
 	                if ( p.isDeletion() ) {
 	                    // if it's a good read, count it
-	                    if ( read.getMappingQuality() >= UAC.MIN_MAPPING_QUALTY_SCORE &&
-	                         (UAC.USE_BADLY_MATED_READS || !BadMateFilter.hasBadMate(read)) )
+	                    if ( read.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE &&
+	                         (BAC.USE_BADLY_MATED_READS || !BadMateFilter.hasBadMate(read)) )
 	                        numDeletions++;
 	                } else {
 	                    if ( !(read instanceof GATKSAMRecord) )
@@ -459,7 +442,7 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 	        // now, test for bad pileups
 
 	        // in all_bases mode, it doesn't matter
-	        if ( UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES )
+	        if ( BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES )
 	            return true;
 
 	        // is there no coverage?
@@ -467,8 +450,8 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 	            return false;
 
 	        // are there too many deletions in the pileup?
-	        if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
-	                (double)numDeletions / (double)(pileupSize + numDeletions) > UAC.MAX_DELETION_FRACTION )
+	        if ( (BAC.MAX_DELETION_FRACTION >=0 && BAC.MAX_DELETION_FRACTION <=1.0 ) &&
+	                (double)numDeletions / (double)(pileupSize + numDeletions) > BAC.MAX_DELETION_FRACTION )
 	            return false;
 
 	        return true;
@@ -477,11 +460,11 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
 	 
 	protected class BadBaseFilterBisulfite implements GATKSAMRecordFilter {
         private ReferenceContext refContext;
-        private final UnifiedArgumentCollection UAC;
+        private final BisulfiteArgumentCollection BAC;
 
-        public BadBaseFilterBisulfite(ReferenceContext refContext, UnifiedArgumentCollection UAC) {
+        public BadBaseFilterBisulfite(ReferenceContext refContext, BisulfiteArgumentCollection BAC) {
             this.refContext = refContext;
-            this.UAC = UAC;
+            this.BAC = BAC;
         }
 
         @Override
@@ -490,15 +473,15 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
             BitSet bitset = new BitSet(record.getReadLength());
 
             // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue
-            if ( record.getMappingQuality() < UAC.MIN_MAPPING_QUALTY_SCORE ||
-                 (!UAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
+            if ( record.getMappingQuality() < BAC.MIN_MAPPING_QUALTY_SCORE ||
+                 (!BAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
             	//System.out.println("bad mates");
             	return bitset;
             }
 
             byte[] quals = record.getBaseQualities();
             for (int i = 0; i < quals.length; i++) {
-                if ( quals[i] >= UAC.MIN_BASE_QUALTY_SCORE )
+                if ( quals[i] >= BAC.MIN_BASE_QUALTY_SCORE )
                     bitset.set(i);
             }
 
@@ -511,12 +494,12 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
             }            
 
             BitSet mismatches;
-            //System.out.println(UAC.bisulfiteSpace);
-            if(UAC.bisulfiteSpace){
-            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, UAC.bisulfiteSpace);
+            //System.out.println(BAC.bisulfiteSpace);
+            if(BAC.sequencingMode == MethylSNPModel.BM || BAC.sequencingMode == MethylSNPModel.GM){
+            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode);
             }
             else{
-            	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
+            	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
             }
             if ( mismatches != null )
                 bitset.and(mismatches);
@@ -525,38 +508,234 @@ public class BisulfiteGenotyperEngine extends UnifiedGenotyperEngine {
         }
     }
 	
-	@Override
-	protected void computeAlleleFrequencyPriors(int N) {
-        // calculate the allele frequency priors for 1-N
-        double sum = 0.0;
-        double heterozygosity;
+	//copy from GATK since private class issue
+	private BisulfiteVariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
+        if ( contexts == null )
+            return null;
 
-        if (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL)
-            heterozygosity = UAC.INDEL_HETEROZYGOSITY;
-        else
-            heterozygosity = UAC.heterozygosity;
-        if(N==2 && bisulfiteSpace){
-        	for (int i = 0; i <= N; i++) {
-                log10AlleleFrequencyPriors[i] = 0;
+        double P_of_ref = initialPofRef;
+
+        // for each sample that we haven't examined yet
+        for ( String sample : samples ) {
+            boolean isCovered = contexts.containsKey(sample);
+            if ( ignoreCoveredSamples && isCovered )
+                continue;
+
+
+            int depth = 0;
+
+            if (isCovered) {
+                AlignmentContext context =  contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+
+                if (context.hasBasePileup())
+                    depth = context.getBasePileup().size();
+                else if (context.hasExtendedEventPileup())
+                    depth = context.getExtendedEventPileup().size();
             }
-        }
-        else{
-        	 for (int i = 1; i <= N; i++) {
-                 double value = heterozygosity / (double)i;
-                 log10AlleleFrequencyPriors[i] = Math.log10(value);
-                 sum += value;
-             }
 
-             // null frequency for AF=0 is (1 - sum(all other frequencies))
-             log10AlleleFrequencyPriors[0] = Math.log10(1.0 - sum);
+            P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
         }
+
+        return new BisulfiteVariantCallContext(QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= BAC.STANDARD_CONFIDENCE_FOR_CALLING, cts);
     }
 	
+	protected boolean passesCallThreshold(double conf) {
+        return conf >= BAC.STANDARD_CONFIDENCE_FOR_CALLING;
+    }
+	
+	private int calculateEndPos(Set<Allele> alleles, Allele refAllele, GenomeLoc loc) {
+        // TODO - temp fix until we can deal with extended events properly
+        // for indels, stop location is one more than ref allele length
+        boolean isSNP = true;
+        for (Allele a : alleles){
+            if (a.getBaseString().length() != 1) {
+                isSNP = false;
+                break;
+            }
+        }
 
-	//protected static AlleleFrequencyCalculationModel getBisulfiteAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
+        int endLoc = loc.getStart();
+        if ( !isSNP )
+            endLoc += refAllele.length();
+
+        return endLoc;
+    }
+	
+	private String getCytosineTypeStatus(boolean negStrand, double cytosineMethyLevel){
+		int cPos;
+		String cTypeStatus = "C";
+		if(negStrand){
+			cPos = 1;
+		}
+		else{
+			cPos = 0;
+		}
+		for(String cytosineType : cts.cytosineListMap.keySet()){
+			String[] tmpKey = cytosineType.split("-");
+			Double[] value = cts.cytosineListMap.get(cytosineType);
+			//System.err.println("ctype: " + tmpKey[0]);
+			//cTypeStatus = cTypeStatus + "," + tmpKey[0];
+			if(value[cPos] >= Math.log10(BAC.cTypeThreshold)){
+				cTypeStatus = cTypeStatus + "," + tmpKey[0];
+				 if(Double.isNaN(cytosineMethyLevel))
+						 cytosineMethyLevel = 0.0;
+				//System.err.println("cTypeStatus: " + cTypeStatus + "\tLikelihood: " + value[cPos]);
+				if(tmpKey[0].equalsIgnoreCase("CG")){
+					
+					cts.isCpg = true;
+					cts.cpgMethyLevel = cytosineMethyLevel;
+				}
+				else if(tmpKey[0].equalsIgnoreCase("CHH")){
+					cts.isChh = true;
+					cts.chhMethyLevel = cytosineMethyLevel;
+				}
+				else if(tmpKey[0].equalsIgnoreCase("CHG")){
+					cts.isChg = true;
+					cts.chgMethyLevel = cytosineMethyLevel;
+				}
+				if(tmpKey[0].equalsIgnoreCase("GCH")){
+					if(BAC.sequencingMode == MethylSNPModel.GM){
+						cts.isGch = true;
+						cts.gchMethyLevel = cytosineMethyLevel;
+					}
+					else{
+						continue;
+					}
+					
+				}
+				else if(tmpKey[0].equalsIgnoreCase("GCG")){
+					if(BAC.sequencingMode == MethylSNPModel.GM){
+						cts.isGcg = true;
+						cts.gcgMethyLevel = cytosineMethyLevel;
+					}
+					else{
+						continue;
+					}
+					
+				}
+				else if(tmpKey[0].equalsIgnoreCase("HCG")){
+					if(BAC.sequencingMode == MethylSNPModel.GM){
+						cts.isHcg = true;
+						cts.hcgMethyLevel = cytosineMethyLevel;
+					}
+					else{
+						continue;
+					}
+					
+				}
+				
+				
+			}
+			//if(cytosineMethyLevel > 0)
+				//System.err.println("methy: " + value[2] + "\tliklihood_pos: " + value[0]  + "\tliklihood_neg: " + value[1]);
+ 		}
+		
+		return cTypeStatus;
+	}
+
+//    private static boolean isValidDeletionFraction(double d) {
+ //       return ( d >= 0.0 && d <= 1.0 );
+ //   }
+
+	//protected static AlleleFrequencyCalculationModel getBisulfiteAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, BisulfiteArgumentCollection BAC) {
      //   AlleleFrequencyCalculationModel afcm;
       //  afcm = new BisulfiteExactAFCalculationModel(N, logger, verboseWriter);
        // return afcm;
     //}
 	
+	//COPY FROM gatk, NEED TO BE REPLACED
+	   /**
+     * Can be overridden by concrete subclasses
+     * @param vc                   variant context with genotype likelihoods
+     * @param log10AlleleFrequencyPosteriors    allele frequency results
+     * @param AFofMaxLikelihood    allele frequency of max likelihood
+     *
+     * @return calls
+     */
+    public void assignGenotypes(VariantContext vc,
+                                                 double[] log10AlleleFrequencyPosteriors,
+                                                 int bestAF,
+                                                 HashMap<String, Genotype> calls,
+                                                 double logRatio,
+                                                 BiallelicGenotypeLikelihoods BGL) {
+        if ( !vc.isVariant() )
+            throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
+
+       // Allele refAllele = vc.getReference();
+      //  Allele altAllele = vc.getAlternateAllele(0);
+       
+        	Map<String, Genotype> GLs = vc.getGenotypes();
+              for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
+                if ( !sample.getValue().hasLikelihoods() )
+                    continue;
+                Genotype g = sample.getValue();
+                Allele alleleA = BGL.getAlleleA();
+                Allele alleleB = BGL.getAlleleB();
+                ArrayList<Allele> myAlleles = new ArrayList<Allele>();
+                if (bestAF == 0) {
+                    myAlleles.add(alleleA);
+                    myAlleles.add(alleleA);
+                    
+                } else if(bestAF == 1) {
+                    myAlleles.add(alleleA);
+                    myAlleles.add(alleleB);
+                   
+
+                }  else {
+                    myAlleles.add(alleleB);
+                    myAlleles.add(alleleB);
+                    
+                }
+
+
+                
+               // System.err.println("bestAF: " + bestAF + "\t" + log10AlleleFrequencyPosteriors[0] + "\t" + log10AlleleFrequencyPosteriors[1] + "\t" + log10AlleleFrequencyPosteriors[2] + "\t" + logRatio + "\t" + alleleA.getBaseString() + "\t" + alleleB.getBaseString());
+                calls.put(sample.getKey(), new Genotype(sample.getKey(), myAlleles, logRatio, null, g.getAttributes(), false));
+              }
+        // return calls;
+    }
+	
+    private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BiallelicGenotypeLikelihoods> GLs) {
+        // no-call everyone for now
+        List<Allele> noCall = new ArrayList<Allele>();
+        noCall.add(Allele.NO_CALL);
+
+        Set<Allele> alleles = new HashSet<Allele>();
+        alleles.add(refAllele);
+        boolean addedAltAllele = false;
+
+        HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
+            if ( !addedAltAllele ) {
+                addedAltAllele = true;
+                alleles.add(GL.getAlleleA());
+                alleles.add(GL.getAlleleB());
+            }
+
+            HashMap<String, Object> attributes = new HashMap<String, Object>();
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
+            attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, likelihoods.getAsString());
+
+            genotypes.put(GL.getSample(), new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
+            //System.err.println("refAllele: " + refAllele.getBaseString() + "\tGL.getAlleleA(): " + GL.getAlleleA() + "\tGL.getAlleleB(): " + GL.getAlleleB());
+        }
+
+        GenomeLoc loc = refContext.getLocus();
+        int endLoc = calculateEndPos(alleles, refAllele, loc);
+       // for(Allele a : alleles){
+       // 	 System.err.println(a.getBaseString());
+        //}
+       
+        return new VariantContext("BG_call",
+                loc.getContig(),
+                loc.getStart(),
+                endLoc,
+                alleles,
+                genotypes,
+                VariantContext.NO_NEG_LOG_10PERROR,
+                null,
+                null);
+    }
+    
 }

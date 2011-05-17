@@ -35,8 +35,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     public static final double PROB_OF_REFERENCE_ERROR = 1e-6;  // the reference is
     
     protected static double BISULFITE_CONVERSION_RATE = 0; // it is the wrong concept here. it is means Cytosine methylation rate here, not means the bisulfite conversion rate!!!
-    protected static double CPG_METHYLATION_RATE = 0;
-    protected static double CPH_METHYLATION_RATE = 0;
+    protected static double CYTOSINE_METHYLATION_RATE = 0;
     
  
     private final static double[] flatPriors = new double[DiploidGenotype.values().length];
@@ -67,12 +66,14 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
      * @param probOfTriStateGenotype The prob of seeing a true B/C het when the reference is A
      */
     public BisulfiteDiploidSNPGenotypePriors(byte ref, double heterozygosity, double probOfTriStateGenotype) {
-        priors = getReferencePolarizedPriors(ref, heterozygosity, probOfTriStateGenotype);
+       // priors = getReferencePolarizedPriors(ref, heterozygosity, probOfTriStateGenotype);
+    	priors = flatPriors.clone();
     }
     
     public BisulfiteDiploidSNPGenotypePriors(byte ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate) {
-    	BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
-    	priors = getReferencePolarizedPriors(ref, heterozygosity, probOfTriStateGenotype);
+    //	BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
+    //	priors = getReferencePolarizedPriors(ref, heterozygosity, probOfTriStateGenotype);
+    	priors = flatPriors.clone();
         
     }
 
@@ -94,16 +95,15 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return priors;
     }
     
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cpgMethyRate, double cphMethyRate, double novelDbsnpHet, double validateDbsnpHet, byte[] contextSeq) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double bisulfiteConversionRate, double cytosineMethyRate, double novelDbsnpHet, double validateDbsnpHet, CytosineTypeStatus cts) {
     	BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
-    	CPG_METHYLATION_RATE = cpgMethyRate;
-    	CPH_METHYLATION_RATE = cphMethyRate;
+    	CYTOSINE_METHYLATION_RATE = cytosineMethyRate;
     	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
     	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
         //System.err.println(refWindow.length);
-    	byte refPreBase = contextSeq[0];
+    	
         byte refBase = ref.getBase();
-        byte refNextBase = contextSeq[2];
+
         
         
         DbSNPFeature d = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
@@ -111,12 +111,12 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         if(rsID != null){
         	//System.err.println("is dbsnp");
         	if(d.getValidationStatus().equalsIgnoreCase("unknown"))
-        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase, refPreBase);
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
         	else
-        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype, refNextBase, refPreBase);
+        		priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
         }
         else{
-        	priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, heterozygosity, probOfTriStateGenotype, refNextBase, refPreBase);
+        	priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, heterozygosity, probOfTriStateGenotype);
         }
     	//String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
     	//if ( rsID != null ){
@@ -441,7 +441,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     }
     
     
-    public static double[] getReferencePolarizedPriorsBasedOnMethyStatus(byte ref, double heterozyosity, double pRefError, byte refNextBase, byte refPreBase) {
+    public static double[] getReferencePolarizedPriorsBasedOnMethyStatus(byte ref, double heterozyosity, double pRefError) {
         if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
             throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }
@@ -470,21 +470,16 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
 
             if ( g.isHomRef(ref) ){  
             	if(ref == BaseUtils.C){
-            		if(refNextBase == BaseUtils.G){
-            			POfG = pHomRef * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            		}
-            		else {
-            			POfG = pHomRef * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            		}
+            		//if(refNextBase == BaseUtils.G){
+            			POfG = pHomRef * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            		//}
+            		
             		
             	}
             	else if(ref == BaseUtils.T){
-            		if(refNextBase == BaseUtils.G){
-            			POfG = pHomRef + (pHet - pTriStateGenotype) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
-            		}
-            		else {
-            			POfG = pHomRef + (pHet - pTriStateGenotype) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
-            		}
+            		
+            			POfG = pHomRef + (pHet - pTriStateGenotype) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		
             	}
             	else{
             		POfG = pHomRef;
@@ -492,43 +487,31 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
             }
             else if ( g.isHomVar(ref) ){ 
             	if(ref == BaseUtils.C && g.base1 == BaseUtils.T){
-            		if(refNextBase == BaseUtils.G){
-            			POfG = pHomVar * transitionRate + (pHet - pTriStateGenotype) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
-            		}
-            		else{
-            			POfG = pHomVar * transitionRate + (pHet - pTriStateGenotype) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
-            		}
+            		
+            			POfG = pHomVar * transitionRate + (pHet - pTriStateGenotype) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE * transitionRate;
+            		
             		
             	}
             	else if((ref == BaseUtils.A || ref == BaseUtils.G || ref == BaseUtils.T) && g.base1 == BaseUtils.C){
             		
             		if(isTransition(g.base1,ref)){
-            			if(refNextBase == BaseUtils.G){
-            				POfG = (pHomVar * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            			}
-            			else{
-            				POfG = (pHomVar * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            			}
+            			
+            				POfG = (pHomVar * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            			
             			
             		}
             		else{
-            			if(refNextBase == BaseUtils.G){
-            				POfG = (pHomVar * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            			}
-            			else{
-            				POfG = (pHomVar * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            			}
+            			
+            				POfG = (pHomVar * transversionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            			
             			
             		}
             		
             	}
             	else if((ref == BaseUtils.A || ref == BaseUtils.G) && g.base1 == BaseUtils.T){
-            		if(refNextBase == BaseUtils.G){
-            			POfG = pHomVar * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            		}
-            		else{
-            			POfG = pHomVar * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            		}
+            		
+            			POfG = pHomVar * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            		
             		 
             	}
             	else{
@@ -544,61 +527,43 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
             else if ( g.isHetRef(ref) ){ 
             	if(ref == BaseUtils.C){
             	     if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == BaseUtils.C)){
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + pHomRef * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            	    	 }
-            	    	 else{
-            	    		 POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + pHomRef * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            	    	 }
+            	    	 
+            	    		 POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE) + pHomRef * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 
             	    	 
             	     }
             	     else{
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = ((pHet - pTriStateGenotype) * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            	    	 }
-            	    	 else{
-            	    		 POfG = ((pHet - pTriStateGenotype) * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            	    	 }
+            	    	 
+            	    		 POfG = ((pHet - pTriStateGenotype) * transversionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            	    	 
             	    	 
             	     }
             	}
             	else if(ref == BaseUtils.T){
             		if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == BaseUtils.C)){
-            			if(refNextBase == BaseUtils.G){
-            				POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-           	    	 	}
-           	    	 	else{
-           	    	 		POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-           	    	 	}
+            			
+            				POfG = ((pHet - pTriStateGenotype) * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	    	 	
             			
            	     	}
            	     	else{
-           	     		if(refNextBase == BaseUtils.G){
-           	     			POfG = (pHet - pTriStateGenotype) * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-           	     		}
-           	     		else{
-           	     			POfG = (pHet - pTriStateGenotype) * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-           	     		}
+           	     		
+           	     			POfG = (pHet - pTriStateGenotype) * transversionRate + (pTriStateGenotype * transversionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+           	     		
            	     		
            	     	}
             	}
             	else{
             	     if((g.base1 == ref && g.base2 == BaseUtils.C)|| (g.base1 == BaseUtils.C && g.base2 == ref)){
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            	    	 }
-            	    	 else{
-            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            	    	 }
+            	    	 
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            	    	 
             	    	 
             	     }
             	     else if((g.base1 == ref && g.base2 == BaseUtils.T)|| (g.base1 == BaseUtils.T && g.base2 == ref)){
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * (1 + (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE);
-            	    	 }
-            	    	 else{
-            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * (1 + (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE);
-            	    	 }
+            	    	 
+            	    		 POfG = ((pHet - pTriStateGenotype ) * transversionRate) * (1 + (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE);
+            	    	 
             	    	 
             	     }
             	     else{
@@ -612,12 +577,9 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
             	    	 POfG = pTriStateGenotype * transversionRate;
             	     }
             	     else{
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = pTriStateGenotype * transitionRate + ((pHet - pTriStateGenotype) * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            	    	 }
-            	    	 else{
-            	    		 POfG = pTriStateGenotype * transitionRate + ((pHet - pTriStateGenotype) * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-            	    	 }
+            	    	 
+            	    		 POfG = pTriStateGenotype * transitionRate + ((pHet - pTriStateGenotype) * transitionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+            	    	 
             	    	 
             	     }
             	}
@@ -626,33 +588,24 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
             	    	 POfG = pTriStateGenotype * transversionRate;
             	     }
             	     else{
-            	    	 if(refNextBase == BaseUtils.G){
-            	    		 POfG = (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-            	    	 }
-            	    	 else{
-            	    		 POfG = (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-            	    	 }
+            	    	 
+            	    		 POfG = (pTriStateGenotype * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+            	    	 
             	    	 
             	     } 
             	}
             	else{
             	     if((g.base1 == BaseUtils.C && g.base2 == BaseUtils.G)|| (g.base1 == BaseUtils.G && g.base2 == BaseUtils.C)){
             	    	 if(isTransition(g.base1,ref) || isTransition(g.base2,ref)){
-            	    		 if(refNextBase == BaseUtils.G){
-            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-                	    	 }
-                	    	 else{
-                	    		 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-                	    	 }
+            	    		 
+            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+                	    	 
             	    		 
             	    	 }
             	    	 else{
-            	    		 if(refNextBase == BaseUtils.G){
-            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE);
-                	    	 }
-                	    	 else{
-                	    		 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE);
-                	    	 }
+            	    		 
+            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE);
+                	    	 
             	    		 
             	    	 }
             	    	 
@@ -668,21 +621,15 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
             	     }
             	     else{
             	    	 if(isTransition(g.base1,ref) || isTransition(g.base2,ref)){
-            	    		 if(refNextBase == BaseUtils.G){
-            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-                	    	 }
-                	    	 else{
-                	    		 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-                	    	 }
+            	    		
+            	    			 POfG =  (pTriStateGenotype * transitionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE) + (pHomVar * transitionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 
             	    		 
             	    	 }
             	    	 else{
-            	    		 if(refNextBase == BaseUtils.G){
-            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPG_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPG_METHYLATION_RATE) + (pHomVar * transversionRate) * (1 - CPG_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-                	    	 }
-                	    	 else{
-                	    		 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CPH_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CPH_METHYLATION_RATE) + (pHomVar * transversionRate) * (1 - CPH_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
-                	    	 }
+            	    		 
+            	    			 POfG =  (pTriStateGenotype * transversionRate) * ((1 - CYTOSINE_METHYLATION_RATE) * (1-BISULFITE_CONVERSION_RATE) + CYTOSINE_METHYLATION_RATE) + (pHomVar * transversionRate) * (1 - CYTOSINE_METHYLATION_RATE) * BISULFITE_CONVERSION_RATE;
+                	    	 
             	    		 
             	    	 }
             	    	 

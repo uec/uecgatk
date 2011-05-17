@@ -16,6 +16,12 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection
 public class NonRefDependSNPGenotypeLikelihoodsCalculationModel extends
 		GenotypeLikelihoodsCalculationModel {
 
+	public enum MethylSNPModel {
+        BM,
+        GM,
+        NM
+    }
+	
 	public NonRefDependSNPGenotypeLikelihoodsCalculationModel(
 			UnifiedArgumentCollection UAC, Logger logger) {
 		super(UAC, logger);
@@ -33,7 +39,7 @@ public class NonRefDependSNPGenotypeLikelihoodsCalculationModel extends
 		return null;
 	}
 	
-	public void initialize(byte[] contextSeq){
+	public void initialize(CytosineTypeStatus cts, BisulfiteArgumentCollection BAC, byte[] CONTEXTREF){
 
 	}
 

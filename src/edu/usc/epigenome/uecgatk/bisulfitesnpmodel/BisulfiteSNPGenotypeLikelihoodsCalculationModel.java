@@ -30,15 +30,24 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		NonRefDependSNPGenotypeLikelihoodsCalculationModel {
 
+	private BisulfiteArgumentCollection BAC;
+	
 	protected Byte bestAllele = null;
 	protected Byte alternateAllele = null;
 	protected final boolean useAlleleFromVCF;
 	protected long testLoc;
 	protected static double BISULFITE_CONVERSION_RATE;
-	protected static double CPG_METHYLATION_RATE = 0;
-	protected static double CPH_METHYLATION_RATE = 0;
-	protected boolean isCGI = false;
-	public byte[] CONTEXTSEQ = null;
+	//protected boolean isCGI = false;
+	public byte[] CONTEXTREF = null;
+	protected static Integer numCNegStrand = 0;
+	protected static Integer numTNegStrand = 0;
+	protected static Integer numCPosStrand = 0;
+	protected static Integer numTPosStrand = 0;
+	//protected static String CYTOSINE_TYPE_LIST = null;
+	protected String DETERMINED_CYTOSINE_TYPE = "C";
+	private CytosineTypeStatus cts = null;
+	//protected static Boolean cytosineStrand = false;
+	//protected static String cytosineWindowContext = "C";
 
 	
 	
@@ -46,16 +55,19 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 			UnifiedArgumentCollection UAC, Logger logger) {
 		super(UAC, logger);
 		useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-		this.testLoc = UAC.testLocus;
-		BISULFITE_CONVERSION_RATE = UAC.bsRate;
-		CPG_METHYLATION_RATE = UAC.CpgMethyNonCGI;
-		CPH_METHYLATION_RATE = UAC.CphMethy;
+		
 		// TODO Auto-generated constructor stub
 	}
 	
 	@Override
-	public void initialize(byte[] contextSeq){
-		CONTEXTSEQ = BaseUtilsMore.toUpperCase(contextSeq);
+	public void initialize(CytosineTypeStatus cts, BisulfiteArgumentCollection BAC, byte[] contextRef){
+		this.cts = cts;
+		this.BAC = BAC;
+		this.CONTEXTREF = contextRef;
+		this.testLoc = BAC.testLocus;
+		BISULFITE_CONVERSION_RATE = BAC.bsRate;
+		
+	//	CYTOSINE_TYPE_LIST = BAC.cytosineType;
 	}
 	
 	
@@ -73,9 +85,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         //byte[] refWindow = ref.getBasesAtLocus(2);
         //System.err.println(refWindow.length);
 		byte refBase = ref.getBase();
-		byte refPreBase = CONTEXTSEQ[0];
-        byte reftestBase = CONTEXTSEQ[1];
-        byte refNextBase = CONTEXTSEQ[2];
+		
 		//System.err.println("refBase: " + refBase + " refNextBase: " + refNextBase + " refPreBase: " + refPreBase + " reftestBase: " + reftestBase);
 
        // byte refNextBase = refWindow[0];
@@ -106,45 +116,17 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         	
 
         }
-        
-      /*
-       // System.err.println(refBase+"\t" + bestAllele+"\t" + alternateAllele + "\t" + refWindow[0] + "\t" + refWindow[1]);
-     // if there are no non-ref bases...
-        if ( (alternateAllele == null && bestAllele == refBase) || (bestAllele == null) ) {
-            // if we only want variants, then we don't need to calculate genotype likelihoods
-            if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY )
-                return refAllele;
-
-            // otherwise, choose any alternate allele (it doesn't really matter)
-            bestAllele = (byte)(refBase != BaseUtils.A ? BaseUtils.A : BaseUtils.C);
-            alternateAllele = (byte)(refBase != BaseUtils.A ? BaseUtils.G : BaseUtils.T);
-        }
-        
-        Allele AlleleA, AlleleB;
-        
-        if(alternateAllele == null || alternateAllele == refBase || alternateAllele == bestAllele){
-        	AlleleA = Allele.create(refBase, true);
-        	AlleleB = Allele.create(bestAllele, false);
-        	//if(alternateAllele == null)
-        		alternateAllele = bestAllele;
-        	bestAllele = refBase;
-        }
-        else if(bestAllele == refBase){
-        	AlleleA = Allele.create(bestAllele, true);
-        	AlleleB = Allele.create(alternateAllele, false);
-        }
-        else{
-        	AlleleA = Allele.create(bestAllele, false);
-        	AlleleB = Allele.create(alternateAllele, false);
-        }
-*/
-       //System.err.println(refBase+"\t"+bestAllele+"\t"+alternateAllele);
-        Feature cgi = CGIHelper.getCGIFeature(tracker.getReferenceMetaData(CGIHelper.STANDARD_CGI_TRACK_NAME));
-        if(cgi != null){
-        	isCGI = true;
-        	CPG_METHYLATION_RATE = UAC.CpgMethyCGI;
-        }
       
+    //    Feature cgi = CGIHelper.getCGIFeature(tracker.getReferenceMetaData(CGIHelper.STANDARD_CGI_TRACK_NAME));
+   //     if(cgi != null){
+    //    	isCGI = true;
+    //    	CPG_METHYLATION_RATE = BAC.CpgMethyCGI;
+    //    }
+        numCNegStrand = 0;
+        numTNegStrand = 0;
+        numCPosStrand = 0;
+        numTPosStrand = 0;
+        
 
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
@@ -156,11 +138,36 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 				int alignmentS = samRecord.getAlignmentStart();
 				int	onRefCoord = (negStrand) ? samRecord.getUnclippedEnd() : alignmentS;
 				
+				if(((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())){
+					if(negStrand){
+						if(p.getBase()==BaseUtils.G){
+							numCNegStrand++;
+						}
+						else if(p.getBase()==BaseUtils.A){
+							numTNegStrand++;
+						}
+						else{
+							
+						}
+						
+					}
+					else{
+						if(p.getBase()==BaseUtils.C){
+							numCPosStrand++;
+						}
+						else if(p.getBase()==BaseUtils.T){
+							numTPosStrand++;
+						}
+						else{
+							
+						}
+					}
+				}
 				
 									
 				if((pileup.getLocation().getStart()) == testLoc){
 					System.out.println("before filter:\t" + onRefCoord + "\t" + p.getOffset() + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
-					System.out.println("refBase: " + refBase + " refNextBase: " + refNextBase + " refPreBase: " + refPreBase + " reftestBase" + reftestBase);
+					System.out.println("refBase: " + refBase);
 					//System.out.println("GATKSAMRecord: " + (p.getRead() instanceof GATKSAMRecord));
 					System.out.println("isGoodBase: " + ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset()));
 		                     
@@ -170,10 +177,13 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             
             
             // do not use this prior, this prior is flat prior intiated in genotypeEngine, so we actually do not transfer this priors...
-            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, UAC.PCR_error, UAC.bsRate, CPG_METHYLATION_RATE, UAC.CphMethy, UAC.novelDbsnpHet, UAC.validateDbsnpHet, CONTEXTSEQ);
+            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC.PCR_error, BAC.bsRate, BAC.novelDbsnpHet, BAC.validateDbsnpHet);
             if((pileup.getLocation().getStart()) == testLoc)
             	GL.VERBOSE=true;
-            int nGoodBases = GL.add(pileup, true, true, refNextBase, refPreBase);
+            GL.checkCytosineStatus(pileup, cts, BAC.cTypeThreshold);
+            GL.setPriorsBasedOnContextRef(tracker, ref, BAC.PCR_error, BAC.bsRate, BAC.novelDbsnpHet, BAC.validateDbsnpHet, cts, CONTEXTREF);
+            
+            int nGoodBases = GL.add(pileup, true, true);
             if ( nGoodBases == 0 )
                 continue;
 
@@ -188,7 +198,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             
             if ( (alternateAllele == null && bestAllele == refBase) || (bestAllele == null) ) {
                 // if we only want variants, then we don't need to calculate genotype likelihoods
-                if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY )
+                if ( BAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY )
                     return refAllele;
 
                 // otherwise, choose any alternate allele (it doesn't really matter)
@@ -217,20 +227,23 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             DiploidGenotype AAGenotype = DiploidGenotype.createHomGenotype(bestAllele);
             DiploidGenotype ABGenotype = DiploidGenotype.createDiploidGenotype(bestAllele, alternateAllele);
             DiploidGenotype BBGenotype = DiploidGenotype.createHomGenotype(alternateAllele);
+            
+            
             if((pileup.getLocation().getStart()) == testLoc){
             	System.out.println("sample: " + sample.getKey());
             	System.out.println("sample location: " + pileup.getPileupString((char)refBase));
             	System.out.println("sample: " + sample.getValue().getLocation().getStart());
-            	System.out.println("refBase: " + refBase + " refNextBase: " + refNextBase + " bestAllele: " + bestAllele + " alternateAllele: " + alternateAllele);
-            	System.out.println("nGoodBases " + nGoodBases + " isCGI: " + isCGI);
+            	System.out.println("refBase: " + refBase + " bestAllele: " + bestAllele + " alternateAllele: " + alternateAllele);
+            //	System.out.println("nGoodBases " + nGoodBases + " isCGI: " + isCGI);
             	System.out.println("AAGenotype " + likelihoods[AAGenotype.ordinal()] + "\t" + prio[AAGenotype.ordinal()] + "\t" + posterior[AAGenotype.ordinal()]);
             	System.out.println("ABGenotype " + likelihoods[ABGenotype.ordinal()] + "\t" + prio[ABGenotype.ordinal()] + "\t" + posterior[ABGenotype.ordinal()]);
             	System.out.println("BBGenotype " + likelihoods[BBGenotype.ordinal()] + "\t" + prio[BBGenotype.ordinal()] + "\t" + posterior[BBGenotype.ordinal()]);
             	System.out.println("AAGenotype before normalize " + likelihoods_befor[AAGenotype.ordinal()] + "\t" + prio[AAGenotype.ordinal()] + "\t" + posterior_befor[AAGenotype.ordinal()]);
             	System.out.println("ABGenotype before normaliz " + likelihoods_befor[ABGenotype.ordinal()] + "\t" + prio[ABGenotype.ordinal()] + "\t" + posterior_befor[ABGenotype.ordinal()]);
             	System.out.println("BBGenotype before normaliz " + likelihoods_befor[BBGenotype.ordinal()] + "\t" + prio[BBGenotype.ordinal()] + "\t" + posterior_befor[BBGenotype.ordinal()]);
+            	System.out.println("Cytosine status: C-neg: " + numCNegStrand + "\tC-pos: " + numCPosStrand + "\tT-neg: " + numTNegStrand + "\tT-pos: " + numTPosStrand);
             }
-            
+
             	GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
             			AlleleA,
             			AlleleB,
@@ -465,4 +478,18 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 
     }
 	
+	
+	protected Integer[] getCytosineStatus(){
+		Integer[] value = new Integer[4];
+		value[0] = numCNegStrand;
+		value[1] = numCPosStrand;
+		value[2] = numTNegStrand;
+		value[3] = numTPosStrand;
+		return value;
+	}
+	
+//	protected String getCytosineTypeStatus(){
+	//	
+	//	return DETERMINED_CYTOSINE_TYPE;
+	//}
 }

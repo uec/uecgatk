@@ -7,6 +7,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
 public class BisulfiteAlignmentUtils extends AlignmentUtils {
@@ -24,7 +25,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
     * @param bisulfiteSpace    in the bisulfite conversion space
     * @return a bitset representing which bases are good
     */
-   public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize, boolean bisulfiteSpace) {
+   public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize, MethylSNPModel sequencingMode) {
        // first determine the positions with mismatches
        int readLength = read.getReadLength();
        BitSet mismatches = new BitSet(readLength);
@@ -64,9 +65,9 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                        byte refChr = refBases[refIndex];
                        byte readChr = readBases[readIndex];
                        if ( readChr != refChr ){
-                    	   if(bisulfiteSpace){
+                    	   if(sequencingMode == MethylSNPModel.BM || sequencingMode == MethylSNPModel.GM){
                     		   if(!negStrand){
-                        		   if((char)refChr == 'C' && (char)readChr == 'T'){
+                        		   if(((char)refChr == 'C' && (char)readChr == 'T') || ((char)refChr == 'T' && (char)readChr == 'C')){
                             		   
                             	   }
                             	   else{
@@ -74,7 +75,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                             	   }
                         	   }
                         	   else{
-                        		   if((char)refChr == 'G' && (char)readChr == 'A'){
+                        		   if(((char)refChr == 'G' && (char)readChr == 'A') || ((char)refChr == 'A' && (char)readChr == 'G')){
                             		   
                             	   }
                             	   else{
