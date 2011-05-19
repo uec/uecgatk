@@ -28,6 +28,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -116,9 +117,9 @@ public class InvertedReadPairDupsWalker extends ReadWalker <Long[],Long[]> imple
 
     public void onTraversalDone(Long[] result) 
     {
-    	this.logger.info("total mapped reads: " + result[1]);
-    	this.logger.info("Inverted Pairs: " + result[0]);
-    	this.logger.info("inverted Pair %: " + (2.0 * result[0] / (1.0 * result[1]) * 100.0) + "%");
+    	Walker.logger.info("total mapped reads: " + result[1]);
+    	Walker.logger.info("Inverted Pairs: " + result[0]);
+    	Walker.logger.info("inverted Pair %: " + (2.0 * result[0] / (1.0 * result[1]) * 100.0) + "%");
     	out.printf("mapped reads=%d%n" + "Inverted Read Pairs=%d%n" + "inverted Pair Percentage=%f%n", result[1], result[0], (2.0 * result[0] / (1.0 * result[1]) * 100.0) );
     		
     }
