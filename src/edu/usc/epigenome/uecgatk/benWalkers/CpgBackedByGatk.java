@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.jfree.util.Log;
+//ZR import org.jfree.util.Log;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 
