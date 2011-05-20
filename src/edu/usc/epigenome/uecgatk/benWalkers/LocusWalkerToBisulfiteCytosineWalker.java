@@ -56,8 +56,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     public int minConv = 0;
     
     
-    final static protected String END1_SUFFIX = String.format("%c1", '/');
-    final static protected String END2_SUFFIX = String.format("%c2", '/');
+    //ZR final static protected String END1_SUFFIX = String.format("%c1", '/');
+    //ZR final static protected String END2_SUFFIX = String.format("%c2", '/');
     
     
 	/**** GATK Walker implementation ******/
@@ -405,27 +405,28 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 
 	protected static boolean getSecondOfPair(SAMRecord read) {
-		boolean secondOfPair = false;
-		String readName = read.getReadName();
-
-		if (read.getReadPairedFlag())
-		{
-			if (readName.endsWith(END1_SUFFIX))
-			{
-				secondOfPair = false;
-			}
-			else if (readName.endsWith(END2_SUFFIX))
-			{
-				secondOfPair = true;   			
-			}
-			else
-			{
-				System.err.println("LocusWalkerToBisulfiteCytosineWalker::getSecondOfPair() Got a read that doesn't end with /1 or /2: " + readName + ".  Can't tell which end it is.");
-				System.exit(1);
-			}	
-		}
-		
-		return secondOfPair;
+		return read.getSecondOfPairFlag();
+//		boolean secondOfPair = false;
+//		String readName = read.getReadName();
+//
+//		if (read.getReadPairedFlag())
+//		{
+//			if (readName.endsWith(END1_SUFFIX))
+//			{
+//				secondOfPair = false;
+//			}
+//			else if (readName.endsWith(END2_SUFFIX))
+//			{
+//				secondOfPair = true;   			
+//			}
+//			else
+//			{
+//				System.err.println("LocusWalkerToBisulfiteCytosineWalker::getSecondOfPair() Got a read that doesn't end with /1 or /2: " + readName + ".  Can't tell which end it is.");
+//				System.exit(1);
+//			}	
+//		}
+//		
+//		return secondOfPair;
 	}
 
 
