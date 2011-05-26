@@ -69,9 +69,17 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     	
     	//Get only +,reads that start here
     	for(SAMRecord read : coveringReads)
-    		if(read.getAlignmentStart() == context.getPosition() && !read.getReadNegativeStrandFlag())
-    			reads.add(read);
-    	
+    	{
+    		if(read.getAlignmentStart() == context.getPosition())
+    		{
+    			//PE
+    			if(read.getReadPairedFlag() && !read.getReadNegativeStrandFlag())
+    				reads.add(read);
+    			//SR
+    			else if (!read.getReadPairedFlag())
+    				reads.add(read);
+    		}
+    	}
     	//randomly sample these reads many times and calc dups
     	for(int i = 0; i < NUMTRIALS; i++)
     	{

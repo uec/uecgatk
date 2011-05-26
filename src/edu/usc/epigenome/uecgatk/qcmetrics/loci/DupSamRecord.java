@@ -21,13 +21,22 @@ public class DupSamRecord extends SAMRecord
 		if(obj instanceof DupSamRecord)
 		{
 			DupSamRecord other = (DupSamRecord) obj;
-			return (
-					this.getRead().getAlignmentStart() == other.getRead().getAlignmentStart() &&
-					this.getRead().getMateAlignmentStart() == other.getRead().getMateAlignmentStart() &&
-					this.getRead().getReferenceIndex() == other.getRead().getReferenceIndex() &&
-					this.getRead().getMateReferenceIndex() == other.getRead().getMateReferenceIndex() 
-					);
-				
+			//SR
+			if(this.getRead().getReadPairedFlag() == other.getRead().getReadPairedFlag() == false)
+				return (
+						this.getRead().getAlignmentStart() == other.getRead().getAlignmentStart() &&
+						this.getRead().getReferenceIndex() == other.getRead().getReferenceIndex() 
+						);
+			
+			//PE
+			if(this.getRead().getReadPairedFlag() == other.getRead().getReadPairedFlag() == true)
+				return (
+						this.getRead().getAlignmentStart() == other.getRead().getAlignmentStart() &&
+						this.getRead().getMateAlignmentStart() == other.getRead().getMateAlignmentStart() &&
+						this.getRead().getReferenceIndex() == other.getRead().getReferenceIndex() &&
+						this.getRead().getMateReferenceIndex() == other.getRead().getMateReferenceIndex() 
+						);
+					
 		}
 		return false;
 		
@@ -36,6 +45,11 @@ public class DupSamRecord extends SAMRecord
 	@Override
 	public int hashCode()
 	{
-		return (read.getAlignmentStart() + read.getMateAlignmentStart());		
+		//PE
+		if(this.getRead().getReadPairedFlag() == true)
+			return (read.getAlignmentStart() + read.getMateAlignmentStart());
+		//SR
+		else
+			return (read.getAlignmentStart());
 	}
 }
