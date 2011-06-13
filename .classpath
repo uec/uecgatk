@@ -12,7 +12,6 @@
 	<classpathentry kind="lib" path="lib/batik-util.jar"/>
 	<classpathentry kind="lib" path="lib/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/charts4j-1.2.jar"/>
-	<classpathentry kind="lib" path="lib/commons-math-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/heatMap.jar"/>
 	<classpathentry kind="lib" path="lib/sam-1.26.jar"/>
 	<classpathentry kind="lib" path="lib/tuple.jar"/>
@@ -22,5 +21,6 @@
 	<classpathentry kind="lib" path="lib/genomeLibs.jar"/>
 	<classpathentry kind="lib" path="lib/AnalyzeCovariates.jar"/>
 	<classpathentry kind="lib" path="lib/StingUtils.jar"/>
+	<classpathentry kind="lib" path="lib/commons-math-2.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

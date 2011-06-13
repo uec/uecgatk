@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
+import org.apache.commons.math.stat.descriptive.*;
 
 
 
@@ -31,12 +32,18 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     protected  long count;
     protected  long current_window;
     protected int current_contig;
+    int count_index;
+    protected String current_contigName;
+    DescriptiveStatistics stats;
 
     public void initialize() 
     {
     	 count=0;
     	 current_contig = -1;
+    	 current_contigName = "";
     	 current_window = 0;
+    	 count_index = 0;
+    	 stats = new DescriptiveStatistics();
     }
     
     /**
@@ -56,18 +63,27 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
     	int contig = ref.getLocus().getContigIndex();
+    	String contigName = ref.getLocus().getContig();
     	long pos = context.getPosition();
     	int depth = context.getBasePileup().getBases().length;
     	
+    	
     	if(current_contig != contig || pos % WINSIZE == 0)
     	{
-    		out.printf("contig=%d window=%d count=%d%n", current_contig, current_window, count);
+    		if(current_contig != -1)
+    		{
+    			//out.printf("contig=%s window=%d count=%f%n", current_contigName, current_window, 1.0 * count / count_index);
+    			stats.addValue(1.0 * count / count_index);
+    		}
     		count=0;
+    		count_index=0;
     		current_window = pos;
     		current_contig=contig;
+    		current_contigName = contigName;
     		
     	}
     	count += depth;
+    	count_index ++;
     	return null;
     }
 
@@ -104,6 +120,12 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public void onTraversalDone(Boolean t) 
     {
+    	out.println("window size=" + WINSIZE);
+    	out.println("window count=" + stats.getN());
+    	out.println("mean=" + stats.getMean());
+    	out.println("std dev=" + stats.getStandardDeviation());
+    	for(double i=10.0; i<=90.0; i+=10.0)
+    		out.println(i + " percentile=" + stats.getPercentile(i));
     	
     }
 
