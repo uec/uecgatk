@@ -28,6 +28,8 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     
     @Argument(fullName="winSize", shortName="winsize", doc="window width", required=false)
     protected int WINSIZE = 50000;
+    @Argument(fullName="dumpvals", shortName="dumpv", doc="dumps coverage for each window", required=false)
+    protected Boolean dump = false;
     
     protected  long count;
     protected  long current_window;
@@ -72,7 +74,8 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	{
     		if(current_contig != -1)
     		{
-    			//out.printf("contig=%s window=%d count=%f%n", current_contigName, current_window, 1.0 * count / count_index);
+    			if(!dump)
+    				out.printf("contig=%s window=%d count=%f%n", current_contigName, current_window, 1.0 * count / count_index);
     			stats.addValue(1.0 * count / count_index);
     		}
     		count=0;
@@ -123,8 +126,10 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	out.println("window size=" + WINSIZE);
     	out.println("window count=" + stats.getN());
     	out.println("mean=" + stats.getMean());
+    	out.println("max=" + stats.getMax());
     	out.println("std dev=" + stats.getStandardDeviation());
-    	for(double i=10.0; i<=90.0; i+=10.0)
+    	out.println("kurtosis=" + stats.getKurtosis());
+    	for(double i=10.0; i<=100.0; i+=10.0)
     		out.println(i + " percentile=" + stats.getPercentile(i));
     	
     }
