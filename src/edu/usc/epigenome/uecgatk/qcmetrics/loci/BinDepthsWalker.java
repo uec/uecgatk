@@ -14,11 +14,12 @@ import org.apache.commons.math.stat.descriptive.*;
 /**
  * Zack Ramjan
  * USC Epigenome Center 
- * 03/23/2011
+ * 06/10/2011
  */
 
 /**
- * downsample dups walker
+ * Bin Depths walker. calculate coverage in windows across genome.
+ * report stats upon these windows
  */
 @By(DataSource.REFERENCE)
 public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>  
@@ -49,12 +50,11 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     }
     
     /**
-     * The map function runs once per single-base locus, and accepts a 'context', a
-     * data structure consisting of the reads which overlap the locus, the sites over
-     * which they fall, and the base from the reference that overlaps.
+     * We pretty much bypass the whole map/reduce stuff since we use a global to keep track of counts
+     * we scan the genome linearly, saving counts and resetting when ever we cross a threshold.
+     * since we skipped the M/R, this will not be parallel/treereducable.
      * 
-     * Our map and reduce data types is an array of ints (counts) for the number or trials, and their respective 
-     * dup counts. for these two lists, we use a single array and a numtrials+n offest.
+     * basically, we have a single for loop
      * 
      * @param tracker The accessor for reference metadata.
      * @param ref The reference base that lines up with this locus.
@@ -94,7 +94,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     
     /**
      * Provides an initial value for the reduce function. and array of 0's
-     * @return 0fill array.
+     * @return always return true.
      */
     @Override
     public Boolean reduceInit() 
@@ -105,9 +105,9 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     /**
      * Combines the result of the latest map with the accumulator.  In inductive terms,
      * this represents the step loci[x + 1] = loci[x] + 1
-     * @param value result of the map.
-     * @param sum accumulator for the reduce.
-     * @return The total count of loci processed so far.
+     * @param just a bogus param for the override. 
+     * @param just a bogus param for the override. 
+     * @return always truen true.
      */
     @Override
     public Boolean reduce(Boolean value, Boolean val2) {
@@ -117,8 +117,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
 
     /**
      * Retrieves the final result of the traversal.
-     * @param result The ultimate value of the traversal, produced when map[n] is combined with reduce[n-1]
-     *               by the reduce function. 
+     * @param just a bogus param for the override. 
      */
     @Override
     public void onTraversalDone(Boolean t) 
