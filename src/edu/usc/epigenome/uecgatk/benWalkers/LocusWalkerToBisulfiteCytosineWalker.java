@@ -117,6 +117,9 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     		this.alertNewContig(thisContig);
     	}
  
+		// Increment
+		prevContig = thisContig;
+		
 		// *** NOTE :: JUST USING POSITIONS THAT ARE C IN REFERENCE :: NEED TO CHECK SAMPLE GENOME ****
 		boolean isC = false;
     	boolean negStrand = false;
@@ -215,8 +218,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 			
     	}
     	
-		// Increment
-		prevContig = thisContig;
+
 
 		return mapout;
     }
@@ -405,7 +407,14 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 
 	protected static boolean getSecondOfPair(SAMRecord read) {
-		return read.getSecondOfPairFlag();
+		boolean out = false;
+		
+		if (read.getReadPairedFlag())
+		{
+			out = read.getSecondOfPairFlag(); 
+		}
+		return out;
+		
 //		boolean secondOfPair = false;
 //		String readName = read.getReadName();
 //

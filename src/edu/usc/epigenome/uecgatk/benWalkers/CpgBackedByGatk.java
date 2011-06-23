@@ -10,9 +10,9 @@ import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 
 public class CpgBackedByGatk extends Cpg {
 
-	private AlignmentContext alignmentContext = null;
-	private RefMetaDataTracker metaData = null;
-	private ReferenceContext refContext = null;
+	protected AlignmentContext alignmentContext = null;
+	protected RefMetaDataTracker metaData = null;
+	protected ReferenceContext refContext = null;
 	
 	public CpgBackedByGatk() {
 	}
