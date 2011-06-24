@@ -41,6 +41,12 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
     @Argument(fullName = "windSize", shortName = "wind", doc = "window size", required = true)
     public Integer windSize = 0;
 
+    @Argument(fullName = "threadedNfeatsStart", shortName = "as", doc = "Advanced. For multithreaded mode, the number of feats to initially start the array with (default 10)", required = false)
+    public Integer threadedNfeatsStart = 10;
+    
+    @Argument(fullName = "threadedGrowsize", shortName = "ags", doc = "Advanced. For multithreaded mode, the number of feats to grow the arrays by when they overflow (default 100)", required = false)
+    public Integer threadedGrowsize = 100;
+    
     @Argument(fullName = "censor", shortName = "censor", doc = "Only count cytosines within the element itself", required = false)
     public boolean censor = false;
 
@@ -76,11 +82,12 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 			//if (nThreads<0) nThreads = this.getToolkit().getArguments().numberOfThreads;
 			if (this.getToolkit().getArguments().numberOfThreads>1)
 			{
-				nFeats = 10;
+				nFeats = threadedNfeatsStart;
 			}
 			// *** END CRITICAL SECTION
 			
 			FeatAlignerEachfeat walker = cond.createAligner(this.windSize, nFeats, this.censor, this.downscaleCols);
+			walker.setArrayGrowsize(threadedGrowsize);
 			out.put(cond, walker);
 		}
 		
