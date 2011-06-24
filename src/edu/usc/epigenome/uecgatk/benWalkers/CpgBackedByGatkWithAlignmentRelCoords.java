@@ -92,7 +92,7 @@ public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 		Location posLoc = new RangeLocation(cPos-windowSize, cPos+windowSize); 
 
 		int curChr = feats.chrom_from_public_str(this.getChrom());
-		GFFEntrySet ovs = feats.coord_filtered_features(curChr, posLoc, false);
+		GFFEntrySet ovs = feats.coord_filtered_features(curChr, posLoc, false); // Not reentrant, can fail in threaded use
 		
 		int nOvs = ovs.size();
 		

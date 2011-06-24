@@ -46,7 +46,8 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 //    Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> alignerByCondition = null;
  //   protected int nFeats = 0;
-    protected ChromFeatures feats = null;
+    protected static ChromFeatures feats = null;
+    protected static boolean featsCompletelyPreloaded = false;
 
     
     /**
@@ -232,14 +233,29 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 	@Override
 	protected void alertNewContig(String newContig) 
 	{
-		if (this.prevContig != null)
-		{
-			this.feats.unload_coord_filtered_features();
-		}
 		
-		if (this.feats != null)
+		System.err.printf("Number of threads = %d\n",this.getToolkit().getArguments().numberOfThreads);
+		if (this.getToolkit().getArguments().numberOfThreads == 1)
 		{
-			this.feats.preload_coord_filtered_features(feats.chrom_from_public_str(newContig));
+			if (this.prevContig != null) this.feats.unload_coord_filtered_features();
+			if (this.feats != null)
+			{
+				int chrNum = feats.chrom_from_public_str(newContig);
+				this.feats.preload_coord_filtered_features(chrNum);
+			}
+		}
+		else
+		{
+			// Multi threads, load it up all at once so they won't have to fight over it.
+			synchronized(feats)
+			{
+				if (!featsCompletelyPreloaded)
+				{
+					System.err.println("Multi-threads, preloading coord filt featured (got lock)");
+					feats.preload_coord_filtered_features();
+					featsCompletelyPreloaded = true;
+				}
+			}
 		}
 	}
 
