@@ -103,7 +103,7 @@ public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 		}
 		if (nOvs==0)
 		{
-			System.err.printf("Why can't we find gff record for position %d\n",posLoc);
+//			System.err.printf("Why can't we find gff record for position %s\n",posLoc);
 		}
 		
 		Iterator it = ovs.lineIterator();

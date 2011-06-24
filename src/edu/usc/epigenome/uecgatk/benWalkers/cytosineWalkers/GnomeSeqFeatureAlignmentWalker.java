@@ -3,8 +3,10 @@ package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.biojava.bio.seq.StrandedFeature;
 import org.broadinstitute.sting.commandline.Argument;
@@ -51,7 +53,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 	 * @return the nFeats
 	 */
 	public int getnFeats() {
-		System.err.printf("getting n feats: (%s) chr=%s\n", this.feats, this.prevContig);
+		//System.err.printf("getting n feats: (%s) chr=%s\n", this.feats, this.prevContig);
 		return feats.num_features(this.feats.chrom_from_public_str(this.prevContig));
 	}
 
@@ -59,33 +61,24 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 	public Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> emptyMap()
     {
-
-    	
- //    	// Create arrays
-//    	System.err.println("About to initialize aligners");
-//    	fStatMats = new FeatAlignerEachfeat[nS][4];
-//    	//		fDeltaMats = new FeatAligner[(nS*(nS-1))/2];
-//    	//		fVarianceMat = new FeatAlignerAveraging(flankSize,false);
-//    	int onDeltaMat = 0;
-//    	for (int i = 0; i < nS; i++)
-//    	{
-//    		// 0=readCount, 1=nCpGs, 2=mLevel, 3= CpG weights
-//    		if (readCounts) fStatMats[i][0] = new FeatAlignerEachfeat(flankSize,!this.censor, nFeats,this.downscaleCols); // Changed this to start with NaN.  Now we explicitly zero out features to allow censoring
-//    		//			fStatMats[i][1] = new FeatAlignerEachfeat(flankSize,true, nFeats,500);
-//    		if (!nometh) fStatMats[i][2] = new FeatAlignerEachfeat(flankSize,false, nFeats,this.downscaleCols);
-//    		if (!nometh) fStatMats[i][3] = new FeatAlignerEachfeat(flankSize,false, nFeats,this.downscaleCols);
-//    		//			for (int j = (i+1); j < nS; j++)
-//    		//			{
-//    		//				fDeltaMats[onDeltaMat++] = new FeatAlignerAveraging(flankSize,false);
-//    		//			}
-//    	}
     	
     	Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> out = 
 			new HashMap<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>();
 		for (MethConditions cond : MethConditions.values())
 		{
 			int nFeats = this.getnFeats();
-			System.err.printf("Initializing aligner %s with %d elements\n", cond.context, nFeats);
+			//System.err.printf("Initializing aligner %s with %d elements\n", cond.context, nFeats);
+			
+			// **** CRITICAL SECTION.  In multithreaded mode, it spawns a new emptyMap() for almost every single locus,
+			// so creating a large datastructure is very inefficient.  FeatAlignerEachfeat is now selfgrowing,
+			// so we can create a small one to start out with
+			//if (nThreads<0) nThreads = this.getToolkit().getArguments().numberOfThreads;
+			if (this.getToolkit().getArguments().numberOfThreads>1)
+			{
+				nFeats = 10;
+			}
+			// *** END CRITICAL SECTION
+			
 			FeatAlignerEachfeat walker = cond.createAligner(this.windSize, nFeats, this.censor, this.downscaleCols);
 			out.put(cond, walker);
 		}
@@ -139,12 +132,62 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 	public Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>
 	treeReduce(Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> a, Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> b)
 	{
-		// I am still getting errors from out-of-order cytosines given to the CpgWalker.
-		// **** FIX LATER ***
-		System.err.println("GnomeSeqAutocorrByReadWalker does not yet implement multi-threaded mode. Use -nt 1");
-		System.exit(1);
 		
-		return null;
+		if (a==null)
+		{
+			//System.err.println("______a==null_______");
+			return b;
+		}
+		
+		if (b==null)
+		{
+			//System.err.println("______b==null_______");
+			return a;
+		}
+		
+		// Go through each context in each one.
+		Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> out = new HashMap<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>();
+		Set<MethConditions> contexts = new HashSet(a.keySet());
+		contexts.addAll(b.keySet());
+		for (MethConditions context : contexts)
+		{
+			FeatAlignerEachfeat aAligner = a.get(context);
+			FeatAlignerEachfeat bAligner = b.get(context);
+			FeatAlignerEachfeat newAligner = null;
+			if (aAligner==null)
+			{
+				newAligner = bAligner;
+				//System.err.println("______aAligner==null_______");
+			}
+			else if (bAligner==null)
+			{
+				newAligner = aAligner;
+				//System.err.println("______bAligner==null_______");
+			}
+			else
+			{
+				//System.err.printf("Merging FeatAligners with %d and %d elements\n",aAligner.numFeats(), bAligner.numFeats());
+				newAligner = aAligner.mergeInAlignments(bAligner, false);//*** Not sure if there is a rule against modifying the pre-reduce objects.  It's much more efficient without.
+				if (newAligner==null)
+				{
+					//System.err.println("______newAligner==null_______");
+				}
+			}
+			
+			if (newAligner != null)
+			{
+				out.put(context, newAligner);	
+			}
+		}
+		
+//		
+//		// I am still getting errors from out-of-order cytosines given to the CpgWalker.
+//		// **** FIX LATER ***
+//		System.err.println("GnomeSeqAutocorrByReadWalker does not yet implement multi-threaded mode. Use -nt 1");
+//		System.exit(1);
+		
+		//System.err.printf("__________Out=%s\n", out);
+		return out;
 	}
 
 	/**
@@ -158,23 +201,26 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		int count = 0;
 		for (MethConditions cond : MethConditions.values())
 		{
-			FeatAlignerEachfeat aligner = result.get(cond);
-			
-			try {
+			if (result != null)
+			{
+				FeatAlignerEachfeat aligner = result.get(cond);
 
-				String outfn = String.format("%s-%s.csv", this.outPrefix, cond.toString());
-				PrintWriter pw = new PrintWriter(new FileOutputStream(outfn));
+				try {
 
-				aligner.matlabCsv(pw, false);
-				pw.close();
-			
-			} catch (Exception e) {
-				logger.error("Error FeatAlignerEachfeat::toCsvStr\n" + e.toString());
-				e.printStackTrace();
+					String outfn = String.format("%s-%s.csv", this.outPrefix, cond.toString());
+					PrintWriter pw = new PrintWriter(new FileOutputStream(outfn));
+
+					aligner.matlabCsv(pw, false);
+					pw.close();
+
+				} catch (Exception e) {
+					logger.error("Error FeatAlignerEachfeat::toCsvStr\n" + e.toString());
+					e.printStackTrace();
+				}
+
+
+				count++;
 			}
-			
-
-			count++;
 		}
 	}
 
@@ -226,6 +272,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		
 		if (oldMap == null)
 		{
+			//System.err.printf("oldMap==null, calling emptyMap()\n");
 			oldMap = this.emptyMap();
 		}
 		
