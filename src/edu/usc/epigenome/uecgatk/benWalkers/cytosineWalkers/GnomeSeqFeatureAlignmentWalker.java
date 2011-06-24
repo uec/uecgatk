@@ -61,7 +61,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 	 */
 	public int getnFeats() {
 		//System.err.printf("getting n feats: (%s) chr=%s\n", this.feats, this.prevContig);
-		return feats.num_features(this.feats.chrom_from_public_str(this.prevContig));
+		return feats.num_features(); // Total number of features across chroms
 	}
 
 
