@@ -3,6 +3,7 @@ package edu.usc.epigenome.uecgatk.benWalkers;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMRecord;
 
+import edu.usc.epigenome.genomeLibs.PicardUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgRead;
 import edu.usc.epigenome.uecgatk.BaseUtilsMore;
@@ -52,6 +53,15 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "maxOppAfrac", shortName = "maxa", doc = "Maximum fraction of opposite strand reads being A (default=0.101)", required = false)
     public double maxOppAfrac = 0.101;
 
+    @Argument(fullName = "minNextGfrac", shortName = "minnextg", doc = "Minimum fraction of next position reads being G, only if outputCph is false (default=0.899)", required = false)
+    public double minNextGfrac = 0.899;
+
+    @Argument(fullName = "minContextFracReadsMatching", shortName = "contextminmatch", doc = "Minimum fraction of reads matching to call CpH or CpG context (default=0.899)", required = false)
+    public double minContextFracReadsMatching = 0.899;
+
+    @Argument(fullName = "minContextPhredQuality", shortName = "contextminphred", doc = "Minimum phred quality for flanking bases to determine context (default=20)", required = false)
+    public int minContextPhredQuality = 20;
+    
     @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=0)", required = false)
     public int minConv = 0;
     
@@ -206,10 +216,14 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     			boolean minCTpasses = ((thisC.cReads + thisC.tReads) >= this.minCT);
     			double fracOppA = thisC.fracOppositeA();
     			if (Double.isNaN(fracOppA)) fracOppA = 0.0;
+    			double fracNextG = thisC.fracNextBaseG();
+    			if (Double.isNaN(fracNextG)) fracNextG = 1.0;
     			boolean maxOppAfracPasses = (fracOppA <= maxOppAfrac);
+    			boolean minNextGfracPasses = (this.outputCph || (fracNextG>=this.minNextGfrac));
+    			
 //				logger.info(String.format("Processing cytosine=%s\tCT=%d\toppA=%.2f\n",minCTpasses&&maxOppAfracPasses,(thisC.cReads+thisC.tReads),fracOppA));
    			
-    			if (minCTpasses & maxOppAfracPasses)
+    			if (minCTpasses && maxOppAfracPasses && minNextGfracPasses)
     			{
     				mapout = processCytosine(thisC);
     			}
@@ -271,11 +285,12 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
     	//**************************************************************
     	//*** These would ideally be set based on the reads rather than the reference
-    	boolean nextBaseG = BaseUtils.basesAreEqual(contextSeqRefStrandedIupac[2],BaseUtils.G);
-    	char nextBase = (char)contextSeqRefStrandedIupac[2];
-    	char prevBase = (char)contextSeqRefStrandedIupac[0];
+    	boolean nextBaseGref = BaseUtils.basesAreEqual(contextSeqRefStrandedIupac[2],BaseUtils.G);
+    	char nextBaseRef = (char)contextSeqRefStrandedIupac[2];
+    	char prevBaseRef = (char)contextSeqRefStrandedIupac[0];
     	//**************************************************************
-
+    	
+ 
 
     	ReadBackedPileup pileup = context.getBasePileup();
     	Iterator<PileupElement> pileupIt = pileup.iterator();
@@ -290,27 +305,57 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
     		byte qual = pe.getQual();
 
-    		// Make sure to handle the strand correctly. Remember to treat second end reads as the opposite strand!
+    		// Make sure to handle the strand correctly. Remember to treat second end reads as the opposite strand from what they actually are!
     		SAMRecord read = pe.getRead();
+    		
      		
-    		//!read.getFirstOfPairFlag();	 // This is unreliable in BSMAP, they always make the forward strand read 1
+    		//!read.getFirstOfPairFlag();	 // This is unreliable in early versions of BSMAP, they always make the forward strand read 1
     		String readName = read.getReadName();
     		boolean secondOfPair = getSecondOfPair(read); // EVENTUALLY GET RID OF THIS
 //    		boolean secondOfPair = read.getSecondOfPairFlag(); // EVENTUALLY USE THIS
     		
-    		boolean readStrandNegativeStrand = read.getReadNegativeStrandFlag();
-//    		out.printf("secondOfPair=%s\treverseStrand=%s\n", secondOfPair, readStrandNegativeStrand);
-    		if (secondOfPair) readStrandNegativeStrand = !readStrandNegativeStrand;
-    		boolean readOnCytosineStrand = (readStrandNegativeStrand == cytosineNegStrand);
-//    		out.printf("\tsecondOfPair=%s\tadjustedReverseStrand=%s\treadOnCytosineStrand=%s\n", secondOfPair, readStrandNegativeStrand, readOnCytosineStrand);    		
-    		byte base = pe.getBase();
     		
+    		// This is super tricky and confusing.  I basically reverse complement the second end for the purposes of methylation analysis.
+    		boolean bisulfiteStrandNegativeStrand = read.getReadNegativeStrandFlag();
+//    		System.err.printf("secondOfPair=%s\treverseStrand=%s\n", secondOfPair, bisulfiteStrandNegativeStrand);
+    		if (secondOfPair) bisulfiteStrandNegativeStrand = !bisulfiteStrandNegativeStrand;
+    		boolean readOnCytosineStrand = (bisulfiteStrandNegativeStrand == cytosineNegStrand);
+//    		System.err.printf("\tsecondOfPair=%s\tbisulfiteReverseStrand=%s\treadOnCytosineStrand=%s\tcytosineNegStrand=%s\n", secondOfPair, bisulfiteStrandNegativeStrand, readOnCytosineStrand,cytosineNegStrand);    		
+    		byte base = pe.getBase();
+
+    		// Next base stuff
+    		int peOffset = pe.getOffset();
+    		if (read.getReadNegativeStrandFlag()) peOffset = (read.getReadLength()) - peOffset - 1; // nextBaseSeq and prevBaseSeq take the offset relative to the readString 
+    	   	byte nextBaseSeqReadStrand = (byte)PicardUtils.nextBaseSeq(read, peOffset, this.minContextPhredQuality);
+    	   	byte prevBaseSeqReadStrand = (byte)PicardUtils.preBaseSeq(read, peOffset,  this.minContextPhredQuality);
+//    	   	System.err.printf("\tInitial nextSeq=%c, prevSeq=%c (readStart=%d, peOffset=%d)\n", nextBaseSeqReadStrand, prevBaseSeqReadStrand, read.getAlignmentStart(), peOffset);
+
     		
     		// We don't complement it, because forward and reverse strands aren't strand relative in pileup format. //if (secondOfPair) base = BaseUtils.simpleComplement(base);
     		
 
-    		// We change the base to the cytosine-strand
-    		byte baseCstrand = (cytosineNegStrand) ? BaseUtils.simpleComplement(base) : base;
+    		// We change the bases to the cytosine-strand.  This is complicated because "base" is right now relative to the
+    	   	// genome assembly, while nextBaseSeq and prevBaseSeq are relative to the read strand.  So we do them differently,
+    	   	// the "base" needs to get adjusted if the cytosine is on the reverse strand, while the next/prev only need
+    	   	// to get adjusted when we're on paired-end 2, which means that the bisulfite strand is opposite to the actual 
+    	   	// strand of the read.
+    	   	byte baseCstrand = base;
+    	   	if (cytosineNegStrand)
+    	   	{
+    			baseCstrand = BaseUtils.simpleComplement(base);
+     	   	}
+
+    	   	byte nextBaseSeqCstrand = nextBaseSeqReadStrand;
+    	   	byte prevBaseSeqCstrand = prevBaseSeqReadStrand;
+    	   	if (secondOfPair)
+    	   	{
+    	   		// Notice that these will generally not be used, because context is only relevant on the C strand.
+       			nextBaseSeqCstrand = BaseUtils.simpleComplement(prevBaseSeqReadStrand); // Note that we swap with prev Base to change orientation
+    			prevBaseSeqCstrand = BaseUtils.simpleComplement(nextBaseSeqReadStrand); // Note that we swap with prev Base to change orientation
+//        	   	System.err.printf("\tCytosine rev strand, now nextSeq=%c, prevSeq=%c\n", nextBaseSeqCstrand, prevBaseSeqCstrand);
+    	   	}
+    	   	boolean nextBaseSeqG = BaseUtils.basesAreEqual(nextBaseSeqCstrand,BaseUtils.G); 
+    	   	boolean prevBaseSeqG = BaseUtils.basesAreEqual(prevBaseSeqCstrand,BaseUtils.G); 
 
 
     		if (!readOnCytosineStrand)
@@ -334,7 +379,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     			int cycle = pe.getOffset();
     			int readCycleQual = pe.getQual();
     			
-    			MapType mapElement = mapReferenceCytosineBase(thisLoc, cycle, qual, baseCstrand, prevBase, nextBase); 
+    			MapType mapElement = mapReferenceCytosineBase(thisLoc, cycle, qual, baseCstrand, prevBaseRef, nextBaseRef); 
     			if (mapElement != null)
     			{
     				baseElementMapList.add(mapElement);
@@ -354,19 +399,21 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     					(short)((isC&!passesFiveprimeFilter)?1:0),
     					(short)(isT?1:0),
     					(short)((isC||isT)?0:1),
-    					(short)(nextBaseG?1:0),
-    					nextBase
+    					(short)(nextBaseSeqG?1:0),
+    					(char)nextBaseSeqCstrand,
+    					(short)(prevBaseSeqG?1:0),
+    					(char)prevBaseSeqCstrand
     			);
     			cOut.addRead(cRead);
-    			//out.printf("\tAdding read (%d, BASEQ %d): %s\n", thisLoc.getStart(), pe.getQual(), cRead.toString());
+//    			System.err.printf("\tAdding read (%d, BASEQ %d): %s\n", thisLoc.getStart(), pe.getQual(), cRead.toString());
     		}
     	}
 
     	// Now finish it off
     	cOut.totalReadsOpposite = totalReadsOpposite;
     	cOut.aReadsOpposite = aReadOpposite;
-    	cOut.setNextBaseRef(nextBase);
-    	cOut.setPrevBaseRef(prevBase);
+    	cOut.setNextBaseRef(nextBaseRef);
+    	cOut.setPrevBaseRef(prevBaseRef);
 
 //		out.printf("Adding cytosine: %s\n", cOut.toString());
 

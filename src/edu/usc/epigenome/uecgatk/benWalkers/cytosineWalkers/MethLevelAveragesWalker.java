@@ -120,7 +120,7 @@ public class MethLevelAveragesWalker
 	@Override
 	protected Pair<String,Double> processCytosine(CpgBackedByGatk thisC)
 	{
-		String context = thisC.context();
+		String context = thisC.context(this.minContextFracReadsMatching);
 		double meth = thisC.fracMeth(false);
 		return new Pair<String,Double>(context, meth);
 	}
