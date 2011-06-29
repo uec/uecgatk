@@ -59,8 +59,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "minContextFracReadsMatching", shortName = "contextminmatch", doc = "Minimum fraction of reads matching to call CpH or CpG context (default=0.899)", required = false)
     public double minContextFracReadsMatching = 0.899;
 
-    @Argument(fullName = "minContextPhredQuality", shortName = "contextminphred", doc = "Minimum phred quality for flanking bases to determine context (default=20)", required = false)
-    public int minContextPhredQuality = 20;
+    @Argument(fullName = "minContextPhredQuality", shortName = "contextminphred", doc = "Minimum phred quality for flanking bases to determine context (default=0)", required = false)
+    public int minContextPhredQuality = 0;
     
     @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=0)", required = false)
     public int minConv = 0;

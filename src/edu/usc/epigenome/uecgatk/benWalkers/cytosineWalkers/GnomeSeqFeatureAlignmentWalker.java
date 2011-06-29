@@ -301,9 +301,11 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		
 		// First get the context
 		GnomeSeqFeatureAlignmentWalker.MethConditions context = null;
+		String contextString = cytosine.context(this.minContextFracReadsMatching);
 		try 
 		{
-			context = GnomeSeqFeatureAlignmentWalker.MethConditions.valueOf(cytosine.context());
+			// The input parameter sets whether we demand matching sequence in the reads
+			context = GnomeSeqFeatureAlignmentWalker.MethConditions.valueOf(contextString);
 		}
 		catch (Exception e)
 		{
@@ -313,7 +315,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> outMap = oldMap;
 		if (context != null)
 		{
-//			System.err.printf("Found KNOWN context: %s\n", cytosine.context());
+//			System.err.printf("Found KNOWN context: %s\n", contextString);
 			FeatAlignerEachfeat aligner = oldMap.get(context);
 
 			// We should only see each position in each feature once, so it should always
