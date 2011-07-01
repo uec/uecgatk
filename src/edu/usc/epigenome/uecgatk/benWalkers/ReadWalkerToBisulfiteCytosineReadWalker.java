@@ -120,6 +120,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
     	// Don't do first and last one because they don't have context.
 		List<Cpg> cList = new ArrayList<Cpg>();
 		int nConvSeen = 0; // 5' methylation filter
+		int readStart = revStrand ? read.getAlignmentEnd() : read.getAlignmentStart();
     	for (int i = 1; i < (readSeq.length-1); i++)
     	{
     		byte refBase = refSeq[i];
@@ -139,6 +140,12 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 					
 					Cpg c = new Cpg();
 					c.chromPos = i+1;
+					if (!unmapped)
+					{
+						c.chromPos = readStart + ( ((revStrand) ? -1 : 1) * i );
+					}
+					
+					
 					if (isMethylated)
 					{
 						c.cReads++;

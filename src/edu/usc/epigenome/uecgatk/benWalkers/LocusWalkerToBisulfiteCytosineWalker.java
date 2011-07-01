@@ -62,8 +62,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "minContextPhredQuality", shortName = "contextminphred", doc = "Minimum phred quality for flanking bases to determine context (default=0)", required = false)
     public int minContextPhredQuality = 0;
     
-    @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=0)", required = false)
-    public int minConv = 0;
+    @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=1)", required = false)
+    public int minConv = 1;
     
     
     //ZR final static protected String END1_SUFFIX = String.format("%c1", '/');
