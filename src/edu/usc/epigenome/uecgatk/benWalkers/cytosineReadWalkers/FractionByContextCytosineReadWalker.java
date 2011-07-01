@@ -56,7 +56,6 @@ public class FractionByContextCytosineReadWalker extends
 		FracPair outPair = new FracPair(this.mergeEqualVals);
 		for (Cpg c : cs)
 		{
-			int positionInRead = c.chromPos;
 			String cContext = c.context();
 			boolean isMethylated = (c.cReads>0);
 			
