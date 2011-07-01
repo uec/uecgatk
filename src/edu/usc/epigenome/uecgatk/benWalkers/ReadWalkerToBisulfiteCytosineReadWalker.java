@@ -38,6 +38,9 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
     public boolean outputCph = true;
+
+    @Argument(fullName = "minConv", shortName = "minc", doc = "minimum number of converted cytosines required for 5' conversion filter (default=1)", required = false)
+    public int minConv = 1;
 	
 
 	/**** GATK Walker implementation ******/
@@ -116,6 +119,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
     	
     	// Don't do first and last one because they don't have context.
 		List<Cpg> cList = new ArrayList<Cpg>();
+		int nConvSeen = 0; // 5' methylation filter
     	for (int i = 1; i < (readSeq.length-1); i++)
     	{
     		byte refBase = refSeq[i];
@@ -126,10 +130,12 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 			
 			if (isC)
 			{
+				boolean isMethylated = BaseUtils.basesAreEqual(readBase, BaseUtils.C);
+				if (!isMethylated) nConvSeen++; // For 5' methylation filter
+
 				if (this.outputCph || BaseUtils.basesAreEqual(readSeq[i+1], BaseUtils.G))
 				{
 					String cContext = getCytosineContext(i, readSeq, refSeq);
-					boolean isMethylated = BaseUtils.basesAreEqual(readBase, BaseUtils.C);
 					
 					Cpg c = new Cpg();
 					c.chromPos = i+1;
@@ -139,13 +145,13 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 					}
 					else
 					{
-						c.totalReads++;
+						c.tReads++;
 					}
 					c.totalReads++;
 					c.setNextBaseRef(cContext.charAt(2));
 					c.setPrevBaseRef(cContext.charAt(0));
-					
-					cList.add(c);
+
+					if (nConvSeen >= this.minConv) cList.add(c); // Don't add a methylated C until we have seen one.
 				}
 			}
     	}
