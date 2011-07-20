@@ -29,6 +29,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     // TODO: don't calculate this each time through
 
     protected double BISULFITE_CONVERSION_RATE;
+    protected double OVER_CONVERSION_RATE;
  //   protected static double CPG_METHYLATION_RATE = 0;
  //   protected static double CPH_METHYLATION_RATE = 0;
     protected String DETERMINED_CYTOSINE_TYPE_POS = "";
@@ -38,6 +39,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     protected String DETERMINED_CYTOSINE_TYPE_NEG = "";
     protected double DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG = Double.NEGATIVE_INFINITY;
     protected double DETERMINED_CYTOSINE_TYPE_C_METHY_NEG = 0;
+    protected double ABSOLUTE_CYTOSINE_TYPE_C_LIKELIHOOD = log10(0.05);
     
  //   protected static double UNDETERMINED_CYTOSINE_TYPE_C_METHY = 0;
     
@@ -80,9 +82,10 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	}
 	*/
 	public BisulfiteDiploidSNPGenotypeLikelihoods(
-			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double novelDbsnpHet, double validateDbsnpHet) {
+			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, double PCR_error_rate, double bisulfiteConversionRate, double overConversionRate, double novelDbsnpHet, double validateDbsnpHet) {
 		this.priors = priors;
 		this.BISULFITE_CONVERSION_RATE = bisulfiteConversionRate;
+		this.OVER_CONVERSION_RATE = overConversionRate;
 		log10_PCR_error_3 = log10(PCR_error_rate) - log10_3;
         log10_1_minus_PCR_error = log10(1.0 - PCR_error_rate);
 		setToZeroBs();
@@ -96,6 +99,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 		double refMethyStatus = 0;
 		for(String cytosineType : cts.cytosineListMap.keySet()){
 			String[] tmpKey = cytosineType.split("-");
+			if(tmpKey[0].equalsIgnoreCase("C")){
+				continue;
+			}
 			Integer cytosinePos = Integer.parseInt(tmpKey[1]) - 1;
 			int i = 0;
 			for(; i < tmpKey[0].length(); i++){
@@ -129,17 +135,24 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			}	
 		}
 		
-		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, refMethyStatus, novelDbsnpHet, validateDbsnpHet, cts);
+		this.priors.setPriors(tracker, ref, HUMAN_HETEROZYGOSITY, PROB_OF_REFERENCE_ERROR, BISULFITE_CONVERSION_RATE, OVER_CONVERSION_RATE, refMethyStatus, novelDbsnpHet, validateDbsnpHet, cts);
         setToZeroBs();
 	}
 	
 	public void checkCytosineStatus(ReadBackedPileup pileup, CytosineTypeStatus cts, double threshold){
 
+	//	HashMap<String, Double> cTypeLikelihood = new HashMap<String, Double>();
+		//HashMap<String, Double> cTypeReverseLikelihood = new HashMap<String, Double>();
 		for(String cytosineType : cts.cytosineListMap.keySet()){
 			String[] tmpKey = cytosineType.split("-");
+			if(tmpKey[0].equalsIgnoreCase("C")){
+				continue;
+			}
 			Integer cytosinePos = Integer.parseInt(tmpKey[1]) - 1;
 			double[] adjacentCytosineSeqLikelihood = new double[tmpKey[0].length()];
 			double[] adjacentCytosineSeqLikelihoodReverseStrand = new double[tmpKey[0].length()];
+			double[] adjacentNotCytosineSeqLikelihood = new double[tmpKey[0].length()];
+			double[] adjacentNotCytosineSeqLikelihoodReverseStrand = new double[tmpKey[0].length()];
 			ReadBackedPileup pileupPositiveStrand = pileup.getPositiveStrandPileup();
 	        for(PileupElement p : pileupPositiveStrand ){
 	        	SAMRecord samRecord = p.getRead();
@@ -158,7 +171,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        }
 					byte qual = tmpP.getQual();
 					if ( qual > SAMUtils.MAX_PHRED_SCORE )
-			            throw new UserException.MalformedBam(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
+			            throw new UserException.MalformedBAM(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
 			        qual = (byte)Math.min((int)tmpP.getQual(), tmpP.getMappingQual());
 			        byte observedBase = tmpP.getBase();
 			        byte qualityScore = qual;
@@ -167,8 +180,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        if ( observedBase == 0 )
 			            continue;
 			        adjacentCytosineSeqLikelihood[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) ? log10(1.0 - error) : log10(error/3.0);
+			        adjacentNotCytosineSeqLikelihood[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) ? log10(error/3.0) : log10(1.0 - error);
 			        if(VERBOSE){
-			        //	System.err.println("forwardStrand-1: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i);
+			        	System.err.println("forwardStrand-1: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i);
 			        }
 				}
 				
@@ -186,7 +200,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        }
 					byte qual = tmpP.getQual();
 					if ( qual > SAMUtils.MAX_PHRED_SCORE )
-			            throw new UserException.MalformedBam(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
+			            throw new UserException.MalformedBAM(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
 			        qual = (byte)Math.min((int)tmpP.getQual(), tmpP.getMappingQual());
 			        byte observedBase = tmpP.getBase();
 			        byte qualityScore = qual;
@@ -197,8 +211,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        if ( observedBase == 0 )
 			            continue;
 			        adjacentCytosineSeqLikelihoodReverseStrand[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) ? log10(1.0 - error) : log10(error/3.0);
+			        adjacentNotCytosineSeqLikelihoodReverseStrand[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) ? log10(error/3.0) : log10(1.0 - error);
 			        if(VERBOSE){
-			        	System.err.println("reverseStrand-1: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i + "\tadjacentCytosineSeqLikelihoodReverseStrand[i]" + adjacentCytosineSeqLikelihoodReverseStrand[i]);
+			        	//System.err.println("reverseStrand-1: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, false) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i + "\tadjacentCytosineSeqLikelihoodReverseStrand[i]" + adjacentCytosineSeqLikelihoodReverseStrand[i]);
 			        }
 				}           
 	        }
@@ -221,7 +236,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        }
 					byte qual = tmpP.getQual();
 					if ( qual > SAMUtils.MAX_PHRED_SCORE )
-			            throw new UserException.MalformedBam(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
+			            throw new UserException.MalformedBAM(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
 			        qual = (byte)Math.min((int)tmpP.getQual(), tmpP.getMappingQual());
 			        byte observedBase = tmpP.getBase();
 			        byte qualityScore = qual;
@@ -231,8 +246,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        if ( observedBase == 0 )
 			            continue;
 			        adjacentCytosineSeqLikelihood[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) ? log10(1.0 - error) : log10(error/3.0);
+			        adjacentNotCytosineSeqLikelihood[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) ? log10(error/3.0) : log10(1.0 - error);
 			        if(VERBOSE){
-			        //	System.err.println("forwardStrand-2: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i);
+			        	System.err.println("forwardStrand-2: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i);
 			        }
 				}
 				
@@ -251,7 +267,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        }
 					byte qual = tmpP.getQual();
 					if ( qual > SAMUtils.MAX_PHRED_SCORE )
-			            throw new UserException.MalformedBam(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
+			            throw new UserException.MalformedBAM(tmpP.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, tmpP.getRead().getReadName()));
 			        qual = (byte)Math.min((int)tmpP.getQual(), tmpP.getMappingQual());
 			        byte observedBase = tmpP.getBase();
 			        byte qualityScore = qual;
@@ -261,8 +277,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			        if ( observedBase == 0 )
 			            continue;
 			        adjacentCytosineSeqLikelihoodReverseStrand[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) ? log10(1.0 - error) : log10(error/3.0);
+			        adjacentNotCytosineSeqLikelihoodReverseStrand[i] += BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) ? log10(error/3.0) : log10(1.0 - error);
 			        if(VERBOSE){
-			        	System.err.println("reverseStrand-2: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i + "\tadjacentCytosineSeqLikelihoodReverseStrand[i]" + adjacentCytosineSeqLikelihoodReverseStrand[i]);
+			        	//System.err.println("reverseStrand-2: queryByte: " + (char)queryByte + "\tobservedBase: " + (char)observedBase + "\t" + BaseUtilsMore.iupacCodeEqual(queryByte, observedBase, true) + "\telementOffset: " + elementOffset + "\tcytosinePos: " + cytosinePos + "\tcytosineOffset: " + cytosineOffset + "\ti: " + i + "\tadjacentCytosineSeqLikelihoodReverseStrand[i]" + adjacentCytosineSeqLikelihoodReverseStrand[i]);
 			        }
 				}
 				
@@ -270,40 +287,52 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	     
 	        double sum = 0;
 	        double sumReverse = 0;
+	        double sumNot = 0;
+	        double sumNotReverse = 0;
+	        
 	        for(int i = 0; i < adjacentCytosineSeqLikelihood.length; i++)
 	        	sum += adjacentCytosineSeqLikelihood[i];
 	        for(int i = 0; i < adjacentCytosineSeqLikelihoodReverseStrand.length; i++)
 	        	sumReverse += adjacentCytosineSeqLikelihoodReverseStrand[i];
+	        
+	        for(int i = 0; i < adjacentNotCytosineSeqLikelihood.length; i++)
+	        	sumNot += adjacentNotCytosineSeqLikelihood[i];
+	        for(int i = 0; i < adjacentNotCytosineSeqLikelihoodReverseStrand.length; i++)
+	        	sumNotReverse += adjacentNotCytosineSeqLikelihoodReverseStrand[i];
+	        
 	      //  if(sum >= log10(0.90) || sumReverse >= log10(0.90)){
 	        Double[] value = cts.cytosineListMap.get(cytosineType);
-	        if(sum > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS)
-	        	value[0] = sum;
-	        if(sumReverse > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG)
-	        	value[1] = sumReverse;
-	        cts.cytosineListMap.put(cytosineType, value);
-	        	if(sum >= log10(threshold) && sum > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS){
+	       // if(sum - sumNot > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS)
+	       // 	value[0] = sum - sumNot;
+	      //  if(sumReverse - sumNotReverse > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG)
+	      //  	value[1] = sumReverse - sumNotReverse;
+	        
+	        	if(sum - sumNot >= threshold/10.0 && sum > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS && sum > ABSOLUTE_CYTOSINE_TYPE_C_LIKELIHOOD){
 	        		//DETERMINED_CYTOSINE_TYPE_NEGSTRAND = false;
 	        		
 	    	        DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS = sum;
 	    	       // 
 	    	        DETERMINED_CYTOSINE_TYPE_POS = tmpKey[0];
 	    	        DETERMINED_CYTOSINE_TYPE_C_METHY_POS = value[2];
+	    	        value[0] = sum - sumNot;
 	    	      //  System.err.println("pos");
 	        	}
-	        	else if(sumReverse >= log10(threshold) && sumReverse > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG){
+	        	if(sumReverse - sumNotReverse >= threshold/10.0 && sumReverse > DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG && sumReverse > ABSOLUTE_CYTOSINE_TYPE_C_LIKELIHOOD){
 	        		//DETERMINED_CYTOSINE_TYPE_NEGSTRAND = true;
 	        		//Double[] value = cts.cytosineListMap.get(cytosineType);
-	    	        
+	        		
 	    	        DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG = sumReverse;
 	    	        //cts.cytosineListMap.put(cytosineType, value);
 	    	        DETERMINED_CYTOSINE_TYPE_NEG = tmpKey[0];
 	    	        DETERMINED_CYTOSINE_TYPE_C_METHY_NEG = value[2];
+	    	        value[1] = sumReverse - sumNotReverse;
 	    	      //  System.err.println("neg");
 	        	}
+	        	cts.cytosineListMap.put(cytosineType, value);
 	        	 if(VERBOSE){
-	 	        	System.err.println("cytosineType: " + cytosineType + "\tsum: " + sum + "\tsumReverse" + sumReverse + "\tlog10(threshold): " + log10(threshold));
-	 	        	System.err.println("DETERMINED_CYTOSINE_TYPE_POS: " + DETERMINED_CYTOSINE_TYPE_POS + "\tDETERMINED_CYTOSINE_TYPE_C_METHY_POS: " + DETERMINED_CYTOSINE_TYPE_C_METHY_POS);
-	 				 System.err.println("DETERMINED_CYTOSINE_TYPE_NEG: " + DETERMINED_CYTOSINE_TYPE_NEG + "\tDETERMINED_CYTOSINE_TYPE_C_METHY_NEG: " + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG);
+	 	        	System.err.println("cytosineType: " + cytosineType + "\tsum: " + sum + "\tsumNot: " + sumNot + "\tsumReverse" + sumReverse + "\tsumNotReverse" + sumNotReverse + "\tthreshold: " + threshold);
+	 	        	System.err.println("DETERMINED_CYTOSINE_TYPE_POS: " + DETERMINED_CYTOSINE_TYPE_POS + "\tDETERMINED_CYTOSINE_TYPE_C_METHY_POS: " + DETERMINED_CYTOSINE_TYPE_C_METHY_POS  + "\tDETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS: " + DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_POS + "\tvalue[0]:" + value[0]);
+	 				 System.err.println("DETERMINED_CYTOSINE_TYPE_NEG: " + DETERMINED_CYTOSINE_TYPE_NEG + "\tDETERMINED_CYTOSINE_TYPE_C_METHY_NEG: " + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG + "\tDETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG: " + DETERMINED_CYTOSINE_TYPE_C_LIKELIHOOD_NEG + "\tvalue[1]:" + value[1]);
 	 	        }	
 	        	
 	    }
@@ -360,7 +389,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
             	
         byte qual = p.getQual();
         if ( qual > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+            throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
         if ( capBaseQualsAtMappingQual )
             qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
          
@@ -593,8 +622,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 						switch(observedBase){
 							case BaseUtils.C:
 						//		if(!DETERMINED_CYTOSINE_TYPE_NEGSTRAND){
-									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS ) : pOfBase1 * (error/3.0) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS );
-									likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) *  ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS ) : pOfBase2 * (error/3.0) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS );
+									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS * (1.0-OVER_CONVERSION_RATE)) : pOfBase1 * (error/3.0);
+									likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) *  ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_POS * (1.0-OVER_CONVERSION_RATE) ) : pOfBase2 * (error/3.0);
 							//	}
 						//		else{
 							//		likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-UNDETERMINED_CYTOSINE_TYPE_C_METHY) * (1.0-BISULFITE_CONVERSION_RATE) + UNDETERMINED_CYTOSINE_TYPE_C_METHY ) : pOfBase1 * (error/3.0) * ( (1.0-UNDETERMINED_CYTOSINE_TYPE_C_METHY) * (1.0-BISULFITE_CONVERSION_RATE) + UNDETERMINED_CYTOSINE_TYPE_C_METHY );
@@ -608,8 +637,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 								break;
 							case BaseUtils.T:
 							
-									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.C ? pOfBase1 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
-									likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.C ? pOfBase2 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
+									likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.C ? pOfBase1 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * BISULFITE_CONVERSION_RATE + DETERMINED_CYTOSINE_TYPE_C_METHY_POS * OVER_CONVERSION_RATE) : pOfBase1 * (error/3.0));
+									likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.C ? pOfBase2 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_POS) * BISULFITE_CONVERSION_RATE + DETERMINED_CYTOSINE_TYPE_C_METHY_POS * OVER_CONVERSION_RATE) : pOfBase2 * (error/3.0));
 
 								if ( VERBOSE ) {
 									//	System.out.println("flag3: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
@@ -629,8 +658,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 						switch(observedBase){
 						case BaseUtils.G:
 						//	if(DETERMINED_CYTOSINE_TYPE_NEGSTRAND){
-								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG ) : pOfBase1 * (error/3.0) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG );
-								likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) *  ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG ) : pOfBase2 * (error/3.0) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG );
+								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) * ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG * (1.0-OVER_CONVERSION_RATE) ) : pOfBase1 * (error/3.0);
+								likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) *  ( (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * (1.0-BISULFITE_CONVERSION_RATE) + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG * (1.0-OVER_CONVERSION_RATE) ) : pOfBase2 * (error/3.0);
 								if ( VERBOSE ) {
 									//System.out.println("flag6: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 								}
@@ -645,8 +674,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 							break;
 						case BaseUtils.A:
 							
-								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.G ? pOfBase1 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * BISULFITE_CONVERSION_RATE) : pOfBase1 * (error/3.0));
-								likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.G ? pOfBase2 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * BISULFITE_CONVERSION_RATE) : pOfBase2 * (error/3.0));
+								likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : (g.base1 == BaseUtils.G ? pOfBase1 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * BISULFITE_CONVERSION_RATE + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG * OVER_CONVERSION_RATE) : pOfBase1 * (error/3.0));
+								likelihood += observedBase == g.base2 ? pOfBase1 * (1.0-error) : (g.base2 == BaseUtils.G ? pOfBase2 * (error/3.0 + (1.0-DETERMINED_CYTOSINE_TYPE_C_METHY_NEG) * BISULFITE_CONVERSION_RATE + DETERMINED_CYTOSINE_TYPE_C_METHY_NEG * OVER_CONVERSION_RATE) : pOfBase2 * (error/3.0));
 								if ( VERBOSE ) {
 									//System.out.println("flag9: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
 								}

@@ -103,6 +103,7 @@ public class MethylSNP extends CommandLineExecutable {
 				secondIteration = true;
 				if(autoEstimateC & secondIteration){
 					//instance.setupInfo();
+					//start(instance, args);
 					instance.execute();
 					
 					//start(instance, args);
@@ -165,18 +166,20 @@ public class MethylSNP extends CommandLineExecutable {
         	if(autoEstimateC & secondIteration){
         		System.out.println("2nd iteration!");
         		//engine = new GenomeAnalysisEngine();
+        		
         		bisulfiteArgumentSources.clear();
+        		//engine.setParser(parser);
         		bisulfiteArgumentSources.add(this);
         		
         		//engine.setArguments(getArgumentCollection());
         		
                 // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
-              //  engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
-             //   engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
+               // engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
+               // engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
                  walker = (BisulfiteGenotyper) engine.getWalkerByName(getAnalysisName());
         		((BisulfiteGenotyper) walker).setAutoParameters(autoEstimateC, secondIteration);
         		setupInfo();
-                engine.setWalker(walker);
+        		engine.setWalker(walker);
                 walker.setToolkit(engine);
 
               //  Collection<SamRecordFilter> filters = engine.createFilters();

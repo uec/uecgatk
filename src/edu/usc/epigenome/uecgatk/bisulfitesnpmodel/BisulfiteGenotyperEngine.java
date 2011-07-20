@@ -575,8 +575,16 @@ public class BisulfiteGenotyperEngine{
 			Double[] value = cts.cytosineListMap.get(cytosineType);
 			//System.err.println("ctype: " + tmpKey[0]);
 			//cTypeStatus = cTypeStatus + "," + tmpKey[0];
-			if(value[cPos] >= Math.log10(BAC.cTypeThreshold)){
-				cTypeStatus = cTypeStatus + "," + tmpKey[0];
+			if(tmpKey[0].equalsIgnoreCase("C")){
+				cts.isC = true;
+				cts.cytosineMethyLevel = cytosineMethyLevel;
+			}
+			
+			if(value[cPos] >= BAC.cTypeThreshold){
+				if(!tmpKey[0].equalsIgnoreCase("C")){
+					cTypeStatus = cTypeStatus + "," + tmpKey[0];
+				}
+				
 				 if(Double.isNaN(cytosineMethyLevel))
 						 cytosineMethyLevel = 0.0;
 				//System.err.println("cTypeStatus: " + cTypeStatus + "\tLikelihood: " + value[cPos]);

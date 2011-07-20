@@ -36,7 +36,6 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	protected Byte alternateAllele = null;
 	protected final boolean useAlleleFromVCF;
 	protected long testLoc;
-	protected static double BISULFITE_CONVERSION_RATE;
 	//protected boolean isCGI = false;
 	public byte[] CONTEXTREF = null;
 	protected static Integer numCNegStrand = 0;
@@ -65,8 +64,6 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		this.BAC = BAC;
 		this.CONTEXTREF = contextRef;
 		this.testLoc = BAC.testLocus;
-		BISULFITE_CONVERSION_RATE = BAC.bsRate;
-		
 	//	CYTOSINE_TYPE_LIST = BAC.cytosineType;
 	}
 	
@@ -177,7 +174,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             
             
             // do not use this prior, this prior is flat prior intiated in genotypeEngine, so we actually do not transfer this priors...
-            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC.PCR_error, BAC.bsRate, BAC.novelDbsnpHet, BAC.validateDbsnpHet);
+            BisulfiteDiploidSNPGenotypeLikelihoods GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC.PCR_error, BAC.bsRate, BAC.overRate, BAC.novelDbsnpHet, BAC.validateDbsnpHet);
             if((pileup.getLocation().getStart()) == testLoc)
             	GL.VERBOSE=true;
             GL.checkCytosineStatus(pileup, cts, BAC.cTypeThreshold);
@@ -372,113 +369,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         }
 	}
 	
-	protected void initializeBestAndAlternateAllele(byte[] refWindow, Map<String, StratifiedAlignmentContext> contexts) {
-        int[] qualCounts = new int[4];
-        byte ref = refWindow[0];
-        byte refNextBase = refWindow[1];
-        int location = 0;
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-            for ( PileupElement p : pileup ) {
-                // ignore deletions and filtered bases
-            	SAMRecord samRecord = p.getRead();
-            	
-            	boolean negStrand = samRecord.getReadNegativeStrandFlag();
-				int alignmentS = samRecord.getAlignmentStart();
-				int	onRefCoord = (negStrand) ? samRecord.getUnclippedEnd() : alignmentS;
 
-				/*if((pileup.getLocation().getStart()) == testLoc){
-					System.out.println("before filter:\t" + onRefCoord + "\t" + p.getOffset() + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
-					System.out.println("deletion: " + p.isDeletion());
-					System.out.println("GATKSAMRecord: " + (p.getRead() instanceof GATKSAMRecord));
-					System.out.println("isGoodBase: " + ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset()));
-		                     
-				}*/
-                if ( p.isDeletion() ||
-                     (p.getRead() instanceof GATKSAMRecord && !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
-                    continue;
-
-                	//if((p.getRead().getReadNegativeStrandFlag() && p.getBase() == BaseUtils.A) || (!p.getRead().getReadNegativeStrandFlag() && p.getBase() == BaseUtils.T))
-                	//	continue;
-
-                	
-                	
-					if((pileup.getLocation().getStart()) == testLoc){
-						System.out.println(onRefCoord + "\t" + p.getOffset() + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
-						location = pileup.getLocation().getStart();
-					}
-					
-				if((p.getRead().getReadNegativeStrandFlag() && refNextBase == BaseUtils.C) || (!p.getRead().getReadNegativeStrandFlag() && refNextBase == BaseUtils.G)){
-					 int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
-		                if ( index >= 0 )
-		                    qualCounts[index] += p.getQual();
-				}
-				else{
-					//need to recheck! sincer 95% conversion of C do not means 95% back conversion of T
-					if((p.getRead().getReadNegativeStrandFlag() && ref == BaseUtils.A) || (!p.getRead().getReadNegativeStrandFlag() && ref == BaseUtils.T)){
-						if(p.getRead().getReadNegativeStrandFlag()){
-							int indexA = BaseUtils.simpleBaseToBaseIndex(BaseUtils.A);
-							int indexG = BaseUtils.simpleBaseToBaseIndex(BaseUtils.G);
-			                qualCounts[indexG] += p.getQual() * BISULFITE_CONVERSION_RATE;
-			                qualCounts[indexA] += p.getQual() * (1-BISULFITE_CONVERSION_RATE);
-						}
-						else{
-							int indexC = BaseUtils.simpleBaseToBaseIndex(BaseUtils.C);
-							int indexT = BaseUtils.simpleBaseToBaseIndex(BaseUtils.T);
-			                qualCounts[indexC] += p.getQual() * BISULFITE_CONVERSION_RATE;
-			                qualCounts[indexT] += p.getQual() * (1-BISULFITE_CONVERSION_RATE);
-						}
-					}
-					else{
-						int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
-		                if ( index >= 0 )
-		                    qualCounts[index] += p.getQual();
-						
-					}
-					
-				}
-               
-            }
-        }
-
-        // set the best base with maximum quality score sum
-        int maxCount = 0;
-        int secondMaxCount = 0;
-        bestAllele = null;
-        alternateAllele = null;
-        for ( byte altAllele : BaseUtils.BASES ) {
-            //if ( altAllele == ref )
-              //  continue;
-            //if( altAllele == 'T')
-            	//continue;
-            int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
-            if ( qualCounts[index] > maxCount ) {
-            	secondMaxCount = maxCount;
-            	maxCount = qualCounts[index];
-            	if(bestAllele != null){
-            		alternateAllele = bestAllele;
-            	}
-                bestAllele = altAllele;
-            }
-            else if (qualCounts[index] > secondMaxCount && qualCounts[index] < maxCount){
-            	secondMaxCount = qualCounts[index];
-            	alternateAllele = altAllele;
-            }
-           // System.err.println();
-        }
-        
-        if(location == testLoc){
-        	System.out.println("refAllele: " + ref);
-        	System.out.println("bestAllele: " + bestAllele + "\t" + maxCount);
-        	if(alternateAllele != null){
-        		System.out.println("AlternateAllele: " + "\t" + alternateAllele + "\t" + secondMaxCount);
-        	}
-        }
-
-    }
-	
-	
 	protected Integer[] getCytosineStatus(){
 		Integer[] value = new Integer[4];
 		value[0] = numCNegStrand;
