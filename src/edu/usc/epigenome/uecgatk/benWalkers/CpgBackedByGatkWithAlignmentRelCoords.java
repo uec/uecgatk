@@ -17,6 +17,7 @@ import org.usckeck.genome.ChromFeatures;
 
 import edu.usc.epigenome.genomeLibs.FeatAligners.FeatAligner;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
+import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContextCounter;
 
 public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 
@@ -31,12 +32,14 @@ public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 		
 		CpgBackedByGatkWithAlignmentRelCoords out = new CpgBackedByGatkWithAlignmentRelCoords(superObj.chromPos, superObj.negStrand, 
 				superObj.totalReads, superObj.cReads, superObj.cReadsNonconversionFilt,	superObj.tReads, superObj.agReads, 
-				superObj.totalReadsOpposite, superObj.aReadsOpposite, (int) superObj.getCpgWeight(), superObj.nextBaseGreads, 
-				superObj.nextBaseTotalReads, superObj.getNextBaseRef());
+				superObj.totalReadsOpposite, superObj.aReadsOpposite, (int) superObj.getCpgWeight(), superObj.getContextCounter(),
+				superObj.getPrevBaseRef(),superObj.getNextBaseRef());
+		
 		out.alignmentContext = superObj.alignmentContext;
 		out.metaData = superObj.metaData;
 		out.refContext = superObj.refContext;
-		out.prevBaseRefUpperCase = superObj.getPrevBaseRef();
+		out.prevBasesRefUpperCase = superObj.getPrevBasesRef();
+		out.nextBasesRefUpperCase = superObj.getNextBasesRef();
 		
 		return out;
 	}
@@ -55,11 +58,10 @@ public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 			boolean negStrand, short totalReads, short cReads,
 			short cReadsNonconversionFilt, short tReads, short agReads,
 			short totalReadsOpposite, short aReadsOpposite, int cpgWeight,
-			short nextBaseGreads, short nextBaseTotalReads,
-			char nextBaseRefUpperCase) {
+			CytosineContextCounter inContext, char prevBaseRef, char nextBaseRef) {
 		super(chromPos, negStrand, totalReads, cReads, cReadsNonconversionFilt,
 				tReads, agReads, totalReadsOpposite, aReadsOpposite, cpgWeight,
-				nextBaseGreads, nextBaseTotalReads, nextBaseRefUpperCase);
+				inContext, nextBaseRef, prevBaseRef);
 	}
 
 

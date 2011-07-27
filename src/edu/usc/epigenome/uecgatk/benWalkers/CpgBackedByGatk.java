@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 //ZR import org.jfree.util.Log;
 
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
+import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContextCounter;
 
 public class CpgBackedByGatk extends Cpg {
 
@@ -36,6 +37,16 @@ public class CpgBackedByGatk extends Cpg {
 		super(chromPos, negStrand, totalReads, cReads, cReadsNonconversionFilt,
 				tReads, agReads, totalReadsOpposite, aReadsOpposite, cpgWeight,
 				nextBaseGreads, nextBaseTotalReads, nextBaseRefUpperCase);
+	}
+
+	public CpgBackedByGatk(int chromPos, boolean negStrand, short totalReads,
+			short cReads, short cReadsNonconversionFilt, short tReads,
+			short agReads, short totalReadsOpposite, short aReadsOpposite,
+			int cpgWeight, CytosineContextCounter inCounter, char inPrevBaseRef, 
+			char inNextBaseRef) {
+		super(chromPos, negStrand, totalReads, cReads, cReadsNonconversionFilt,
+				tReads, agReads, totalReadsOpposite, aReadsOpposite, cpgWeight,
+				inCounter, inPrevBaseRef, inNextBaseRef);
 	}
 
 	/**

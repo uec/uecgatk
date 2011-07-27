@@ -14,6 +14,7 @@ import org.usckeck.genome.ChromFeatures;
 
 import edu.usc.epigenome.genomeLibs.FeatAligners.FeatAlignerEachfeat;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
+import edu.usc.epigenome.uecgatk.IupacPatterns;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatkWithAlignmentRelCoords;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
@@ -22,11 +23,11 @@ import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker
 /**
  * @author benb
  * 
- * Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>
+ * Map<String,FeatAlignerEachfeat>
  */
 public class GnomeSeqFeatureAlignmentWalker extends LocusWalkerToBisulfiteCytosineWalker<
 CpgBackedByGatkWithAlignmentRelCoords,
-Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
+Map<String,FeatAlignerEachfeat>>
 {
 
     @Argument(fullName = "outPrefix", shortName = "pre", doc = "Output prefix for all output files", required = true)
@@ -34,6 +35,9 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
     @Argument(fullName = "elementGff", shortName = "gff", doc = "A gff containing elements to interrogate", required = true)
     public String elementGff = null;
+
+    @Argument(fullName = "iupacPatterns", shortName = "pats", doc = "A list of IUPAC contexts to interrogate", required = true)
+    public String[] iupacPatterns = new String[]{"HCG","GCH"};
 
     @Argument(fullName = "downscaleCols", shortName = "cols", doc = "Number of columns in output alignment", required = false)
     public Integer downscaleCols = 0;
@@ -50,10 +54,11 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
     @Argument(fullName = "censor", shortName = "censor", doc = "Only count cytosines within the element itself", required = false)
     public boolean censor = false;
 
-//    Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> alignerByCondition = null;
+//    Map<String,FeatAlignerEachfeat> alignerByCondition = null;
  //   protected int nFeats = 0;
     protected static ChromFeatures feats = null;
     protected static boolean featsCompletelyPreloaded = false;
+    protected static IupacPatterns patternMap = null;
 
     
     /**
@@ -66,12 +71,12 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 
 
-	public Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> emptyMap()
+	public Map<String,FeatAlignerEachfeat> emptyMap()
     {
     	
-    	Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> out = 
-			new HashMap<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>();
-		for (MethConditions cond : MethConditions.values())
+    	Map<String,FeatAlignerEachfeat> out = 
+			new HashMap<String,FeatAlignerEachfeat>();
+		for (String cond : this.iupacPatterns)
 		{
 			int nFeats = this.getnFeats();
 			//System.err.printf("Initializing aligner %s with %d elements\n", cond.context, nFeats);
@@ -86,7 +91,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 			}
 			// *** END CRITICAL SECTION
 			
-			FeatAlignerEachfeat walker = cond.createAligner(this.windSize, nFeats, this.censor, this.downscaleCols);
+			FeatAlignerEachfeat walker = new FeatAlignerEachfeat(windSize,this.censor, nFeats,this.downscaleCols);
 			walker.setArrayGrowsize(threadedGrowsize);
 			out.put(cond, walker);
 		}
@@ -101,7 +106,6 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
     @Override
 	public void initialize() {
-		// TODO Auto-generated method stub
 		super.initialize();
 	
 		try
@@ -116,6 +120,12 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		}
 		
 		//logger.info(String.format("Initializing map (%d)",walkerByCondition.hashCode()));
+		patternMap = new IupacPatterns();
+		for (String pat : this.iupacPatterns)
+		{
+			patternMap.register(pat);
+		}
+		
 		this.outputCph = true; // Because GNOME-seq used GCH
 	}   
 
@@ -126,9 +136,9 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
      * @return
      */
     @Override
-	public Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> reduceInit()
+	public Map<String,FeatAlignerEachfeat> reduceInit()
 	{
-    	Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> out = null; // this.emptyMap();
+    	Map<String,FeatAlignerEachfeat> out = null; // this.emptyMap();
 		
 		return out;
 	}
@@ -137,8 +147,8 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 
 	@Override
-	public Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>
-	treeReduce(Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> a, Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> b)
+	public Map<String,FeatAlignerEachfeat>
+	treeReduce(Map<String,FeatAlignerEachfeat> a, Map<String,FeatAlignerEachfeat> b)
 	{
 		
 		if (a==null)
@@ -154,10 +164,10 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		}
 		
 		// Go through each context in each one.
-		Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> out = new HashMap<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>();
-		Set<MethConditions> contexts = new HashSet(a.keySet());
+		Map<String,FeatAlignerEachfeat> out = new HashMap<String,FeatAlignerEachfeat>();
+		Set<String> contexts = new HashSet(a.keySet());
 		contexts.addAll(b.keySet());
-		for (MethConditions context : contexts)
+		for (String context : contexts)
 		{
 			FeatAlignerEachfeat aAligner = a.get(context);
 			FeatAlignerEachfeat bAligner = b.get(context);
@@ -204,10 +214,10 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 	 *               by the reduce function. 
 	 */
 	@Override
-	public void onTraversalDone(Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> result) 
+	public void onTraversalDone(Map<String,FeatAlignerEachfeat> result) 
 	{
 		int count = 0;
-		for (MethConditions cond : MethConditions.values())
+		for (String cond : this.iupacPatterns)
 		{
 			if (result != null)
 			{
@@ -288,9 +298,9 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 
 	@Override
-	protected Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> 
+	protected Map<String,FeatAlignerEachfeat> 
 	reduceCytosines(CpgBackedByGatkWithAlignmentRelCoords cytosine, 
-			Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> oldMap) 
+			Map<String,FeatAlignerEachfeat> oldMap) 
 	{
 		
 		if (oldMap == null)
@@ -300,19 +310,20 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		}
 		
 		// First get the context
-		GnomeSeqFeatureAlignmentWalker.MethConditions context = null;
+		String context = null;
 		String contextString = cytosine.context(this.minContextFracReadsMatching);
 		try 
 		{
 			// The input parameter sets whether we demand matching sequence in the reads
-			context = GnomeSeqFeatureAlignmentWalker.MethConditions.valueOf(contextString);
+			context = patternMap.firstMatch(contextString);
 		}
 		catch (Exception e)
 		{
 //			System.err.printf("Found unknown context: %s\n", cytosine.context());
 		}
+//		System.err.printf("Found context Raw: %s, matched: %s\n", contextString, context);
 
-		Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> outMap = oldMap;
+		Map<String,FeatAlignerEachfeat> outMap = oldMap;
 		if (context != null)
 		{
 //			System.err.printf("Found KNOWN context: %s\n", contextString);
@@ -335,7 +346,7 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 			}
 
 
-			outMap = new HashMap<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>(oldMap);
+			outMap = new HashMap<String,FeatAlignerEachfeat>(oldMap);
 			outMap.put(context, aligner);
 		}
 
@@ -345,10 +356,10 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 
 
 
-	public static int mapTotal(Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat> in)
+	public int mapTotal(Map<String,FeatAlignerEachfeat> in)
 	{
 		int grandTotal = 0;
-		for (MethConditions cond : MethConditions.values())
+		for (String cond : this.iupacPatterns)
 		{
 			FeatAlignerEachfeat feats = in.get(cond);
 			grandTotal += feats.numFeats();
@@ -356,49 +367,33 @@ Map<GnomeSeqFeatureAlignmentWalker.MethConditions,FeatAlignerEachfeat>>
 		return grandTotal;
 	}
 
-	public enum MethConditions
-	{
-		HCG ("HCG"),
-//		HCG_GCH_SAMEREAD ("HCG", "GCH", true, false),
-		GCH ("GCH"),
-//		GCH_GCH_SAMEREAD ("GCH", "GCH", true, false),
-//		HCG_HCG_ANYREAD ("HCG", "HCG", false, false),
-//		HCG_GCH_ANYREAD ("HCG", "GCH", false, false),
-//		GCH_HCG_ANYREAD ("GCH", "HCG", false, false),
-//		GCH_GCH_ANYREAD ("GCH", "GCH", false, false);
-		;
 	
-		private final String context;
-		private int count = 0;
-
-		
-		private MethConditions(String inContext) 
-		{
-			this.context = inContext;
-		}
-		
-		public FeatAlignerEachfeat createAligner(int windSize, int nFeats, boolean censor, int downscaleCols)
-		{
-
-
-			FeatAlignerEachfeat out = new FeatAlignerEachfeat(windSize,censor, nFeats,downscaleCols);
-			
-
-			return out;
-		}
-		
-//		static public MethConditions conditionByContext(String inContext)
+//	
+//	public enum MethConditions
+//	{
+////		CCT ("CCT"),
+////		GCT ("GCT"),
+////		CCC ("CCC")
+//		HCG ("HCG"),
+////		HCG_GCH_SAMEREAD ("HCG", "GCH", true, false),
+//		GCH ("GCH"),
+////		GCH_GCH_SAMEREAD ("GCH", "GCH", true, false),
+////		HCG_HCG_ANYREAD ("HCG", "HCG", false, false),
+////		HCG_GCH_ANYREAD ("HCG", "GCH", false, false),
+////		GCH_HCG_ANYREAD ("GCH", "HCG", false, false),
+////		GCH_GCH_ANYREAD ("GCH", "GCH", false, false);
+//		;
+//	
+//		private final String context;
+//		private int count = 0;
+//
+//		
+//		private MethConditions(String inContext) 
 //		{
-//			MethConditions out = null;
-//			for (MethConditions cond : MethConditions.values())
-//			{
-//				if (cond.context.equals(inContext))
-//				{
-//					out = cond;
-//				}
-//			}
-//			return out;
+//			this.context = inContext;
 //		}
-		
-	}
+//		
+//
+//		
+//	}
 }

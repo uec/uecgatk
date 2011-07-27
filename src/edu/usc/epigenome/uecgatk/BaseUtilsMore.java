@@ -8,6 +8,7 @@ public class BaseUtilsMore {
 		for (int i = 0; i < in.length; i++)
 		{
 			out[i] = toUpperCase(in[i]);
+			
 		}
 		return out;
 	}
