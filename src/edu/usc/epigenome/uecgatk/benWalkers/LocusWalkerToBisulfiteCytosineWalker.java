@@ -410,7 +410,10 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     			//**************************************************************
 
 
-    			CytosineContext cytContext = CytosineContext.fakeContext();
+    			CytosineContext cytContext = new CytosineContext(1,1);
+    			cytContext.setContextBaseAtRelativeIndex(-1, prevBaseSeqCstrand);
+    			cytContext.setContextBaseAtRelativeIndex(1, nextBaseSeqCstrand);
+   			
     			CpgRead cRead = new CpgRead(
     					readCode,
     					(short)((isC&passesFiveprimeFilter)?1:0),

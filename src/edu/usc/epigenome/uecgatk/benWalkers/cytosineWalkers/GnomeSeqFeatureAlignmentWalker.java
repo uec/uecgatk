@@ -321,7 +321,7 @@ Map<String,FeatAlignerEachfeat>>
 		{
 //			System.err.printf("Found unknown context: %s\n", cytosine.context());
 		}
-//		System.err.printf("Found context Raw: %s, matched: %s\n", contextString, context);
+//		System.err.printf("Found context Raw: %s, matched: %s (pos %d)\n", contextString, context,cytosine.chromPos);
 
 		Map<String,FeatAlignerEachfeat> outMap = oldMap;
 		if (context != null)

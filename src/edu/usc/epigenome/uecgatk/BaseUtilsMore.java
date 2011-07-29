@@ -1,5 +1,7 @@
 package edu.usc.epigenome.uecgatk;
 
+import org.broadinstitute.sting.utils.BaseUtils;
+
 public class BaseUtilsMore {
 
 	static public byte[] toUpperCase(byte[] in)
@@ -17,4 +19,6 @@ public class BaseUtilsMore {
 	{
 		return (byte)Character.toUpperCase((char)b);
 	}
+	
+
 }
