@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWalkerToBisulfiteCytosineReadWalker;
+import edu.usc.epigenome.uecgatk.benWalkers.ReadWithCpgMeths;
 
 
 /**
@@ -38,8 +39,9 @@ public class CytosineReadTEMPLATEWalker extends
 	}
 
 	@Override
-	protected Integer processReadCytosines(List<Cpg> cs) {
+	protected Integer processReadCytosines(ReadWithCpgMeths read) {
 		
+		List<Cpg> cs = read;
 		int count = 0;
 		for (Cpg c : cs)
 		{

@@ -5,6 +5,7 @@ import net.sf.samtools.SAMRecord;
 import edu.usc.epigenome.genomeLibs.PicardUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 
+import org.biojava.bio.seq.StrandedFeature;
 import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
@@ -61,34 +62,9 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 	}
 	
 	
-
 	abstract protected void alertNewContig(String newContig);
-	abstract protected MapType processReadCytosines(List<Cpg> cpgsCyclePositions);
-
-//	/* (non-Javadoc)
-//	 * @see org.broadinstitute.sting.gatk.walkers.Walker#initialize()
-//	 */
-//	@Override
-//	public void initialize() {
-//		super.initialize();
-//		
-//	}
-//	
-	
-	   
-//	@Override
-//	public ReduceType treeReduce(ReduceType lhs, ReduceType rhs) {
-//		return null;
-//	}
-//
-//
-//
-//	@Override
-//	public boolean filter(ReferenceContext ref, SAMRecord read) {
-//		return super.filter(ref, read);
-//	}
-
-
+//	abstract protected MapType processReadCytosines(List<Cpg> cpgsCyclePositions);
+	abstract protected MapType processReadCytosines(ReadWithCpgMeths read);
 
 	@Override
 	public MapType map(ReferenceContext ref, SAMRecord read,
@@ -157,14 +133,16 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 					c.totalReads++;
 					c.setNextBaseRef(cContext.charAt(2));
 					c.setPrevBaseRef(cContext.charAt(0));
-
+					
 					if (nConvSeen >= this.minConv) cList.add(c); // Don't add a methylated C until we have seen one.
 				}
 			}
     	}
     	
-    	MapType out = this.processReadCytosines(cList);
-    	
+		ReadWithCpgMeths readMeths = new ReadWithCpgMeths((revStrand)?StrandedFeature.NEGATIVE : StrandedFeature.POSITIVE, thisContig);
+		readMeths.addAll(cList);
+//    	MapType out = this.processReadCytosines(cList);
+		MapType out = this.processReadCytosines(readMeths);
    // 	logger.info(String.format("Got read:\n\tref =%s\n\tread=%s", new String(refSeq), new String(readSeq)))
 		
 		// Increment
@@ -186,18 +164,19 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
    			}
    			else
    			{
-
-   				switch (readSeq[i]) // Ok to use bisulfite read since C/T go to same IUPAC code
-   				{
-   				case BaseUtils.A:
-   				case BaseUtils.C:
-   				case BaseUtils.T:
-   					contextSeqIupac[contextPos] = (byte)'H';
-   					break;
-   				default:
-   					contextSeqIupac[contextPos] = readSeq[i];
-   					break;		
-   				}
+   				contextSeqIupac[contextPos] = readSeq[i];
+//   				
+//   				switch (readSeq[i]) // Ok to use bisulfite read since C/T go to same IUPAC code
+//   				{
+//   				case BaseUtils.A:
+//   				case BaseUtils.C:
+//   				case BaseUtils.T:
+//   					contextSeqIupac[contextPos] = (byte)'H';
+//   					break;
+//   				default:
+//   					contextSeqIupac[contextPos] = readSeq[i];
+//   					break;		
+//   				}
    			}
    		}
    		return new String(contextSeqIupac);

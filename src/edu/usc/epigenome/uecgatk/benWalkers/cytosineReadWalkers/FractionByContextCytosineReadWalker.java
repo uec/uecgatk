@@ -14,6 +14,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWalkerToBisulfiteCytosineReadWalker;
+import edu.usc.epigenome.uecgatk.benWalkers.ReadWithCpgMeths;
 
 
 /**
@@ -51,7 +52,9 @@ public class FractionByContextCytosineReadWalker extends
 	}
 
 	@Override
-	protected FracPair processReadCytosines(List<Cpg> cs) {
+	protected FracPair processReadCytosines(ReadWithCpgMeths read) {
+		
+		List<Cpg> cs = read;
 		
 		FracPair outPair = new FracPair(this.mergeEqualVals);
 		for (Cpg c : cs)
