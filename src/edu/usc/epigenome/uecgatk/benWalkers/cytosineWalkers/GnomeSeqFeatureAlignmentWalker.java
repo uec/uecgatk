@@ -37,7 +37,7 @@ Map<String,FeatAlignerEachfeat>>
     public String elementGff = null;
 
     @Argument(fullName = "iupacPatterns", shortName = "pats", doc = "A list of IUPAC contexts to interrogate", required = true)
-    public String[] iupacPatterns = new String[]{"HCG","GCH"};
+    public String[] iupacPatterns = new String[]{"WCG","GCH"};
 
     @Argument(fullName = "downscaleCols", shortName = "cols", doc = "Number of columns in output alignment", required = false)
     public Integer downscaleCols = 0;
