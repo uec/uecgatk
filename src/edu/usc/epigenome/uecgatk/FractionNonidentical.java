@@ -12,9 +12,9 @@ public class FractionNonidentical extends Number implements Comparable<Number> {
     protected boolean useIdentical = false;
 
     public FractionNonidentical(int numerator, int denominator) {
-        if(denominator == 0) {
-            throw new IllegalArgumentException("denominator is zero");
-        }
+//        if(denominator == 0) {
+//            throw new IllegalArgumentException("denominator is zero");
+//        }
         if(denominator < 0) {
             numerator *= -1;
             denominator *= -1;
