@@ -164,7 +164,20 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
    			}
    			else
    			{
-   				contextSeqIupac[contextPos] = readSeq[i];
+   				// Use only by comparing to refseq.  Otherwise it will be totally screwed up in bisulfite mode.
+   				byte contextBase = BaseUtils.N;
+   				if (refSeq[i] == BaseUtils.C)
+   				{
+   					if ((readSeq[i] == BaseUtils.C) || (readSeq[i] == BaseUtils.T))
+   						contextBase = refSeq[i];
+   				}
+   				else
+   				{
+   					if (refSeq[i] == readSeq[i]) contextBase = refSeq[i];
+   				}
+   				
+   				
+   				contextSeqIupac[contextPos] = contextBase;
 //   				
 //   				switch (readSeq[i]) // Ok to use bisulfite read since C/T go to same IUPAC code
 //   				{
