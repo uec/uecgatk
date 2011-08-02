@@ -26,6 +26,7 @@ import edu.usc.epigenome.uecgatk.IupacPatterns;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatkWithAlignmentRelCoords;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWalkerToBisulfiteCytosineReadWalker;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWithCpgMeths;
+import edu.usc.epigenome.uecgatk.benWalkers.ReadWithCpgMethsQuadrants;
 
 
 /**
@@ -61,6 +62,25 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
     @Argument(fullName = "censor", shortName = "censor", doc = "Only count cytosines within the element itself", required = false)
     public boolean censor = false;
 
+//    @Argument(fullName = "hcgMin", shortName = "hcgmin", doc = "Minimum methylation across HCGs in a read (0-1, default 0)", required = false)
+//    public double hcgMin = 0.0;
+//    @Argument(fullName = "hcgMax", shortName = "hcgmax", doc = "Maximum methylation across HCGs in a read (0-1, default 1)", required = false)
+//    public double hcgMax = 1.0;
+//    @Argument(fullName = "gchMin", shortName = "gchmin", doc = "Minimum methylation across GCHs in a read (0-1, default 0)", required = false)
+//    public double gchMin = 0.0;
+//    @Argument(fullName = "gchMax", shortName = "gchmax", doc = "Maximum methylation across GCHs in a read (0-1, default 1)", required = false)
+//    public double gchMax = 1.0;
+//
+
+    @Argument(fullName = "contextCombos", shortName = "combos", doc = "Output combinations of contexts (default false)", required = false)
+    public boolean contextCombos = false;
+    
+    
+    @Argument(fullName = "minNumWcg", shortName = "minwcg", doc = "Minimum number of WCGs in the read to count (default 1)", required = false)
+    public int minNumWcg = 1;
+    @Argument(fullName = "minNumGch", shortName = "mingch", doc = "Minimum number of GCHs in the read to count (default 1)", required = false)
+    public int minNumGch = 1;    
+    
     
     // object variables
 
@@ -115,34 +135,49 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 	 * cytosine read walker overrides
 	 ***************************************************/
 	
-	public Map<String,FeatAlignerEachfeat> emptyMap()
-    {
-    	
-    	Map<String,FeatAlignerEachfeat> out = 
-			new HashMap<String,FeatAlignerEachfeat>();
-		for (String cond : this.iupacPatterns)
+//	public Map<String,FeatAlignerEachfeat> emptyMap()
+//    {
+//    	
+//    	Map<String,FeatAlignerEachfeat> out = 
+//			new HashMap<String,FeatAlignerEachfeat>();
+//		for (String cond : this.iupacPatterns)
+//		{
+//			int nFeats = this.getnFeats();
+//			//System.err.printf("Initializing aligner %s with %d elements\n", cond.context, nFeats);
+//			
+//			// **** CRITICAL SECTION.  In multithreaded mode, it spawns a new emptyMap() for almost every single locus,
+//			// so creating a large datastructure is very inefficient.  FeatAlignerEachfeat is now selfgrowing,
+//			// so we can create a small one to start out with
+//			//if (nThreads<0) nThreads = this.getToolkit().getArguments().numberOfThreads;
+//			if (this.getToolkit().getArguments().numberOfThreads>1)
+//			{
+//				nFeats = threadedNfeatsStart;
+//			}
+//			// *** END CRITICAL SECTION
+//			
+//			FeatAlignerEachfeat walker = new FeatAlignerEachfeat(windSize,this.censor, nFeats,this.downscaleCols);
+//			walker.setArrayGrowsize(threadedGrowsize);
+//			out.put(cond, walker);
+//		}
+//		
+//		return out;
+//	}
+
+	public FeatAlignerEachfeat emptyAligner()
+	{
+		int nFeats = this.getnFeats();
+
+		if (this.getToolkit().getArguments().numberOfThreads>1)
 		{
-			int nFeats = this.getnFeats();
-			//System.err.printf("Initializing aligner %s with %d elements\n", cond.context, nFeats);
-			
-			// **** CRITICAL SECTION.  In multithreaded mode, it spawns a new emptyMap() for almost every single locus,
-			// so creating a large datastructure is very inefficient.  FeatAlignerEachfeat is now selfgrowing,
-			// so we can create a small one to start out with
-			//if (nThreads<0) nThreads = this.getToolkit().getArguments().numberOfThreads;
-			if (this.getToolkit().getArguments().numberOfThreads>1)
-			{
-				nFeats = threadedNfeatsStart;
-			}
-			// *** END CRITICAL SECTION
-			
-			FeatAlignerEachfeat walker = new FeatAlignerEachfeat(windSize,this.censor, nFeats,this.downscaleCols);
-			walker.setArrayGrowsize(threadedGrowsize);
-			out.put(cond, walker);
+			nFeats = threadedNfeatsStart;
 		}
-		
-		return out;
+
+		FeatAlignerEachfeat walker = new FeatAlignerEachfeat(windSize,this.censor, nFeats,this.downscaleCols);
+		walker.setArrayGrowsize(threadedGrowsize);
+
+		return walker;
 	}
-	
+
 	
 	@Override
 	public Map<String,FeatAlignerEachfeat>
@@ -228,44 +263,6 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 		
 		return newread;
 		
-//		FracPair outPair = new FracPair(false);
-//		for (Cpg c : cs)
-//		{
-//			int positionInRead = c.chromPos;
-//			String cContext = c.context();
-//			boolean isMethylated = (c.cReads>0);
-//			
-//			if (cContext.equalsIgnoreCase("GCH"))
-//			{
-//				outPair.incrementGCH(isMethylated);
-//			}
-//			else if (cContext.equalsIgnoreCase("HCG"))
-//			{
-//				outPair.incrementHCG(isMethylated);
-//			}
-//			else
-//			{
-//				// Ignore other context
-//				//System.err.printf("Ignoring cytosine: %d, %s, %s\n", positionInRead, cContext, isMethylated);
-//			}
-//		}
-
-//		// Check if we're in range and output. HCG is first
-//		if ( (outPair.hcg().getDenominator() >= this.minNumHcg) && (outPair.gch().getDenominator() >= this.minNumGch) )
-//		{
-//			if ( (outPair.hcg().doubleValue() >= this.hcgMin) && (outPair.hcg().doubleValue() <= this.hcgMax ) &&
-//					(outPair.gch().doubleValue() >= this.gchMin) && (outPair.gch().doubleValue() <= this.gchMax ) )
-//			{
-//				// Bonanza.  Just use the middle of the cytosines as the point.  They should be ordered.
-//				int midIndex = (int)Math.round((double)cs.size()/2.0);
-//				int point = cs.get(midIndex).chromPos;
-//				String chr = this.prevContig;
-//				
-//				// Use the methyldb schema
-//				out.printf("%s\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-//						chr, point, "+", 1, 1, 0, 0, 0, 0, 0, 1, 1, 0);
-//			}
-//		}
 	}
 
     /**
@@ -289,41 +286,59 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
     	if (oldMap == null)
     	{
     		//System.err.printf("oldMap==null, calling emptyMap()\n");
-    		oldMap = this.emptyMap();
+    		oldMap = new HashMap<String,FeatAlignerEachfeat>(); // this.emptyMap();
     	}
 		int chromPos = read.midpointChromPos();
-    	Map<String,Double> methVals = read.methLevels(patternMap);
-    	
-    	Map<String,FeatAlignerEachfeat> outMap = new HashMap<String,FeatAlignerEachfeat>(oldMap);
-    	for (String context : methVals.keySet())
-    	{
-    		double mLevel = methVals.get(context);
-    		FeatAlignerEachfeat aligner = oldMap.get(context);
-//    		System.err.printf("reduce(): pos=%d, context=%s, mLevel=%.2f\n",chromPos, context, mLevel);
 
-    		// We should only see each position in each feature once, so it should always
-    		// be empty when we encounter it here.
-    		// Meth val
-    		Iterator<GenomicRangeWithRefpoint> it = read.getAlignmentPoints();
-    		if (it != null)
-    		{
-    			while (it.hasNext())
-    			{
-    				GenomicRangeWithRefpoint ap = it.next();
-//    	    		System.err.printf("\treduce(ap=%d): pos=%d, context=%s, mLevel=%.2f\n", ap.getStart(), chromPos, context, mLevel);
+		Map<String,FeatAlignerEachfeat> outMap = new HashMap<String,FeatAlignerEachfeat>(oldMap);
 
-    				aligner.addAlignmentPos(
-    						chromPos,
-    						(read.getStrand() == StrandedFeature.NEGATIVE) ? Double.NaN : mLevel,
-    								(read.getStrand() == StrandedFeature.NEGATIVE) ? mLevel: Double.NaN,
-    										"", ap.getChrom(), ap.getRefPoint(), ap.getStrand(), 0);
-    			}
-    		}
+		Map<String,FractionNonidentical> methVals = (this.contextCombos) ? ReadWithCpgMethsQuadrants.methLevelsFractions(read, patternMap) : 
+				read.methLevelsFractions(patternMap);
 
-    		outMap.put(context, aligner);
-    	}
+		// Check if we have sufficient reads in different categories
+		int nGch = 0;
+		if (methVals.containsKey("GCH")) nGch = methVals.get("GCH").getDenominator();
+		int nWcg = 0;
+		if (methVals.containsKey("WCG")) nWcg = methVals.get("WCG").getDenominator();
 
-    	return outMap;
+		if ((nGch < this.minNumGch) || (nWcg < this.minNumWcg))
+		{
+			// System.err.printf("Found reads with <%d GCH or <%d WCG\n", this.minNumGch, this.minNumWcg);
+		}
+		else
+		{
+			for (String context : methVals.keySet())
+			{
+				double mLevel = methVals.get(context).doubleValue();
+				FeatAlignerEachfeat aligner = oldMap.get(context);
+				if (aligner == null) aligner = this.emptyAligner(); // Make it on the fly if we haven't seen it yet
+				
+				//    		System.err.printf("reduce(): pos=%d, context=%s, mLevel=%.2f\n",chromPos, context, mLevel);
+
+				// We should only see each position in each feature once, so it should always
+				// be empty when we encounter it here.
+				// Meth val
+				Iterator<GenomicRangeWithRefpoint> it = read.getAlignmentPoints();
+				if (it != null)
+				{
+					while (it.hasNext())
+					{
+						GenomicRangeWithRefpoint ap = it.next();
+						//    	    		System.err.printf("\treduce(ap=%d): pos=%d, context=%s, mLevel=%.2f\n", ap.getStart(), chromPos, context, mLevel);
+
+						aligner.addAlignmentPos(
+								chromPos,
+								(read.getStrand() == StrandedFeature.NEGATIVE) ? Double.NaN : mLevel,
+										(read.getStrand() == StrandedFeature.NEGATIVE) ? mLevel: Double.NaN,
+												"", ap.getChrom(), ap.getRefPoint(), ap.getStrand(), 0);
+					}
+				}
+
+				outMap.put(context, aligner);
+			}
+		}
+
+		return outMap;
     }
 
 	@Override
@@ -360,7 +375,7 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 	public void onTraversalDone(Map<String,FeatAlignerEachfeat> result) 
 	{
 		int count = 0;
-		for (String cond : this.iupacPatterns)
+		for (String cond : result.keySet())
 		{
 			if (result != null)
 			{
@@ -371,7 +386,7 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 					String outfn = String.format("%s-%s.csv", this.outPrefix, cond.toString());
 					PrintWriter pw = new PrintWriter(new FileOutputStream(outfn));
 
-					aligner.matlabCsv(pw, false);
+					aligner.matlabCsv(pw, false, true);
 					pw.close();
 
 				} catch (Exception e) {
@@ -396,72 +411,7 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 		return grandTotal;
 	}
 	
-	// -- // -- // -- // -- // -- 
-	
-	
-//	public class FracPair extends Pair<FractionNonidentical,FractionNonidentical> implements Comparable<FracPair>
-//	{
-//		public FracPair(boolean mergeIdentical) {
-//			super(new FractionNonidentical(), new FractionNonidentical());
-//			this.first.setUseIdentical(mergeIdentical);
-//			this.second.setUseIdentical(mergeIdentical);
-//		}
-//
-//		public FracPair(FractionNonidentical hcg, FractionNonidentical gch, boolean mergeIdentical) {
-//			super(hcg, gch);
-//			this.first.setUseIdentical(mergeIdentical);
-//			this.second.setUseIdentical(mergeIdentical);
-//		}
-//		
-//		public void incrementHCG(boolean methylated)
-//		{
-//			increment(false, methylated);
-//		}
-//		
-//		public void incrementGCH(boolean methylated)
-//		{
-//			increment(true, methylated);
-//		}
-//		
-//		public FractionNonidentical hcg()
-//		{
-//			return this.first;
-//		}
-//		
-//		public FractionNonidentical gch()
-//		{
-//			return this.second;
-//		}
-//
-//		private void increment(boolean gch, boolean methylated)
-//		{
-//			FractionNonidentical frac = (gch) ? this.second : this.first;
-//			frac.incDenominator();
-//			if (methylated) frac.incNumerator();
-//		}
-//
-//		@Override
-//		public String toString() 
-//		{
-//			String str = String.format("HCG=%s, GCH=%s", this.first.toString(), this.second.toString());
-//			return str;
-//		}
-//
-//		@Override
-//		public int compareTo(FracPair arg0) {
-//			int result = this.first.compareTo(arg0.first);
-//			
-//			if (result == 0)
-//			{
-//				result = this.second.compareTo(arg0.second);
-//			}
-//			//System.err.printf("CompareTo(%s,%s)=%d\n",this,arg0,result);
-//			return result;
-//		}
-//		
-//		
-//		
-//	}
+
 	
 	
 }

@@ -37,6 +37,7 @@ public class ReadWithCpgMeths extends ArrayList<Cpg>{
 	{
 		ReadWithCpgMeths out = new ReadWithCpgMeths(old.strand, old.chrom);
 		out.addAll(old);
+		if (old.alignments != null) out.alignments = AlignmentRelCoords.copy(old.alignments);
 		return out;
 	}
 	
