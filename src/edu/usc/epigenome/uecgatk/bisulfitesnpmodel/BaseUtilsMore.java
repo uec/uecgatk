@@ -129,6 +129,81 @@ public class BaseUtilsMore {
 		
 	}
 	
+	static public boolean iupacCodeEqualNotConsiderMethyStatus(byte pattern, byte observe){
+		pattern = toUpperCase(pattern);
+		observe = toUpperCase(observe);
+		switch(observe){
+			case 'A':
+				switch(pattern){
+					case 'A':
+					case 'R':
+					case 'W':
+					case 'M':
+					case 'H':
+					case 'V':
+					case 'D':
+					case 'N':
+						return true;
+									
+					default:
+						return false;
+				}
+				
+			case 'C':
+				switch(pattern){
+					case 'C':
+					case 'Y':
+					case 'S':
+					case 'M':
+					case 'H':
+					case 'V':
+					case 'B':
+					case 'N':
+						return true;	
+					default:
+						return false;
+				}
+				
+			case 'G':
+				switch(pattern){
+					case 'G':
+					case 'R':
+					case 'S':
+					case 'K':
+					case 'D':
+					case 'V':
+					case 'B':
+					case 'N':
+						return true;	
+					default:
+						return false;
+				}
+				
+			case 'T':
+				switch(pattern){
+					case 'T':
+					case 'W':
+					case 'K':
+					case 'D':
+					case 'Y':
+					case 'H':
+					case 'B':
+					case 'N':
+						return true;
+							
+				default:
+					return false;
+				}
+				
+			case 'N':
+				return true;
+			default:
+				System.err.println("error! wrong observed base!");
+				return false;
+		}
+		
+	}
+	
 	static public byte iupacCodeComplement(byte base) {
 		base = toUpperCase(base);
 		switch (base) {
@@ -162,6 +237,16 @@ public class BaseUtilsMore {
         		return 'B';
             default: return base;
         }
+    }
+	
+	static public byte[] simpleReverse(byte[] bases) {
+        byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = bases[bases.length - 1 - i];
+        }
+
+        return rcbases;
     }
 	
 }

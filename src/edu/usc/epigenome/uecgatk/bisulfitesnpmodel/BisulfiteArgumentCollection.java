@@ -8,6 +8,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM, Normal sequencing mode: NM", required = false)
     public NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel sequencingMode = NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel.BM;
 	
+	@Argument(fullName = "paired_end_mode", shortName = "pem", doc = "work in paired end mode", required = false)
+    public boolean pairedEndMode = false;
+	
 	@Argument(fullName = "auto_estimate_cpg_methylation", shortName = "aecpg", doc = "the first run would be to run auto_estimate_cpg methylation status", required = false)
     public boolean autoEstimateCpg = true;
 	
@@ -26,8 +29,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "auto_estimate_hcg_methylation", shortName = "aehcg", doc = "the first run would be to run auto_estimate_hcg methylation status", required = false)
     public boolean autoEstimateHcg = true;
 	
-	@Argument(fullName = "auto_estimate_other_cytosine_methylation", shortName = "aeoc", doc = "the first run would be to run auto_estimate_other_cytosine_methylation status, you need to provide cytosine type by such format(GCAA is ctosine type, 2 means cytosine is in 2nd base): -aoec GCAA:2;GGGCA:4", required = false)
-    //public String autoEstimateOtherCytosine = "GCAA-2;GGGCA-4";
+	@Argument(fullName = "auto_estimate_other_cytosine_methylation", shortName = "aeoc", doc = "the first run would be to run auto_estimate_other_cytosine_methylation status, you need to provide cytosine type by such format(GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.5 means intial methylation status): -aoec GCAA-2:0.5;GGGCA:-4:0.5", required = false)
+    //public String autoEstimateOtherCytosine = "GCAA-2:0.5;GGGCA-4:0.5";
 	public String autoEstimateOtherCytosine = "";
 	
 	@Argument(fullName = "force_cpg_methylation", shortName = "fcpg", doc = "force the cpg methylation status", required = false)
@@ -53,8 +56,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	public String forceOtherCytosine = "";
 	
 //need to improve..
-	@Argument(fullName = "log_likelihood_ratio_for_cytosine_type", shortName = "cTypeThreshold", doc = "phred scale likelihood ratio of threshold to be this cytosine type but not other cytosine, default is 20, means 100 times more than the other type of cytosine", required = false)
-    public double cTypeThreshold = 10;
+	@Argument(fullName = "log_likelihood_ratio_for_cytosine_type", shortName = "cTypeThreshold", doc = "phred scale likelihood ratio of threshold to be this cytosine type but not other cytosine, default is 10, means 10 times more likihood than the other type of cytosine, used in the first iteration", required = false)
+    public double cTypeThreshold = 20;
 	
 	//@Argument(fullName = "Cytosine_Type", shortName = "ct", doc = "Cytosine type, CG, CHH, CHG or GCH....for test only (format should be -ct CG-0:0.75;CHH-0:0.01... add the cytosine type, cytosine position in your string and their genome wide methylation value you estimate )", required = false)
     //public String cytosineType = "CGA-0:0.7314;GCA-1:0.01";
@@ -84,6 +87,12 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "novelDbsnpHet", shortName = "ndh", doc = "novelDbsnpHet .for test only", required = false)
     public double novelDbsnpHet = 0.02;
 	
+	@Argument(fullName = "allow_bad_mates", shortName = "abm", doc = "if paired end mode, allow bad mates or not", required = false)
+    public boolean allowBadMates = false;
+	
+	@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not", required = false)
+    public boolean tcga = false;
+	
 	
 	public BisulfiteArgumentCollection clone() {
 		BisulfiteArgumentCollection bac = new BisulfiteArgumentCollection();
@@ -107,6 +116,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
         bac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
         bac.sequencingMode = sequencingMode;
+        bac.pairedEndMode = pairedEndMode;
         bac.autoEstimateChg = autoEstimateChg;
         bac.autoEstimateChh = autoEstimateChh;
         bac.autoEstimateCpg = autoEstimateCpg;
@@ -119,7 +129,10 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.forceGch = forceGch;
         bac.forceGcg = forceGcg;
         bac.forceHcg = forceHcg;
+        bac.autoEstimateOtherCytosine = autoEstimateOtherCytosine;
+        bac.forceOtherCytosine = forceOtherCytosine;
         
+        bac.cTypeThreshold = cTypeThreshold;
        // bac.cytosineType = cytosineType;
         bac.testLocus = testLocus;
         bac.bsRate = bsRate;
@@ -130,6 +143,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.validateDbsnpHet = validateDbsnpHet;
         bac.novelDbsnpHet = novelDbsnpHet;
         
+        bac.allowBadMates = allowBadMates;
+        bac.tcga = tcga;
         return bac;
     }
 

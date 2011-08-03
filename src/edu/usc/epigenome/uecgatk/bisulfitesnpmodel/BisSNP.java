@@ -41,7 +41,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteGenotyper;
 
-public class MethylSNP extends CommandLineExecutable {
+public class BisSNP extends CommandLineExecutable {
 	
 	@Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
@@ -49,19 +49,18 @@ public class MethylSNP extends CommandLineExecutable {
 	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "the first run would be to run auto_estimate_cytosine methylation status")
     private static boolean autoEstimateC = false;
 	
-	 // control the output
+	 //control the output
     @Output(doc="File to which variants should be written",required=true)
     protected TcgaVCFWriter writer = null;
  
 	//copy from GATK, since they are private class in GATK
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
-    // our argument collection, the collection of command line args we accept
+    //  argument collection, the collection of command line args we accept
     @ArgumentCollection
     private GATKArgumentCollection argCollection = new GATKArgumentCollection();
     
-	//@ArgumentCollection
-   // private BisulfiteArgumentCollection bisulfiteArgCollection = new BisulfiteArgumentCollection();
+
 	
 	private static boolean secondIteration = false;
 	private static CytosineTypeStatus cts = null;
@@ -92,36 +91,21 @@ public class MethylSNP extends CommandLineExecutable {
 		return argCollection;
 	}
 
-   // protected BisulfiteArgumentCollection getBisulfiteArgumentCollection() {
-  //      return bisulfiteArgCollection;
-  // }
-
     
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			MethylSNP instance = new MethylSNP();
-			
-			
-				start(instance, args);
-				secondIteration = true;
-				if(autoEstimateC & secondIteration){
-					//instance.setupInfo();
-					//start(instance, args);
-					instance.execute();
-					
-					//start(instance, args);
-				}
-
-            System.exit(CommandLineProgram.result); // todo -- this is a painful hack
-
-            
+			BisSNP instance = new BisSNP();
+			start(instance, args);
+			secondIteration = true;
+			if(autoEstimateC & secondIteration){ // if auto-estimate cytosine model, and second iteration
+				instance.execute();
+			}
+            System.exit(CommandLineProgram.result);      
         } catch (UserException e) {
             exitSystemWithUserError(e);
         } catch (TribbleException e) {
-            // We can generate Tribble Exceptions in weird places when e.g. VCF genotype fields are
-            //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
         } catch (Exception e) {
             exitSystemWithError(e);
@@ -132,15 +116,20 @@ public class MethylSNP extends CommandLineExecutable {
 	
 	public void setupInfo(){
 		if(walker instanceof BisulfiteGenotyper){
-			((BisulfiteGenotyper) walker).setWriter(writer);
+			
 			((BisulfiteGenotyper) walker).setAnnoEng(annotationEngine);
-			//System.err.println("writer2: " + writer.toString());
-			writer.setRefSource(argCollection.referenceFile.toString());
+			if(argCollection.numberOfThreads == 1){
+				((BisulfiteGenotyper) walker).setWriter(writer);
+				//((TcgaVCFWriter)writer).setRefSource(argCollection.referenceFile.toString());
+			}
+			else{
+				((BisulfiteGenotyper) walker).setWriter(writer);
+			}
 		}
 	}
 	
 	public static List<String> createApplicationHeader() {
-        String version = "Bis-SNP-0.21";
+        String version = "Bis-SNP-0.25";
 		List<String> header = new ArrayList<String>();
         header.add(String.format("The Bis-SNP v%s, Compiled %s",version, getBuildTime()));
         header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (in sorceforge tree, the version number is 5288)",getVersionNumber()));
@@ -149,8 +138,7 @@ public class MethylSNP extends CommandLineExecutable {
         header.add("For support, please send email to yapingli@usc.edu or benbfly@gmail.com");
         return header;
     }
-	
-	//need to figure out how to get version number
+
 	public static String getVersionNumber() {
         ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
         
@@ -164,38 +152,23 @@ public class MethylSNP extends CommandLineExecutable {
 
     @Override
     protected int execute() throws Exception {
-       
-
-       
+ 
         try {
-        	if(autoEstimateC & secondIteration){
+        	if(autoEstimateC & secondIteration){ // if auto-estimate cytosine model, and second iteration
         		System.out.println("2nd iteration!");
-        		//engine = new GenomeAnalysisEngine();
-        		
+
         		bisulfiteArgumentSources.clear();
-        		//engine.setParser(parser);
+        		
         		bisulfiteArgumentSources.add(this);
         		
-        		//engine.setArguments(getArgumentCollection());
-        		
-                // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
-               // engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
-               // engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
                  walker = (BisulfiteGenotyper) engine.getWalkerByName(getAnalysisName());
         		((BisulfiteGenotyper) walker).setAutoParameters(autoEstimateC, secondIteration);
         		setupInfo();
         		engine.setWalker(walker);
                 walker.setToolkit(engine);
 
-              //  Collection<SamRecordFilter> filters = engine.createFilters();
-               // engine.setFilters(filters);
         		((BisulfiteGenotyper) walker).setCytosineMethyStatus(cts);
-        		//System.err.println("writer: " + writer.toString());
         		
-                // load the arguments into the walker / filters.
-                // TODO: The fact that this extra load call exists here when all the parsing happens at the engine
-                // TODO: level indicates that we're doing something wrong.  Turn this around so that the GATK can drive
-                // TODO: argument processing.
                 loadArgumentsIntoObject(walker);
                 bisulfiteArgumentSources.add(walker);
                 Collection<SamRecordFilter> filters = engine.getFilters();
@@ -203,13 +176,12 @@ public class MethylSNP extends CommandLineExecutable {
                     loadArgumentsIntoObject(filter);
                     bisulfiteArgumentSources.add(filter);
                 }
-               // System.err.println(engine.getArguments().referenceFile.toString());
                 
                 engine.execute();
                 
         	}
         	else{
-        		//System.err.println("1st iteration!");
+        		
         		 engine.setParser(parser);
         	     bisulfiteArgumentSources.add(this);
         	        
@@ -218,11 +190,9 @@ public class MethylSNP extends CommandLineExecutable {
         			
         			((BisulfiteGenotyper) walker).setAutoParameters(autoEstimateC, secondIteration);
         		}
-        		
-        		
+	
         		engine.setArguments(getArgumentCollection());
-
-                // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
+ 
                 engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
                 engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
 
@@ -232,11 +202,6 @@ public class MethylSNP extends CommandLineExecutable {
                 Collection<SamRecordFilter> filters = engine.createFilters();
                 engine.setFilters(filters);
                 
-
-                // load the arguments into the walker / filters.
-                // TODO: The fact that this extra load call exists here when all the parsing happens at the engine
-                // TODO: level indicates that we're doing something wrong.  Turn this around so that the GATK can drive
-                // TODO: argument processing.
                 loadArgumentsIntoObject(walker);
                 bisulfiteArgumentSources.add(walker);
 
@@ -245,39 +210,23 @@ public class MethylSNP extends CommandLineExecutable {
                     bisulfiteArgumentSources.add(filter);
                 }
                 if(walker instanceof BisulfiteGenotyper){
-        			if(autoEstimateC){
+        			//if(autoEstimateC){
         				((BisulfiteGenotyper) walker).setWriter(writer);
-        			}
-                	
-        			//System.err.println("writer1: " + writer.toString());
+        			//}
         			this.annotationEngine = ((BisulfiteGenotyper) walker).getAnnoEng();
         		}
                 
                 engine.execute();
                 if(walker instanceof BisulfiteGenotyper){
         			cts = ((BisulfiteGenotyper) walker).getCytosineMethyStatus();
-        			for(String key : cts.cytosineListMap.keySet()){
-        				Double[] values = cts.cytosineListMap.get(key);
-        				for(Double value : values){
-        					//System.err.println("cts.key: " + key + "\tcts.value: " + value);
-        				}
-        			}
-        			
-        			//System.err.println(cts.chhMethyLevel);
-        			//System.err.println(cts.chgMethyLevel);
-        			//System.err.println(cts.cpgMethyLevel);
         		}
-                //System.err.println(result.toString());
-                //generateGATKRunReport(walker);
+                
                 
         	}
  
         } catch ( Exception e ) {
-           // generateGATKRunReport(walker, e);
             throw e;
         }
-
-        // always return 0
         return 0;
     }
 
