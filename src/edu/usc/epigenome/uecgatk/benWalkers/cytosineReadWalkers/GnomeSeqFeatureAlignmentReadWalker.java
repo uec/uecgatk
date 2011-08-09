@@ -299,7 +299,9 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 		int nGch = 0;
 		if (methVals.containsKey("GCH")) nGch = methVals.get("GCH").getDenominator();
 		int nWcg = 0;
-		if (methVals.containsKey("WCG")) nWcg = methVals.get("WCG").getDenominator();
+		if (methVals.containsKey("HCG")) nWcg = methVals.get("HCG").getDenominator();
+		else if (methVals.containsKey("WCG")) nWcg = methVals.get("WCG").getDenominator();
+		else if (methVals.containsKey("CCG")) nWcg = methVals.get("CCG").getDenominator();
 
 		if ((nGch < this.minNumGch) || (nWcg < this.minNumWcg))
 		{
