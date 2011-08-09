@@ -74,7 +74,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	{
     		if(current_contig != -1)
     		{
-    			if(!dump)
+    			if(dump)
     				out.printf("contig=%s window=%d count=%f%n", current_contigName, current_window, 1.0 * count / count_index);
     			stats.addValue(1.0 * count / count_index);
     		}
@@ -127,7 +127,6 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	out.println("mean=" + stats.getMean());
     	out.println("max=" + stats.getMax());
     	out.println("std dev=" + stats.getStandardDeviation());
-    	out.println("kurtosis=" + stats.getKurtosis());
     	for(double i=10.0; i<=100.0; i+=10.0)
     		out.println(i + " percentile=" + stats.getPercentile(i));
     	
