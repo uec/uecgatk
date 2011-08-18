@@ -114,22 +114,21 @@ public class BisulfiteGenotyperEngine{
 
 	public BisulfiteGenotyperEngine(GenomeAnalysisEngine toolkit,
 			BisulfiteArgumentCollection BAC, Logger logger,
-			VariantAnnotatorEngine engine,
 			Set<String> samples) {
 		//super(toolkit, BAC, logger, verboseWriter, engine, samples);
 		this.samples = new TreeSet<String>(samples);
-		initialize(toolkit, BAC, logger, engine, samples.size());
+		initialize(toolkit, BAC, logger, samples.size());
 		// TODO Auto-generated constructor stub
 	}
 	
 
-	protected void initialize(GenomeAnalysisEngine toolkit, BisulfiteArgumentCollection BAC, Logger logger, VariantAnnotatorEngine engine, int numSamples) {
+	protected void initialize(GenomeAnalysisEngine toolkit, BisulfiteArgumentCollection BAC, Logger logger, int numSamples) {
         // note that, because we cap the base quality by the mapping quality, minMQ cannot be less than minBQ
         this.BAC = BAC.clone();
         
         
         this.logger = logger;
-        this.annotationEngine = engine;
+     //   this.annotationEngine = engine;
         
         genotypePriors = BisulfiteGenotyperEngine.createGenotypePriors(BAC);
         filter.add(LOW_QUAL_FILTER_NAME);
@@ -205,6 +204,7 @@ public class BisulfiteGenotyperEngine{
         bglcm.initialize(ctss.get(), BAC, autoEstimateC, secondIteration);
         
         Allele refAllele = bglcm.getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
+       // Allele refAllele = Allele.create(refContext.getBase(),true);
         //ctss.set(bglcm.getCytosineTypeStatus());
 
         //System.err.println("refAllele: " + refAllele.toString());
@@ -422,7 +422,7 @@ public class BisulfiteGenotyperEngine{
             
             VariantContext vcCall = new VariantContext("BG_call", loc.getContig(), loc.getStart(), endLoc,
                     myAlleles, genotypes, logRatio/10.0, passesCallThreshold(logRatio) ? null : filter, attributes);
-
+/*
             if ( annotationEngine != null ) {
                 // first off, we want to use the *unfiltered* context for the annotations
                 ReadBackedPileup pileup = null;
@@ -439,7 +439,7 @@ public class BisulfiteGenotyperEngine{
             //	 System.out.println(vcCall.getChr() + "\t" + vcCall.getStart() + "\t" + vcCall.getEnd());
             //}
             
-            
+            */
            
            
             BisulfiteVariantCallContext call = new BisulfiteVariantCallContext(vcCall, passesCallThreshold(logRatio), ctss.get(), passesEmitThreshold(logRatio));
@@ -450,7 +450,7 @@ public class BisulfiteGenotyperEngine{
 	}
 	
 	protected boolean passesEmitThreshold(double conf, int bestAFguess) {
-        return (BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || bestAFguess != 0) && conf >= Math.min(BAC.STANDARD_CONFIDENCE_FOR_CALLING, BAC.STANDARD_CONFIDENCE_FOR_EMITTING);
+        return (BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CYTOSINES || BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CPG || bestAFguess != 0) && conf >= Math.min(BAC.STANDARD_CONFIDENCE_FOR_CALLING, BAC.STANDARD_CONFIDENCE_FOR_EMITTING);
     }
 	
 	
@@ -689,14 +689,18 @@ public class BisulfiteGenotyperEngine{
 					ctss.get().isCpg = true;
 					ctss.get().cpgMethyLevel = cytosineMethyLevel;
 				}
-				else if(tmpKey[0].equalsIgnoreCase("CHH")){
-					ctss.get().isChh = true;
-					ctss.get().chhMethyLevel = cytosineMethyLevel;
+				else if(tmpKey[0].equalsIgnoreCase("CH")){
+					ctss.get().isCph = true;
+					ctss.get().cphMethyLevel = cytosineMethyLevel;
 				}
-				else if(tmpKey[0].equalsIgnoreCase("CHG")){
-					ctss.get().isChg = true;
-					ctss.get().chgMethyLevel = cytosineMethyLevel;
-				}
+				//else if(tmpKey[0].equalsIgnoreCase("CHH")){
+				//	ctss.get().isChh = true;
+				//	ctss.get().chhMethyLevel = cytosineMethyLevel;
+				//}
+				//else if(tmpKey[0].equalsIgnoreCase("CHG")){
+				//	ctss.get().isChg = true;
+				//	ctss.get().chgMethyLevel = cytosineMethyLevel;
+				//}
 				if(tmpKey[0].equalsIgnoreCase("GCH")){
 					if(BAC.sequencingMode == MethylSNPModel.GM){
 						ctss.get().isGch = true;
@@ -853,6 +857,14 @@ public class BisulfiteGenotyperEngine{
     public void setAutoParameters(boolean autoEstimateC, boolean secondIteration){
     	this.autoEstimateC = autoEstimateC;
     	this.secondIteration = secondIteration;
+    }
+    
+    public enum OUTPUT_MODE {
+        EMIT_VARIANTS_ONLY,
+        EMIT_ALL_CONFIDENT_SITES,
+        EMIT_ALL_SITES,
+        EMIT_ALL_CPG,
+        EMIT_ALL_CYTOSINES
     }
     
 }

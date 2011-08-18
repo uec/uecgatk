@@ -3,6 +3,7 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 
 public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM, Normal sequencing mode: NM", required = false)
@@ -13,6 +14,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	@Argument(fullName = "auto_estimate_cpg_methylation", shortName = "aecpg", doc = "the first run would be to run auto_estimate_cpg methylation status", required = false)
     public boolean autoEstimateCpg = true;
+	
+	@Argument(fullName = "auto_estimate_cph_methylation", shortName = "aecph", doc = "the first run would be to run auto_estimate_cph methylation status", required = false)
+    public boolean autoEstimateCph = true;
 	
 	@Argument(fullName = "auto_estimate_chg_methylation", shortName = "aechg", doc = "the first run would be to run auto_estimate_chg methylation status", required = false)
     public boolean autoEstimateChg = true;
@@ -35,6 +39,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	@Argument(fullName = "force_cpg_methylation", shortName = "fcpg", doc = "force the cpg methylation status", required = false)
     public double forceCpg = 0.50;
+	
+	@Argument(fullName = "force_cph_methylation", shortName = "fcph", doc = "force the cph methylation status", required = false)
+    public double forceCph = 0.50;
 	
 	@Argument(fullName = "force_chg_methylation", shortName = "fchg", doc = "force the chg methylation status", required = false)
     public double forceChg = 0.50;
@@ -93,6 +100,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not", required = false)
     public boolean tcga = false;
 	
+    @Argument(fullName = "output_genotype", shortName = "out_genotype", doc = "Should we output confident genotypes (i.e. including ref calls),just the variants, just homozygous CpG or just homozygous Cytosines?", required = false)
+    public BisulfiteGenotyperEngine.OUTPUT_MODE OutputMode = BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES;
+	
 	
 	public BisulfiteArgumentCollection clone() {
 		BisulfiteArgumentCollection bac = new BisulfiteArgumentCollection();
@@ -120,11 +130,13 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.autoEstimateChg = autoEstimateChg;
         bac.autoEstimateChh = autoEstimateChh;
         bac.autoEstimateCpg = autoEstimateCpg;
+        bac.autoEstimateCph = autoEstimateCph;
         bac.autoEstimateGch = autoEstimateGch;
         bac.autoEstimateGcg = autoEstimateGcg;
         bac.autoEstimateHcg = autoEstimateHcg;
         bac.forceChg = forceChg;
         bac.forceCpg = forceCpg;
+        bac.forceCph = forceCph;
         bac.forceChh = forceChh;
         bac.forceGch = forceGch;
         bac.forceGcg = forceGcg;
@@ -144,7 +156,6 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.novelDbsnpHet = novelDbsnpHet;
         
         bac.allowBadMates = allowBadMates;
-        bac.tcga = tcga;
         return bac;
     }
 

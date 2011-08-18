@@ -22,6 +22,7 @@ public class BisulfiteVCFConstants{
 	    public static final String VCF_HEADER_VERSION_CENTER = "center";
 	    public static final String VCF_HEADER_VERSION_PHASE = "phasing";
 	    public static final String VCF_HEADER_VERSION_GAF = "geneAnno";
+	    public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";
 
 }
 

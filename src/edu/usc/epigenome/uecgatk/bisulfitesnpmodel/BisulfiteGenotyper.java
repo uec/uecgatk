@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -54,8 +55,7 @@ import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGeno
 
 
 /**
- * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
- * multi-sample data.  The user can choose from several different incorporated calculation models.
+ * A Bisulfite genotyper. Works for single-sample data right now. 
  */
 
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
@@ -66,9 +66,6 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
 
     @ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
-
-    @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
-    protected PrintStream verboseWriter = null;
     
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<String>();
@@ -83,14 +80,11 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     protected TcgaVCFWriter writer = null;
 
     private BisulfiteGenotyperEngine BG_engine = null;
-
-    // the annotation engine
-    private VariantAnnotatorEngine annotationEngine;
     
     CytosineTypeStatus summary = null;
+    
 
-    // enable deletions in the pileup
-    public boolean includeReadsWithDeletionAtLoci() { return true; }
+   
 
     // enable extended events for indels
     public boolean generateExtendedEvents() { return BAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
@@ -123,10 +117,12 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         long nCpgBasesCalledConfidently = 0;
         
         /** The number of Chg bases called confidently (according to user threshold), either ref or other */
-        long nChgBasesCalledConfidently = 0;
+       // long nChgBasesCalledConfidently = 0;
         
         /** The number of Chh bases called confidently (according to user threshold), either ref or other */
-        long nChhBasesCalledConfidently = 0;
+       // long nChhBasesCalledConfidently = 0;
+        
+        long nCphBasesCalledConfidently = 0;
         
         /** The number of Gch bases called confidently (according to user threshold), either ref or other */
         long nGchBasesCalledConfidently = 0;
@@ -145,10 +141,12 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         double sumMethyCpgBasesCalledConfidently = 0;
         
         /** The sum of methylation value of Chg bases called confidently (according to user threshold), either ref or other */
-        double sumMethyChgBasesCalledConfidently = 0;
+       // double sumMethyChgBasesCalledConfidently = 0;
         
         /** The sum of methylation value of Chh bases called confidently (according to user threshold), either ref or other */
-        double sumMethyChhBasesCalledConfidently = 0;
+       // double sumMethyChhBasesCalledConfidently = 0;
+        
+        double sumMethyCphBasesCalledConfidently = 0;
         
         /** The sum of methylation value of Gch bases called confidently (according to user threshold), either ref or other */
         double sumMethyGchBasesCalledConfidently = 0;
@@ -164,8 +162,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesCallable); }
         double percentMethyLevelOfC() { return (sumMethyCytosineBasesCalledConfidently) / (double)(nCytosineBasesCalledConfidently); }
         double percentMethyLevelOfCpg() { return (sumMethyCpgBasesCalledConfidently) / (double)(nCpgBasesCalledConfidently); }
-        double percentMethyLevelOfChh() { return (sumMethyChhBasesCalledConfidently) / (double)(nChhBasesCalledConfidently); }
-        double percentMethyLevelOfChg() { return (sumMethyChgBasesCalledConfidently) / (double)(nChgBasesCalledConfidently); }
+       // double percentMethyLevelOfChh() { return (sumMethyChhBasesCalledConfidently) / (double)(nChhBasesCalledConfidently); }
+       // double percentMethyLevelOfChg() { return (sumMethyChgBasesCalledConfidently) / (double)(nChgBasesCalledConfidently); }
+        double percentMethyLevelOfCph() { return (sumMethyCphBasesCalledConfidently) / (double)(nCphBasesCalledConfidently); }
         double percentMethyLevelOfGch() { return (sumMethyGchBasesCalledConfidently) / (double)(nGchBasesCalledConfidently); }
         double percentMethyLevelOfGcg() { return (sumMethyGcgBasesCalledConfidently) / (double)(nGcgBasesCalledConfidently); }
         double percentMethyLevelOfHcg() { return (sumMethyHcgBasesCalledConfidently) / (double)(nHcgBasesCalledConfidently); }
@@ -227,20 +226,20 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         else
             samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
-        if(autoEstimateC){
-        	if(secondIteration){
+      //  if(autoEstimateC){
+      //  	if(secondIteration){
         		
-        	}
-        	else{
-        		annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-        	}
-        }
-        else{
-        	annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-        }
+      //  	}
+     //   	else{
+      //  		annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
+      //  	}
+     //   }
+     //   else{
+     //   	annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
+     //   }
   
-        BG_engine = new BisulfiteGenotyperEngine(getToolkit(), BAC, logger, annotationEngine, samples);
-        
+     //   BG_engine = new BisulfiteGenotyperEngine(getToolkit(), BAC, logger, annotationEngine, samples);
+        BG_engine = new BisulfiteGenotyperEngine(getToolkit(), BAC, logger, samples);
         // initialize the header
         if(autoEstimateC){
         	if(secondIteration){
@@ -303,7 +302,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      * @return the VariantCallContext object
      */
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-  
+    	
         CytosineTypeStatus cts = null;
         if(secondIteration){
             cts = summary.clone();
@@ -314,6 +313,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         else{
         	cts = new CytosineTypeStatus(BAC);
         }
+
         
         BG_engine.setAutoParameters(autoEstimateC, secondIteration);
         BG_engine.setCytosineTypeStatus(cts);
@@ -335,16 +335,18 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         lhs.nCallsMade += rhs.nCallsMade;
         lhs.nCytosineBasesCalledConfidently += rhs.nCytosineBasesCalledConfidently;
         lhs.nCpgBasesCalledConfidently += rhs.nCpgBasesCalledConfidently;
-        lhs.nChhBasesCalledConfidently += rhs.nChhBasesCalledConfidently;
-        lhs.nChgBasesCalledConfidently += rhs.nChgBasesCalledConfidently;
+       // lhs.nChhBasesCalledConfidently += rhs.nChhBasesCalledConfidently;
+       // lhs.nChgBasesCalledConfidently += rhs.nChgBasesCalledConfidently;
+        lhs.nCphBasesCalledConfidently += rhs.nCphBasesCalledConfidently;
         lhs.nGchBasesCalledConfidently += rhs.nGchBasesCalledConfidently;
         lhs.nGcgBasesCalledConfidently += rhs.nGcgBasesCalledConfidently;
         lhs.nHcgBasesCalledConfidently += rhs.nHcgBasesCalledConfidently;
         
         lhs.sumMethyCytosineBasesCalledConfidently += rhs.sumMethyCytosineBasesCalledConfidently;
         lhs.sumMethyCpgBasesCalledConfidently += rhs.sumMethyCpgBasesCalledConfidently;
-        lhs.sumMethyChgBasesCalledConfidently += rhs.sumMethyChgBasesCalledConfidently;
-        lhs.sumMethyChhBasesCalledConfidently += rhs.sumMethyChhBasesCalledConfidently;
+       // lhs.sumMethyChgBasesCalledConfidently += rhs.sumMethyChgBasesCalledConfidently;
+       // lhs.sumMethyChhBasesCalledConfidently += rhs.sumMethyChhBasesCalledConfidently;
+        lhs.sumMethyCphBasesCalledConfidently += rhs.sumMethyCphBasesCalledConfidently;
         lhs.sumMethyGchBasesCalledConfidently += rhs.sumMethyGchBasesCalledConfidently;
         lhs.sumMethyGcgBasesCalledConfidently += rhs.sumMethyGcgBasesCalledConfidently;
         lhs.sumMethyHcgBasesCalledConfidently += rhs.sumMethyHcgBasesCalledConfidently;
@@ -382,19 +384,21 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         
         sum.nCytosineBasesCalledConfidently += value.cts.isC ? 1 : 0;
         sum.nCpgBasesCalledConfidently += value.cts.isCpg ? 1 : 0;
-        sum.nChgBasesCalledConfidently += value.cts.isChg ? 1 : 0;
-        sum.nChhBasesCalledConfidently += value.cts.isChh ? 1 : 0;
-        sum.nGchBasesCalledConfidently += value.cts.isGch ? 1 : 0;
-        sum.nGcgBasesCalledConfidently += value.cts.isGcg ? 1 : 0;
-        sum.nHcgBasesCalledConfidently += value.cts.isHcg ? 1 : 0;
+        //sum.nChgBasesCalledConfidently += value.cts.isChg ? 1 : 0;
+       // sum.nChhBasesCalledConfidently += value.cts.isChh ? 1 : 0;
+        sum.nCphBasesCalledConfidently += value.cts.isCph ? 1 : 0;
+       // sum.nGchBasesCalledConfidently += value.cts.isGch ? 1 : 0;
+      //  sum.nGcgBasesCalledConfidently += value.cts.isGcg ? 1 : 0;
+      //  sum.nHcgBasesCalledConfidently += value.cts.isHcg ? 1 : 0;
 
         sum.sumMethyCytosineBasesCalledConfidently += value.cts.isC ? value.cts.cytosineMethyLevel : 0;
         sum.sumMethyCpgBasesCalledConfidently += value.cts.isCpg ? value.cts.cpgMethyLevel : 0;
-        sum.sumMethyChgBasesCalledConfidently += value.cts.isChg ? value.cts.chgMethyLevel : 0;
-        sum.sumMethyChhBasesCalledConfidently += value.cts.isChh ? value.cts.chhMethyLevel : 0;
-        sum.sumMethyGchBasesCalledConfidently += value.cts.isGch ? value.cts.gchMethyLevel : 0;
-        sum.sumMethyGcgBasesCalledConfidently += value.cts.isGcg ? value.cts.gcgMethyLevel : 0;
-        sum.sumMethyHcgBasesCalledConfidently += value.cts.isHcg ? value.cts.hcgMethyLevel : 0;
+        //sum.sumMethyChgBasesCalledConfidently += value.cts.isChg ? value.cts.chgMethyLevel : 0;
+       // sum.sumMethyChhBasesCalledConfidently += value.cts.isChh ? value.cts.chhMethyLevel : 0;
+        sum.sumMethyCphBasesCalledConfidently += value.cts.isCph ? value.cts.cphMethyLevel : 0;
+      //  sum.sumMethyGchBasesCalledConfidently += value.cts.isGch ? value.cts.gchMethyLevel : 0;
+      //  sum.sumMethyGcgBasesCalledConfidently += value.cts.isGcg ? value.cts.gcgMethyLevel : 0;
+      //  sum.sumMethyHcgBasesCalledConfidently += value.cts.isHcg ? value.cts.hcgMethyLevel : 0;
         
         if(!BAC.forceOtherCytosine.isEmpty() || !BAC.autoEstimateOtherCytosine.isEmpty()){
         	for(String key : sum.otherCytosine.keySet()){
@@ -427,11 +431,32 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             sum.nCallsMade++;
             if(autoEstimateC){
             	if(secondIteration){
-            		writer.add(value.vc, value.refBase);
+            		if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CYTOSINES){
+            			if(value.cts.isC)
+            				writer.add(value.vc, value.refBase);
+            		}
+            		else if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CPG){
+            			if(value.cts.isCpg)
+            				writer.add(value.vc, value.refBase);
+            		}
+            		else{
+            			writer.add(value.vc, value.refBase);
+            		}
+            		
             	}
             }
             else{
-            	writer.add(value.vc, value.refBase);
+            	if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CYTOSINES){
+        			if(value.cts.isC)
+        				writer.add(value.vc, value.refBase);
+        		}
+        		else if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CPG){
+        			if(value.cts.isCpg)
+        				writer.add(value.vc, value.refBase);
+        		}
+        		else{
+        			writer.add(value.vc, value.refBase);
+        		}
             }
             
         } catch (IllegalArgumentException e) {
@@ -451,12 +476,14 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
         logger.info(String.format("%% Methylation level of Cytosine loci       %3.3f", sum.percentMethyLevelOfC()));
         logger.info(String.format("%% Methylation level of CpG loci       %3.3f", sum.percentMethyLevelOfCpg()));
-        logger.info(String.format("%% Methylation level of CHH loci       %3.3f", sum.percentMethyLevelOfChh()));
-        logger.info(String.format("%% Methylation level of CHG loci       %3.3f", sum.percentMethyLevelOfChg()));
+        logger.info(String.format("%% Methylation level of CpH loci       %3.3f", sum.percentMethyLevelOfCph()));
+        //logger.info(String.format("%% Methylation level of CHH loci       %3.3f", sum.percentMethyLevelOfChh()));
+       // logger.info(String.format("%% Methylation level of CHG loci       %3.3f", sum.percentMethyLevelOfChg()));
         logger.info(String.format("%% number of Cytosine loci       %d", sum.nCytosineBasesCalledConfidently));
         logger.info(String.format("%% number of CpG loci       %d", sum.nCpgBasesCalledConfidently));
-        logger.info(String.format("%% number of CHH loci       %d", sum.nChhBasesCalledConfidently));
-        logger.info(String.format("%% number of CHG loci       %d", sum.nChgBasesCalledConfidently));
+        logger.info(String.format("%% number of CpH loci       %d", sum.nCphBasesCalledConfidently));
+       // logger.info(String.format("%% number of CHH loci       %d", sum.nChhBasesCalledConfidently));
+       // logger.info(String.format("%% number of CHG loci       %d", sum.nChgBasesCalledConfidently));
         if(BAC.sequencingMode == MethylSNPModel.GM){
         	logger.info(String.format("%% Methylation level of GCH loci       %3.3f", sum.percentMethyLevelOfGch()));
             logger.info(String.format("%% Methylation level of GCG loci       %3.3f", sum.percentMethyLevelOfGcg()));
@@ -478,8 +505,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         
         summary.cytosineMethyLevel = Double.isNaN(sum.percentMethyLevelOfC()) ? 0 : sum.percentMethyLevelOfC();
         summary.cpgMethyLevel = Double.isNaN(sum.percentMethyLevelOfCpg()) ? 0 : sum.percentMethyLevelOfCpg();
-        summary.chhMethyLevel = Double.isNaN(sum.percentMethyLevelOfChh()) ? 0 : sum.percentMethyLevelOfChh();
-        summary.chgMethyLevel = Double.isNaN(sum.percentMethyLevelOfChg()) ? 0 : sum.percentMethyLevelOfChg();
+        summary.cphMethyLevel = Double.isNaN(sum.percentMethyLevelOfCph()) ? 0 : sum.percentMethyLevelOfCph();
+       // summary.chhMethyLevel = Double.isNaN(sum.percentMethyLevelOfChh()) ? 0 : sum.percentMethyLevelOfChh();
+      //  summary.chgMethyLevel = Double.isNaN(sum.percentMethyLevelOfChg()) ? 0 : sum.percentMethyLevelOfChg();
         summary.gchMethyLevel = Double.isNaN(sum.percentMethyLevelOfGch()) ? 0 : sum.percentMethyLevelOfGch();
         summary.gcgMethyLevel = Double.isNaN(sum.percentMethyLevelOfGcg()) ? 0 : sum.percentMethyLevelOfGcg();
         summary.hcgMethyLevel = Double.isNaN(sum.percentMethyLevelOfHcg()) ? 0 : sum.percentMethyLevelOfHcg();
@@ -494,11 +522,14 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 					value[2] = BAC.autoEstimateCpg ? summary.cpgMethyLevel : BAC.forceCpg;
 					
 				}
-				else if(tmpKey[0].equalsIgnoreCase("CHH")){
-					value[2] = BAC.autoEstimateChh ? summary.chhMethyLevel : BAC.forceChh;
-				}
-				else if(tmpKey[0].equalsIgnoreCase("CHG")){
-					value[2] = BAC.autoEstimateChg ? summary.chgMethyLevel : BAC.forceChg;
+			//	else if(tmpKey[0].equalsIgnoreCase("CHH")){
+			//		value[2] = BAC.autoEstimateChh ? summary.chhMethyLevel : BAC.forceChh;
+			//	}
+			//	else if(tmpKey[0].equalsIgnoreCase("CHG")){
+			//		value[2] = BAC.autoEstimateChg ? summary.chgMethyLevel : BAC.forceChg;
+			//	}
+				else if(tmpKey[0].equalsIgnoreCase("CH")){
+					value[2] = BAC.autoEstimateCph ? summary.cphMethyLevel : BAC.forceCph;
 				}
 				else if(tmpKey[0].equalsIgnoreCase("GCH")){
 					value[2] = BAC.autoEstimateGch ? summary.gchMethyLevel : BAC.forceGch;
@@ -544,8 +575,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     	summary = sumCytosine.clone();
     	
     	BAC.forceCpg = BAC.autoEstimateCpg ? sumCytosine.cpgMethyLevel : BAC.forceCpg;
-    	BAC.forceChg = BAC.autoEstimateChg ? sumCytosine.chgMethyLevel : BAC.forceChg;
-    	BAC.forceChh = BAC.autoEstimateChh ? sumCytosine.chhMethyLevel : BAC.forceChh;
+    	//BAC.forceChg = BAC.autoEstimateChg ? sumCytosine.chgMethyLevel : BAC.forceChg;
+    	//BAC.forceChh = BAC.autoEstimateChh ? sumCytosine.chhMethyLevel : BAC.forceChh;
+    	BAC.forceCph = BAC.autoEstimateCph ? sumCytosine.cphMethyLevel : BAC.forceCph;
     	BAC.forceGch = BAC.autoEstimateGch ? sumCytosine.gchMethyLevel : BAC.forceGch;
     	BAC.forceGcg = BAC.autoEstimateGcg ? sumCytosine.gcgMethyLevel : BAC.forceGcg;
     	BAC.forceHcg = BAC.autoEstimateHcg ? sumCytosine.hcgMethyLevel : BAC.forceHcg;
@@ -561,11 +593,14 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 					value[2] = BAC.autoEstimateCpg ? sumCytosine.cpgMethyLevel : BAC.forceCpg;
 					
 				}
-				else if(tmpKey[0].equalsIgnoreCase("CHH")){
-					value[2] = BAC.autoEstimateChh ? sumCytosine.chhMethyLevel : BAC.forceChh;
-				}
-				else if(tmpKey[0].equalsIgnoreCase("CHG")){
-					value[2] = BAC.autoEstimateChg ? sumCytosine.chgMethyLevel : BAC.forceChg;
+			//	else if(tmpKey[0].equalsIgnoreCase("CHH")){
+			//		value[2] = BAC.autoEstimateChh ? sumCytosine.chhMethyLevel : BAC.forceChh;
+			//	}
+			//	else if(tmpKey[0].equalsIgnoreCase("CHG")){
+			//		value[2] = BAC.autoEstimateChg ? sumCytosine.chgMethyLevel : BAC.forceChg;
+			//	}
+				else if(tmpKey[0].equalsIgnoreCase("CH")){
+					value[2] = BAC.autoEstimateCph ? summary.cphMethyLevel : BAC.forceCph;
 				}
 				else if(tmpKey[0].equalsIgnoreCase("GCH")){
 					value[2] = BAC.autoEstimateGch ? sumCytosine.gchMethyLevel : BAC.forceGch;
@@ -628,12 +663,5 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     	this.writer = writer;
 
     }
- 
-    public VariantAnnotatorEngine getAnnoEng(){
-    	return annotationEngine;
-    }
-   
-    public void setAnnoEng(VariantAnnotatorEngine AnnoEng){
-    	this.annotationEngine = AnnoEng;
-    }
+
 }

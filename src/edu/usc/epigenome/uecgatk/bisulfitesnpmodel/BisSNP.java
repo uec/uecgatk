@@ -46,29 +46,29 @@ public class BisSNP extends CommandLineExecutable {
 	@Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
 	
-	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "the first run would be to run auto_estimate_cytosine methylation status")
+	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "automately estimate cytosine pattern methylation status in the first iteration")
     private static boolean autoEstimateC = false;
 	
-	 //control the output
+	 //control the output, output to TCGA VCF 
     @Output(doc="File to which variants should be written",required=true)
     protected TcgaVCFWriter writer = null;
  
-	//copy from GATK, since they are private class in GATK
+
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
-    //  argument collection, the collection of command line args we accept
+    // argument collection, the collection of command line args we accept. copy from GATK, since they are private class in GATK
     @ArgumentCollection
     private GATKArgumentCollection argCollection = new GATKArgumentCollection();
     
 
-	
+	//to record it is in second iteration or not
 	private static boolean secondIteration = false;
+	
+	//to record cytosine pattern methylation status estimated in the first iteration
 	private static CytosineTypeStatus cts = null;
 	
 	public Walker<?,?> walker = null;
 	
-	//protected VCFWriter writer = null;
-	private VariantAnnotatorEngine annotationEngine = null;
 	
 	@Override
     protected ApplicationDetails getApplicationDetails() {
@@ -99,8 +99,8 @@ public class BisSNP extends CommandLineExecutable {
 			BisSNP instance = new BisSNP();
 			start(instance, args);
 			secondIteration = true;
-			if(autoEstimateC & secondIteration){ // if auto-estimate cytosine model, and second iteration
-				instance.execute();
+			if(autoEstimateC & secondIteration){ 
+				instance.execute(); // do the second iteration if it is in two-iteration mode
 			}
             System.exit(CommandLineProgram.result);      
         } catch (UserException e) {
@@ -113,14 +113,14 @@ public class BisSNP extends CommandLineExecutable {
         
 	}
 	
-	
+	//set up Writer information. if writer is not initiat here, then there will be some wired close stream problem.
 	public void setupInfo(){
 		if(walker instanceof BisulfiteGenotyper){
 			
-			((BisulfiteGenotyper) walker).setAnnoEng(annotationEngine);
+
 			if(argCollection.numberOfThreads == 1){
 				((BisulfiteGenotyper) walker).setWriter(writer);
-				//((TcgaVCFWriter)writer).setRefSource(argCollection.referenceFile.toString());
+
 			}
 			else{
 				((BisulfiteGenotyper) walker).setWriter(writer);
@@ -129,10 +129,10 @@ public class BisSNP extends CommandLineExecutable {
 	}
 	
 	public static List<String> createApplicationHeader() {
-        String version = "Bis-SNP-0.25";
+        String version = "Bis-SNP-0.28";
 		List<String> header = new ArrayList<String>();
         header.add(String.format("The Bis-SNP v%s, Compiled %s",version, getBuildTime()));
-        header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (in sorceforge tree, the version number is 5288)",getVersionNumber()));
+        header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.0.5336.tar.bz2)",getVersionNumber()));
         header.add("Copyright (c) 2011 USC Epigenome Center");
         header.add("Please view our documentation at http://wiki.epigenome.usc.edu/twiki/bin/view");
         header.add("For support, please send email to yapingli@usc.edu or benbfly@gmail.com");
@@ -155,7 +155,7 @@ public class BisSNP extends CommandLineExecutable {
  
         try {
         	if(autoEstimateC & secondIteration){ // if auto-estimate cytosine model, and second iteration
-        		System.out.println("2nd iteration!");
+        	//	System.out.println("2nd iteration!");
 
         		bisulfiteArgumentSources.clear();
         		
@@ -167,7 +167,7 @@ public class BisSNP extends CommandLineExecutable {
         		engine.setWalker(walker);
                 walker.setToolkit(engine);
 
-        		((BisulfiteGenotyper) walker).setCytosineMethyStatus(cts);
+        		((BisulfiteGenotyper) walker).setCytosineMethyStatus(cts); //transfer cytosine pattern methylation status estimated in the first iteration to 2nd iteration
         		
                 loadArgumentsIntoObject(walker);
                 bisulfiteArgumentSources.add(walker);
@@ -180,7 +180,7 @@ public class BisSNP extends CommandLineExecutable {
                 engine.execute();
                 
         	}
-        	else{
+        	else{ //1st iteration
         		
         		 engine.setParser(parser);
         	     bisulfiteArgumentSources.add(this);
@@ -209,16 +209,14 @@ public class BisSNP extends CommandLineExecutable {
                     loadArgumentsIntoObject(filter);
                     bisulfiteArgumentSources.add(filter);
                 }
-                if(walker instanceof BisulfiteGenotyper){
-        			//if(autoEstimateC){
+                if(walker instanceof BisulfiteGenotyper){      			
         				((BisulfiteGenotyper) walker).setWriter(writer);
-        			//}
-        			this.annotationEngine = ((BisulfiteGenotyper) walker).getAnnoEng();
+
         		}
                 
                 engine.execute();
                 if(walker instanceof BisulfiteGenotyper){
-        			cts = ((BisulfiteGenotyper) walker).getCytosineMethyStatus();
+        			cts = ((BisulfiteGenotyper) walker).getCytosineMethyStatus(); //receive cytosine pattern methylation status estimated in the first iteration
         		}
                 
                 
@@ -286,8 +284,7 @@ public class BisSNP extends CommandLineExecutable {
                 throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
                         "Please use the following syntax when providing reference-ordered " +
                         "data: -B:<name>,<type> <filename>.");
-            // Assume that if tags are present, those tags are name and type.
-            // Name is always first, followed by type.
+            
             String name = positionalTags.get(0);
             String type = positionalTags.get(1);
 
@@ -315,13 +312,14 @@ public class BisSNP extends CommandLineExecutable {
         return rodBindings;
     }
     
+    //copy from GATK, since they are private class in GATK 
     private String expandFileName(String argument) {
         if(argument.trim().equals("-"))
             return "/dev/stdin";
         return argument;
     }
     
-  //copy from GATK, since they are private class in GATK
+
     /**
      * Subclasses of CommandLinePrograms can provide their own types of command-line arguments.
      * @return A collection of type descriptors generating implementation-dependent placeholders.

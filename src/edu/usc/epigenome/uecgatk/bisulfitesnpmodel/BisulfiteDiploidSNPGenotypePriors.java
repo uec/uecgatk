@@ -1,16 +1,20 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.providers.RodLocusView;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
@@ -96,38 +100,64 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return priors;
     }
     
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double novelDbsnpHet, double validateDbsnpHet) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc) {
     	
     	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
     	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
         //System.err.println(refWindow.length);
     	
         byte refBase = ref.getBase();
+        
+        Collection<VariantContext> contexts = tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, loc, true, false);
+        int count = 0;
+        if(contexts != null){
+        	for(VariantContext tmpVc : contexts){
+                if(tmpVc.isSNP()){
+                	priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+                	count++;
+                	break;
+                }
+                
+            }
+        }
+        	if(count == 0)
+        		priors = getReferencePolarizedPriors(refBase, heterozygosity, probOfTriStateGenotype);
 
-        
-        
-        DbSNPFeature d = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-        if(rsID != null){
-        	//System.err.println("is dbsnp");
-        	if(d.getValidationStatus().equalsIgnoreCase("unknown"))
-        		priors = getReferencePolarizedPriors(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
-        		//priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
-        	else
-        		priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+        /*
+        VariantContext tmpVc = tracker.getVariantContext(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, loc);
+        if(tmpVc != null){
+        //	if(tmpVc.hasID()){
+            	String id = tmpVc.getID();
+                if(id != null){
+                	priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+                }
+                else{
+                	priors = getReferencePolarizedPriors(refBase, heterozygosity, probOfTriStateGenotype);
+                }
+                	
+        //    }
+        	
         }
         else{
         	priors = getReferencePolarizedPriors(refBase, heterozygosity, probOfTriStateGenotype);
         }
-    	//String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-    	//if ( rsID != null ){
-    		
-    		//priors = getReferencePolarizedPriors(ref.getBase(), DBSNP_HETEROZYGOSITY, probOfTriStateGenotype);
-    	//}
-    	//else{
-    		
-    		//priors = getReferencePolarizedPriors(ref.getBase(), heterozygosity, probOfTriStateGenotype);
-    	//}
+        */
+        
+  //      DbSNPFeature d = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+   //     String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+   //     if(rsID != null){
+        	//System.err.println("is dbsnp");
+   //     	if(d.getValidationStatus().equalsIgnoreCase("unknown"))
+   //     		priors = getReferencePolarizedPriors(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
+        		//priors = getReferencePolarizedPriorsBasedOnMethyStatus(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
+  //      	else
+   //     		priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+   //     }
+  //      else{
+    //    	priors = getReferencePolarizedPriors(refBase, heterozygosity, probOfTriStateGenotype);
+   //     }
+    	
+    	
     	
     }
     
