@@ -66,14 +66,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
 
     @ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
-    
-    @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected List<String> annotationsToUse = new ArrayList<String>();
-
-    @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected String[] annotationClassesToUse = { "Standard" };
-
-    
+ 
     private static boolean autoEstimateC = false;
     private static boolean secondIteration = false;
     
@@ -81,19 +74,12 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
     private BisulfiteGenotyperEngine BG_engine = null;
     
+    //to record cytosine pattern methylation status estimated in the first iteration
     CytosineTypeStatus summary = null;
-    
-
-   
-
-    // enable extended events for indels
-    public boolean generateExtendedEvents() { return BAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
 
     /**
-     * Inner class for collecting output statistics from the UG
+     * Inner class for collecting output statistics
      */
-    
-    
     public static class BGStatistics {
         /** The total number of passes examined -- i.e., the number of map calls */
         long nBasesVisited = 0;
@@ -169,6 +155,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         double percentMethyLevelOfGcg() { return (sumMethyGcgBasesCalledConfidently) / (double)(nGcgBasesCalledConfidently); }
         double percentMethyLevelOfHcg() { return (sumMethyHcgBasesCalledConfidently) / (double)(nHcgBasesCalledConfidently); }
         
+        //record other kind of cytosine statistics status user provided
         HashMap<String, Double[]> otherCytosine = new HashMap<String, Double[]>();//value[0]: number of cytosine; value[1]: sumMethyLevel;
         
         void makeOtherCytosineMap(){
@@ -180,8 +167,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 					String[] tmp2 = tmp.split(":");
 					String key = tmp2[0].toUpperCase();
 					Double[] value = new Double[2];
-					value[0] = 0.0;
-					value[1] = 0.0;
+					value[0] = 0.0;//value[0]: number of cytosine;
+					value[1] = 0.0;//value[1]: sum of MethyLevel;
 					otherCytosine.put(key,value);
 					
 				}
@@ -201,7 +188,6 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	else{
         		
         	}
-        	//return otherCytosine;
         }
         
     }
@@ -213,6 +199,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     public void initialize() {
        
         Set<String> samples = new TreeSet<String>();
+        //sometimes, BAM file also provided sample name, and it is different from user provided in the argument, then there will be an error~
         if ( BAC.ASSUME_SINGLE_SAMPLE != null ){
         	samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
         	if(!samples.isEmpty()){
@@ -221,25 +208,15 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	else{
         		samples.add(BAC.ASSUME_SINGLE_SAMPLE);
         	}
+        }    
+        else{
+        	samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
         }
             
-        else
-            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-      //  if(autoEstimateC){
-      //  	if(secondIteration){
-        		
-      //  	}
-     //   	else{
-      //  		annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-      //  	}
-     //   }
-     //   else{
-     //   	annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-     //   }
-  
-     //   BG_engine = new BisulfiteGenotyperEngine(getToolkit(), BAC, logger, annotationEngine, samples);
+        
+        //initiate BisulfiteGenotyperEngine
         BG_engine = new BisulfiteGenotyperEngine(getToolkit(), BAC, logger, samples);
+        
         // initialize the header
         if(autoEstimateC){
         	if(secondIteration){
@@ -252,11 +229,16 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         else{
         	writer.writeHeader(new VCFHeader(getHeaderInfo(), samples));
         }
+        //in the first iteration, initiate CytosineTypeStatus
         if(!secondIteration)
         	summary = new CytosineTypeStatus(BAC);
         
     }
 
+    /**
+     * get VCF header for the output VCF file
+     *
+     **/
     private Set<VCFHeaderLine> getHeaderInfo() {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
@@ -270,6 +252,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "number of T in this Cytosine position"));
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, 1, VCFHeaderLineType.Float, "Methylation value in this Cytosine position"));
         
+        //check in dbSNP or not
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
             if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
@@ -304,11 +287,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
     	
         CytosineTypeStatus cts = null;
+        
         if(secondIteration){
             cts = summary.clone();
-            //for(String cytosineType : cts.cytosineListMap.keySet()){
-            //	System.err.println(cytosineType + "\t" + cts.cytosineListMap.get(cytosineType)[2] + "\t0 " + cts.cytosineListMap.get(cytosineType)[0] + "\t1 " + cts.cytosineListMap.get(cytosineType)[1] + "\t3 " + cts.cytosineListMap.get(cytosineType)[3]);
-            //}
         }
         else{
         	cts = new CytosineTypeStatus(BAC);
@@ -318,9 +299,13 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         BG_engine.setAutoParameters(autoEstimateC, secondIteration);
         BG_engine.setCytosineTypeStatus(cts);
 
+        //calculation LikelihoodsAndGenotypes for this loci
     	return BG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 
+    /**
+     * Initiate statistics object.
+     */
     public BGStatistics reduceInit() { 
     	BGStatistics initiated = new BGStatistics();
     	initiated.makeOtherCytosineMap();
@@ -368,20 +353,25 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         return lhs;
     }
 
+    
+    /**
+     * calculate statistics number in each reduce steps.
+     */
     public BGStatistics reduce(BisulfiteVariantCallContext value, BGStatistics sum) {
-        // we get a point for reaching reduce
+    	// the base vistited
         sum.nBasesVisited++;
 
-        // can't call the locus because of no coverage
+        // not call the locus when there is no coverage
         if ( value == null )
             return sum;
 
-        // A call was attempted -- the base was potentially callable
+        
         sum.nBasesCallable++;
 
         // the base was confidently callable
         sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
         
+     // the cytosine base was confidently callable
         sum.nCytosineBasesCalledConfidently += value.cts.isC ? 1 : 0;
         sum.nCpgBasesCalledConfidently += value.cts.isCpg ? 1 : 0;
         //sum.nChgBasesCalledConfidently += value.cts.isChg ? 1 : 0;
@@ -400,21 +390,15 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
       //  sum.sumMethyGcgBasesCalledConfidently += value.cts.isGcg ? value.cts.gcgMethyLevel : 0;
       //  sum.sumMethyHcgBasesCalledConfidently += value.cts.isHcg ? value.cts.hcgMethyLevel : 0;
         
+        //other cytosine provided.
         if(!BAC.forceOtherCytosine.isEmpty() || !BAC.autoEstimateOtherCytosine.isEmpty()){
         	for(String key : sum.otherCytosine.keySet()){
         		if(value.cts.cytosineListMap.containsKey(key)){
         			Double[] cytosineStatus = value.cts.cytosineListMap.get(key);
         			Double[] values = sum.otherCytosine.get(key);
-        			values[0] += Double.compare(cytosineStatus[3], 1.0) == 0 ? 1: 0;
+        			values[0] += Double.compare(cytosineStatus[3], 1.0) == 0 ? 1: 0; //cytosineStatus[3]==1 means it is this type of cytosine pattern. otherwise, not..
         			values[1] += Double.compare(cytosineStatus[3], 1.0) == 0 ? cytosineStatus[2]: 0;
-        			sum.otherCytosine.put(key,values);
-        			//if(Double.compare(cytosineStatus[3], 1.0) == 0){
-        				//System.err.println(values[0]);
-        			//}
-        			if(secondIteration){
-        			//	System.err.println(key);
-        			}
-        			
+        			sum.otherCytosine.put(key,values); 			
         		}
         		
 			}
@@ -427,15 +411,15 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             return sum;
 
         try {
-            // we are actually making a call
+            // actually making a call
             sum.nCallsMade++;
             if(autoEstimateC){
-            	if(secondIteration){
-            		if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CYTOSINES){
+            	if(secondIteration){ //in auto estimate mode, don't output in the first iteration
+            		if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CYTOSINES){ // only output homozygous cytosine
             			if(value.cts.isC)
             				writer.add(value.vc, value.refBase);
             		}
-            		else if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CPG){
+            		else if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CPG){ // only output homozygous cpg
             			if(value.cts.isCpg)
             				writer.add(value.vc, value.refBase);
             		}
@@ -511,6 +495,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         summary.gchMethyLevel = Double.isNaN(sum.percentMethyLevelOfGch()) ? 0 : sum.percentMethyLevelOfGch();
         summary.gcgMethyLevel = Double.isNaN(sum.percentMethyLevelOfGcg()) ? 0 : sum.percentMethyLevelOfGcg();
         summary.hcgMethyLevel = Double.isNaN(sum.percentMethyLevelOfHcg()) ? 0 : sum.percentMethyLevelOfHcg();
+        
+        
+        //copy cytosine statistics status for 2nd iteration to use
         for(String cytosineType : summary.cytosineListMap.keySet()){
         	String[] tmpKey = cytosineType.split("-");
 			Double[] value = summary.cytosineListMap.get(cytosineType);
@@ -570,6 +557,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         }
     }
     
+    //receive cytosine statistics status from main program
     public void setCytosineMethyStatus(CytosineTypeStatus sumCytosine) {
     	
     	summary = sumCytosine.clone();
@@ -615,16 +603,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 					
 				}
 				else{
-					//if(!BAC.autoEstimateOtherCytosine.isEmpty()){
-					//	String[] tmpArray = BAC.autoEstimateOtherCytosine.split(";");
-					//	for(String tmp : tmpArray){
-					//		String[] key = tmp.split(":");
-					//		if(key[0].equalsIgnoreCase(cytosineType)){
-					//			Double[] summaryStat = sumCytosine.cytosineListMap.get(cytosineType);
-					//			value[2] = summaryStat[2];
-					//		}
-					//	}
-					//}
+					
 					if(!BAC.forceOtherCytosine.isEmpty()){
 						String[] tmpArray = BAC.forceOtherCytosine.split(";");
 						for(String tmp : tmpArray){
@@ -637,9 +616,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 				}
 				if(value[2].isNaN())
 					value[2] = 0.0;
-				//System.err.println(cytosineType + "\t" + value[2]);
+				
 				summary.cytosineListMap.put(cytosineType, value);	
-			//System.err.println(cytosineType);
+
     	}
     	
     	

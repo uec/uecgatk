@@ -16,13 +16,14 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	/** Returns the number of mismatches in the pileup element within the given reference context in bisulfite seq space.
+	/** Returns the number of mismatches in the pileup element within the given reference context in bisulfite-seq space.
     *
     * @param read          the SAMRecord
     * @param ref           the reference context
     * @param maxMismatches the maximum number of surrounding mismatches we tolerate to consider a base good
     * @param windowSize    window size (on each side) to test
-    * @param bisulfiteSpace    in the bisulfite conversion space
+    * @param sequencingMode    in Bisulfite mode, GNOMe-seq mode or Normal-seq mode
+    * @param pairedend    paired-end reads or not
     * @return a bitset representing which bases are good
     */
    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize, MethylSNPModel sequencingMode, boolean pairedend) {
@@ -30,9 +31,6 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
        int readLength = read.getReadLength();
        BitSet mismatches = new BitSet(readLength);
 
-       // it's possible we aren't starting at the beginning of a read,
-       //  and we don't need to look at any of the previous context outside our window
-       //  (although we do need future context)
        int readStartPos = Math.max(read.getAlignmentStart(), (int)ref.getLocus().getStart() - windowSize);
        int currentReadPos = read.getAlignmentStart();
 
@@ -52,7 +50,6 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
     	   secondPair = read.getSecondOfPairFlag();
        }
 
-       //System.out.println("mismatchesInRefWindow in bs");
        for (int i = 0 ; i < c.numCigarElements() ; i++) {
            CigarElement ce = c.getCigarElement(i);
            int cigarElementLength = ce.getLength();
@@ -63,14 +60,14 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                        if ( currentReadPos++ < readStartPos )
                            continue;
 
-                       // this is possible if reads extend beyond the contig end
+                       // if reads extend beyond the contig end
                        if ( refIndex >= refBases.length )
                            break;
 
                        byte refChr = refBases[refIndex];
                        byte readChr = readBases[readIndex];
                        if ( readChr != refChr ){
-                    	   if(sequencingMode == MethylSNPModel.BM || sequencingMode == MethylSNPModel.GM){
+                    	   if(sequencingMode == MethylSNPModel.BM || sequencingMode == MethylSNPModel.GM){ // in bisulfite conversion space, C and T will be treated as the same, but in different situation, there will be some variation..
                     		   if(!negStrand){
                         		   if(secondPair){
                         			   if(((char)refChr == 'G' && (char)readChr == 'A') || ((char)refChr == 'A' && (char)readChr == 'G')){
@@ -149,10 +146,8 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
        }
        if ( mismatchCount <= maxMismatches )
            result.set(currentPos);
-       else{
-    	   //System.out.println("1\t" + currentPos);
-       }
-       //System.out.println("3\t" + mismatchCount);
+      
+       
        // now, traverse over the read positions
        while ( currentPos < readLength ) {
            // add a new rightmost position
@@ -170,12 +165,9 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
 
            if ( mismatchCount <= maxMismatches )
                result.set(currentPos);
-           else{
-        	   //System.out.println("2\t" + currentPos);
-           }
+           
        }
 
-       //System.out.println("4\t" + mismatchCount);
        return result;
    }
 }

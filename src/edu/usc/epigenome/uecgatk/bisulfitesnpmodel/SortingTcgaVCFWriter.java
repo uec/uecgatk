@@ -24,8 +24,5 @@ public class SortingTcgaVCFWriter extends SortingVCFWriter {
 	public TcgaVCFWriter getInnerWriter(){
 		return this.tcgaInnerWriter;
 	}
-	//public void writeHeader(VCFHeader header) {
-   //     innerWriter.writeHeader(header);
-   // }
 	
 }

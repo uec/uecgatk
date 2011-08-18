@@ -12,7 +12,6 @@ public class CGIHelper {
 	
 	public static Feature getCGIFeature(List<Object> cgiList) {
         if (cgiList == null){
-        	//System.err.println(cgiList.isEmpty());
         	return null;
         }
         	
@@ -29,7 +28,6 @@ public class CGIHelper {
 	
 	public static boolean isCGI(Feature feature) {
         int size = Math.abs(feature.getEnd() - feature.getStart());
-		//System.err.println(size);
 		return size > 0;
     }
 	

@@ -14,8 +14,11 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderVersion;
 
+/*
+ * VCF Writer to generate TCGA specific VCF file, it is only for sorted coordinate now, so in multi-thread mode, this could not be used
+ */
 public class TcgaVCFWriter extends StandardVCFWriter {
-
+	//store reference file path and name
 	protected String ref = null;
 	
 	public TcgaVCFWriter(File location) {
@@ -49,7 +52,7 @@ public class TcgaVCFWriter extends StandardVCFWriter {
         mHeader = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
         
         try {
-            // the file format field needs to be written first
+            // the file format field needs to be written first, specially for TCGA VCF header
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_FORMAT,"VCFv4.1").toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_DATE,now("yyyyMMdd")).toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_TCGA_VERSION,"1.0").toString() + "\n");
@@ -97,6 +100,7 @@ public class TcgaVCFWriter extends StandardVCFWriter {
         }
     }
 	
+	//get the system time that this VCF file generated
 	public static String now(String dateFormat) {
 	    Calendar cal = Calendar.getInstance();
 	    SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
@@ -106,6 +110,5 @@ public class TcgaVCFWriter extends StandardVCFWriter {
 	
 	public void setRefSource(String ref){
     	this.ref = ref;
-    	//System.err.println("writer-setup: " + this.writer.toString());
     }
 }

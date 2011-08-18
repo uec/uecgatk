@@ -33,8 +33,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "auto_estimate_hcg_methylation", shortName = "aehcg", doc = "the first run would be to run auto_estimate_hcg methylation status", required = false)
     public boolean autoEstimateHcg = true;
 	
-	@Argument(fullName = "auto_estimate_other_cytosine_methylation", shortName = "aeoc", doc = "the first run would be to run auto_estimate_other_cytosine_methylation status, you need to provide cytosine type by such format(GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.5 means intial methylation status): -aoec GCAA-2:0.5;GGGCA:-4:0.5", required = false)
-    //public String autoEstimateOtherCytosine = "GCAA-2:0.5;GGGCA-4:0.5";
+	@Argument(fullName = "auto_estimate_other_cytosine_methylation", shortName = "aeoc", doc = "the first run would be to run auto_estimate_other_cytosine_methylation status, you need to provide cytosine type by such format: -aoec GCAA-2:0.5;GGGCA-4:0.5 ((GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.5 means intial methylation status))", required = false)
+    //example: "GCAA-2:0.5;GGGCA-4:0.5";
 	public String autoEstimateOtherCytosine = "";
 	
 	@Argument(fullName = "force_cpg_methylation", shortName = "fcpg", doc = "force the cpg methylation status", required = false)
@@ -58,46 +58,33 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "force_hcg_methylation", shortName = "fhcg", doc = "force the hcg methylation status", required = false)
     public double forceHcg = 0.50;
 	
-	@Argument(fullName = "force_other_cytosine_methylation", shortName = "foc", doc = "force the other_cytosine_methylation status, you need to provide cytosine type by such format(GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.75 means methylation level): -aoec GCAA:2:0.75;GGGCA:3:0.33", required = false)
-    //public String forceOtherCytosine = "GCAA-2:0.75;GGGCA-4:0.33";
+	@Argument(fullName = "force_other_cytosine_methylation", shortName = "foc", doc = "force the other_cytosine_methylation status, you need to provide cytosine type by such format: -aoec GCAA-2:0.75;GGGCA-3:0.33 (GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.75 means methylation level)", required = false)
+    //example String forceOtherCytosine = "GCAA-2:0.75;GGGCA-4:0.33";
 	public String forceOtherCytosine = "";
 	
-//need to improve..
-	@Argument(fullName = "log_likelihood_ratio_for_cytosine_type", shortName = "cTypeThreshold", doc = "phred scale likelihood ratio of threshold to be this cytosine type but not other cytosine, default is 10, means 10 times more likihood than the other type of cytosine, used in the first iteration", required = false)
+
+	@Argument(fullName = "log_likelihood_ratio_for_cytosine_type", shortName = "cTypeThreshold", doc = "phred scale likelihood ratio of to be this cytosine pattern but not other cytosines in the first iteration for two-iteration mode (the real criteria is cTypeThreshold + stand_call_conf), default is 20, if stand_call_conf is 0, means 10^((20+0)/10) = 100 times more likihood than the other type of cytosine, only used in the first iteration", required = false)
     public double cTypeThreshold = 20;
 	
-	//@Argument(fullName = "Cytosine_Type", shortName = "ct", doc = "Cytosine type, CG, CHH, CHG or GCH....for test only (format should be -ct CG-0:0.75;CHH-0:0.01... add the cytosine type, cytosine position in your string and their genome wide methylation value you estimate )", required = false)
-    //public String cytosineType = "CGA-0:0.7314;GCA-1:0.01";
-	//public String cytosineType = null;
-	
-	@Argument(fullName = "test_location", shortName = "loc", doc = ".for test only", required = false)
+	@Argument(fullName = "test_location", shortName = "loc", doc = "for debug only, output the detail information in the location", required = false)
     public long testLocus = -1;
 	
-	@Argument(fullName = "bisulfite_conversion_rate", shortName = "bsRate", doc = "bisulfite_conversion_rate .for test only", required = false)
+	@Argument(fullName = "bisulfite_conversion_rate", shortName = "bsRate", doc = "bisulfite conversion rate", required = false)
     public double bsRate = 0.9975;
 	
-	@Argument(fullName = "over_conversion_rate", shortName = "overRate", doc = "cytosine_over_conversion_rate .for test only", required = false)
+	@Argument(fullName = "over_conversion_rate", shortName = "overRate", doc = "cytosine over conversion rate. it is often 0", required = false)
     public double overRate = 0;
 	
-	//@Argument(fullName = "CpG_Methylation_rate_in_CGI", shortName = "CpgMethyCGI", doc = "CpG_Methylation_rate_in_CGI .for test only", required = false)
-    //public double CpgMethyCGI = 0;
-	
-//	@Argument(fullName = "CpG_Methylation_rate_not_in_CGI", shortName = "CpgMethyNonCGI", doc = "CpG_Methylation_rate_not_in_CGI .for test only", required = false)
- //   public double CpgMethyNonCGI = 0;
-	
-//	@Argument(fullName = "CpH_Methylation_rate", shortName = "CphMethy", doc = "CpH_Methylation_rate .for test only", required = false)
- //   public double CphMethy = 0;
-	
-	@Argument(fullName = "validateDbsnphet", shortName = "vdh", doc = "validateDbsnphet .for test only", required = false)
+	@Argument(fullName = "validateDbsnphet", shortName = "vdh", doc = "heterozygous SNP rate when the loci is discovered as SNP in dbSNP and is validated, the default value is human genome", required = false)
     public double validateDbsnpHet = 0.1;
 	
-	@Argument(fullName = "novelDbsnpHet", shortName = "ndh", doc = "novelDbsnpHet .for test only", required = false)
+	@Argument(fullName = "novelDbsnpHet", shortName = "ndh", doc = "heterozygous SNP rate when the loci is discovered as SNP in dbSNP and but not validated, the default value is human genome", required = false)
     public double novelDbsnpHet = 0.02;
 	
-	@Argument(fullName = "allow_bad_mates", shortName = "abm", doc = "if paired end mode, allow bad mates or not", required = false)
-    public boolean allowBadMates = false;
+	@Argument(fullName = "reference_genome_error", shortName = "rge", doc = "reference genome error, the default value is human genome, in hg17, it is less than 1e-4; in SOAPsnp, it is 1e-5; in GATK it is 1e-6. so is it because hg18 error rate is 1e-5, and hg19 is 1e-6? can't find any reference about it..", required = false)
+    public double referenceGenomeErr = 1e-6;
 	
-	@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not", required = false)
+	@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not, not used yet, in test", required = false)
     public boolean tcga = false;
 	
     @Argument(fullName = "output_genotype", shortName = "out_genotype", doc = "Should we output confident genotypes (i.e. including ref calls),just the variants, just homozygous CpG or just homozygous Cytosines?", required = false)
@@ -145,17 +132,14 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.forceOtherCytosine = forceOtherCytosine;
         
         bac.cTypeThreshold = cTypeThreshold;
-       // bac.cytosineType = cytosineType;
         bac.testLocus = testLocus;
         bac.bsRate = bsRate;
         bac.overRate = overRate;
-        //bac.CpgMethyCGI = CpgMethyCGI;
-       // bac.CpgMethyNonCGI = CpgMethyNonCGI;
-       // bac.CphMethy = CphMethy;
         bac.validateDbsnpHet = validateDbsnpHet;
         bac.novelDbsnpHet = novelDbsnpHet;
-        
-        bac.allowBadMates = allowBadMates;
+        bac.referenceGenomeErr = referenceGenomeErr;
+        bac.heterozygosity = heterozygosity;
+    
         return bac;
     }
 

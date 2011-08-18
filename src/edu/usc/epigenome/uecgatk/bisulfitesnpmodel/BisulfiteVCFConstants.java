@@ -6,7 +6,7 @@ import org.broad.tribble.vcf.VCFHeaderVersion;
 public class BisulfiteVCFConstants{
 
 
-	    // standard INFO/FORMAT field keys
+	    // INFO/FORMAT field keys for Bis-SNP VCF 
 		public static final String GENOTYPE_TYPE = "HOM_REF,HET,HOM_VAR";
 	    public static final String NUMBER_OF_C_KEY = "NumC";
 	    public static final String NUMBER_OF_T_KEY = "NumT";
