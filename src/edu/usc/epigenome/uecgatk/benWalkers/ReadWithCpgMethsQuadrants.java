@@ -17,9 +17,12 @@ public class ReadWithCpgMethsQuadrants extends ReadWithCpgMeths {
 	
     private static final Map<String, double[]> contextEdgesMap = new HashMap<String, double[]>();
     static {
-    	contextEdgesMap.put("WCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
-    	contextEdgesMap.put("HCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
-       	contextEdgesMap.put("CCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
+//    	contextEdgesMap.put("WCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
+//    	contextEdgesMap.put("HCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
+//       	contextEdgesMap.put("CCG", new double[] { 0.0, 0.1, 0.2, 0.5, 0.8, 1.0 });
+    	contextEdgesMap.put("WCG", new double[] { 0.0, 0.1, 0.9, 1.0 });
+    	contextEdgesMap.put("HCG", new double[] { 0.0, 0.1, 0.9, 1.0 });
+       	contextEdgesMap.put("CCG", new double[] { 0.0, 0.1, 0.9, 1.0 });
        	contextEdgesMap.put("GCH", new double[] { 0.0, 0.1, 0.9, 1.0 });
     }
 	
@@ -31,44 +34,44 @@ public class ReadWithCpgMethsQuadrants extends ReadWithCpgMeths {
 	public static Map<String, FractionNonidentical> methLevelsFractions(ReadWithCpgMeths inRead, IupacPatterns patterns) 
 	{
 //		return methLevelsFractions(inRead, patterns, 0.1, 0.9);
-		return methLevelsFractions(inRead, patterns, contextEdgesMap);
+		return methLevelsFractions(inRead, patterns, contextEdgesMap, true);
 	}
 
-	public static Map<String, FractionNonidentical> methLevelsFractions(ReadWithCpgMeths inRead, IupacPatterns patterns,double lowMax, double highMin)
-	{
-		Map<String, FractionNonidentical> out = new HashMap<String, FractionNonidentical>();
-		Map<String, FractionNonidentical> origLevels =  inRead.methLevelsFractions(patterns);
-		out.putAll(origLevels);
-		List<String> contexts = new ArrayList(origLevels.keySet());
-
-		for (int i = 0; i < (contexts.size()-1); i++)
-		{
-			String con_i = contexts.get(i);
-			double level_i = origLevels.get(con_i).doubleValue();
-			
-			for (int j = (i+1); j < contexts.size(); j++)
-			{
-				String con_j = contexts.get(j);
-				double level_j = origLevels.get(con_j).doubleValue();
-				
-				String con_new = null;
-				final String formatStr = "%s%s%.2f-%s%s%.2f";
-
-				con_new = String.format(formatStr,con_i,"lt",lowMax,con_j,"lt",lowMax);
-				out.put(con_new, ((level_i < lowMax) && (level_j < lowMax)) ? all : none);
-
-				con_new = String.format(formatStr,con_i,"lt",lowMax,con_j,"gt",highMin);
-				out.put(con_new, ((level_i < lowMax) && (level_j > highMin)) ? all : none);
-
-				con_new = String.format(formatStr,con_i,"gt",highMin,con_j,"lt",lowMax);
-				out.put(con_new, ((level_i > highMin) && (level_j < lowMax)) ? all : none);
-				
-				con_new = String.format(formatStr,con_i,"gt",highMin,con_j,"gt",highMin);
-				out.put(con_new, ((level_i > highMin) && (level_j > highMin)) ? all : none);
-			}
-		}
-		return out;
-	}
+//	public static Map<String, FractionNonidentical> methLevelsFractions(ReadWithCpgMeths inRead, IupacPatterns patterns,double lowMax, double highMin)
+//	{
+//		Map<String, FractionNonidentical> out = new HashMap<String, FractionNonidentical>();
+//		Map<String, FractionNonidentical> origLevels =  inRead.methLevelsFractions(patterns);
+//		out.putAll(origLevels);
+//		List<String> contexts = new ArrayList(origLevels.keySet());
+//
+//		for (int i = 0; i < (contexts.size()-1); i++)
+//		{
+//			String con_i = contexts.get(i);
+//			double level_i = origLevels.get(con_i).doubleValue();
+//			
+//			for (int j = (i+1); j < contexts.size(); j++)
+//			{
+//				String con_j = contexts.get(j);
+//				double level_j = origLevels.get(con_j).doubleValue();
+//				
+//				String con_new = null;
+//				final String formatStr = "%s%s%.2f-%s%s%.2f";
+//
+//				con_new = String.format(formatStr,con_i,"lt",lowMax,con_j,"lt",lowMax);
+//				out.put(con_new, ((level_i < lowMax) && (level_j < lowMax)) ? all : none);
+//
+//				con_new = String.format(formatStr,con_i,"lt",lowMax,con_j,"gt",highMin);
+//				out.put(con_new, ((level_i < lowMax) && (level_j > highMin)) ? all : none);
+//
+//				con_new = String.format(formatStr,con_i,"gt",highMin,con_j,"lt",lowMax);
+//				out.put(con_new, ((level_i > highMin) && (level_j < lowMax)) ? all : none);
+//				
+//				con_new = String.format(formatStr,con_i,"gt",highMin,con_j,"gt",highMin);
+//				out.put(con_new, ((level_i > highMin) && (level_j > highMin)) ? all : none);
+//			}
+//		}
+//		return out;
+//	}
 
 	/**
 	 * 
@@ -77,7 +80,8 @@ public class ReadWithCpgMethsQuadrants extends ReadWithCpgMeths {
 	 * @param edgesByContext  edges for each "context" in context map.
 	 * @return
 	 */
-	public static Map<String, FractionNonidentical> methLevelsFractions(ReadWithCpgMeths inRead, IupacPatterns patterns, Map<String, double[]> edgesByContext)
+	public static Map<String, FractionNonidentical> methLevelsFractions(ReadWithCpgMeths inRead, IupacPatterns patterns, 
+			Map<String, double[]> edgesByContext, boolean firstAndLastOnly)
 	{
 		Map<String, FractionNonidentical> out = new HashMap<String, FractionNonidentical>();
 		Map<String, FractionNonidentical> origLevels =  inRead.methLevelsFractions(patterns);
@@ -102,8 +106,12 @@ public class ReadWithCpgMethsQuadrants extends ReadWithCpgMeths {
 				
 				for (int edgenumi = 0; edgenumi < edges_i.length-1; edgenumi++)
 				{
+					if (firstAndLastOnly && !(edgenumi==0) && !(edgenumi == edges_i.length-2)) continue;
+					
 					for (int edgenumj = 0; edgenumj < edges_j.length-1; edgenumj++)
 					{
+						if (firstAndLastOnly && !(edgenumj==0) && !(edgenumj == edges_j.length-2)) continue;
+
 						double ei1 = edges_i[edgenumi];
 						double ei2 = edges_i[edgenumi+1];
 						double ej1 = edges_j[edgenumj];
