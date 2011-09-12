@@ -12,10 +12,11 @@ import org.biojava.bio.seq.StrandedFeature;
 import org.biojava.bio.seq.StrandedFeature.Strand;
 import org.usckeck.genome.ChromFeatures;
 
+import edu.usc.epigenome.genomeLibs.IupacPatterns;
+import edu.usc.epigenome.genomeLibs.FeatAligners.AlignmentRelCoords;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
-import edu.usc.epigenome.uecgatk.IupacPatterns;
 
 public class ReadWithCpgMeths extends ArrayList<Cpg>{
 

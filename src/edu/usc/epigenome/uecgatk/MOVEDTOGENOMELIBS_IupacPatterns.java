@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 
 import edu.usc.epigenome.genomeLibs.ListUtils;
 
-public class IupacPatterns {
+public class MOVEDTOGENOMELIBS_IupacPatterns {
 
 //	protected List<String> iupacs = new ArrayList<String>();
 

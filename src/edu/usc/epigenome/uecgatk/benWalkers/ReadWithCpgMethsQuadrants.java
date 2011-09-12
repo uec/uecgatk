@@ -7,8 +7,8 @@ import java.util.Map;
 
 import org.biojava.bio.seq.StrandedFeature.Strand;
 
+import edu.usc.epigenome.genomeLibs.IupacPatterns;
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
-import edu.usc.epigenome.uecgatk.IupacPatterns;
 
 public class ReadWithCpgMethsQuadrants extends ReadWithCpgMeths {
 

@@ -18,11 +18,11 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.usckeck.genome.ChromFeatures;
 
+import edu.usc.epigenome.genomeLibs.IupacPatterns;
 import edu.usc.epigenome.genomeLibs.FeatAligners.FeatAlignerEachfeat;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
-import edu.usc.epigenome.uecgatk.IupacPatterns;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatkWithAlignmentRelCoords;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWalkerToBisulfiteCytosineReadWalker;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWithCpgMeths;
@@ -295,7 +295,7 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 		Map<String,FractionNonidentical> methVals = (this.contextCombos) ? ReadWithCpgMethsQuadrants.methLevelsFractions(read, patternMap) : 
 				read.methLevelsFractions(patternMap);
 
-		// Check if we have sufficient reads in different categories
+		// Check if we have sufficient cytosines in different categories
 		int nGch = 0;
 		if (methVals.containsKey("GCH")) nGch = methVals.get("GCH").getDenominator();
 		int nWcg = 0;

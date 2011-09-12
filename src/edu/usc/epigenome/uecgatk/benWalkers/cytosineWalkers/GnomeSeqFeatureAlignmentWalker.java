@@ -14,7 +14,7 @@ import org.usckeck.genome.ChromFeatures;
 
 import edu.usc.epigenome.genomeLibs.FeatAligners.FeatAlignerEachfeat;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
-import edu.usc.epigenome.uecgatk.IupacPatterns;
+import edu.usc.epigenome.uecgatk.MOVEDTOGENOMELIBS_IupacPatterns;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatkWithAlignmentRelCoords;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
@@ -58,7 +58,7 @@ Map<String,FeatAlignerEachfeat>>
  //   protected int nFeats = 0;
     protected static ChromFeatures feats = null;
     protected static boolean featsCompletelyPreloaded = false;
-    protected static IupacPatterns patternMap = null;
+    protected static MOVEDTOGENOMELIBS_IupacPatterns patternMap = null;
 
     
     /**
@@ -120,7 +120,7 @@ Map<String,FeatAlignerEachfeat>>
 		}
 		
 		//logger.info(String.format("Initializing map (%d)",walkerByCondition.hashCode()));
-		patternMap = new IupacPatterns();
+		patternMap = new MOVEDTOGENOMELIBS_IupacPatterns();
 		for (String pat : this.iupacPatterns)
 		{
 			patternMap.register(pat);

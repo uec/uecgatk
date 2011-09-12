@@ -30,7 +30,17 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
     @Argument(fullName = "outPrefix", shortName = "pre", doc = "Output prefix for all output files", required = true)
     public String outPrefix = null;
 
+    @Argument(fullName = "elementGff", shortName = "gff", doc = "A gff containing elements to interrogate", required = true)
+    public String elementGff = null;
 
+    @Argument(fullName = "downscaleCols", shortName = "cols", doc = "Number of columns in output alignment", required = false)
+    public Integer downscaleCols = 0;
+
+    @Argument(fullName = "featWindSize", shortName = "wind", doc = "window size", required = true)
+    public Integer featWindSize = 0;
+    
+    @Argument(fullName = "censor", shortName = "censor", doc = "Only count cytosines within the element itself", required = false)
+    public boolean censor = false;
     Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> walkerByCondition = null;
     
     
@@ -40,7 +50,7 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 			new HashMap<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread>();
 		for (AutocorrConditions cond : AutocorrConditions.values())
 		{
-			CpgWalkerAllpairsAutocorrByread walker = cond.createWalker(this.windSize);
+			CpgWalkerAllpairsAutocorrByread walker = cond.createWalker(this.windSize, this.elementGff, this.featWindSize, this.censor, this.downscaleCols);
 			out.put(cond, walker);
 		}
 		
@@ -108,9 +118,16 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 				String outfn = String.format("%s-%s.csv", this.outPrefix, cond.toString());
 				PrintWriter pw = new PrintWriter(new FileOutputStream(outfn));
 				pw.println(walker.headerStr());
-
 				pw.println(walker.toCsvStr());
 				pw.close();
+				
+				if (this.elementGff != null)
+				{
+					outfn = String.format("%s-featAligner-%s.csv", this.outPrefix, cond.toString());
+					pw = new PrintWriter(new FileOutputStream(outfn));
+					walker.getAligner().matlabCsv(pw, false, true);
+					pw.close();
+				}
 			} catch (Exception e) {
 				logger.error("Error CpgWalkerAllpairsAutocorrByread::toCsvStr\n" + e.toString());
 				e.printStackTrace();
@@ -249,29 +266,58 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 
 	public enum AutocorrConditions
 	{
-		HCG_HCG_SAMEREAD ("HCG", "HCG", true, false),
-		HCG_GCH_SAMEREAD ("HCG", "GCH", true, false),
-		GCH_HCG_SAMEREAD ("GCH", "HCG", true, false),
-		GCH_GCH_SAMEREAD ("GCH", "GCH", true, false),
-		HCG_HCG_ANYREAD ("HCG", "HCG", false, false),
-		HCG_GCH_ANYREAD ("HCG", "GCH", false, false),
-		GCH_HCG_ANYREAD ("GCH", "HCG", false, false),
-		GCH_GCH_ANYREAD ("GCH", "GCH", false, false);
+//		HCG_HCG_SAMEREAD ("HCG", "HCG", true, false, true, true),
+//		HCG_GCH_SAMEREAD ("HCG", "GCH", true, false, true, true),
+//		GCH_HCG_SAMEREAD ("GCH", "HCG", true, false, true, true),
+//		GCH_GCH_SAMEREAD ("GCH", "GCH", true, false, true, true),
+//		HCG_HCG_ANYREAD ("HCG", "HCG", false, false, true, true),
+//		HCG_GCH_ANYREAD ("HCG", "GCH", false, false, true, true),
+//		GCH_HCG_ANYREAD ("GCH", "HCG", false, false, true, true),
+//		GCH_GCH_ANYREAD ("GCH", "GCH", false, false, true, true),
+		
+		HCG_GCH_ANYREAD_00 ("HCG", "GCH", false, false, false, false),
+		HCG_GCH_ANYREAD_01 ("HCG", "GCH", false, false, false, true),
+		HCG_GCH_ANYREAD_10 ("HCG", "GCH", false, false, true, false),
+		HCG_GCH_ANYREAD_11 ("HCG", "GCH", false, false, true, true),
+		
+		HCG_GCH_SAMEREAD_00 ("HCG", "GCH", true, false, false, false),
+		HCG_GCH_SAMEREAD_01 ("HCG", "GCH", true, false, false, true),
+		HCG_GCH_SAMEREAD_10 ("HCG", "GCH", true, false, true, false),
+		HCG_GCH_SAMEREAD_11 ("HCG", "GCH", true, false, true, true),
+		
+		HCG_HCG_ANYREAD_00 ("HCG", "HCG", false, false, false, false),
+		HCG_HCG_ANYREAD_01 ("HCG", "HCG", false, false, false, true),
+		HCG_HCG_ANYREAD_10 ("HCG", "HCG", false, false, true, false),
+		HCG_HCG_ANYREAD_11 ("HCG", "HCG", false, false, true, true),
+		
+		HCG_HCG_SAMEREAD_00 ("HCG", "HCG", true, false, false, false),
+		HCG_HCG_SAMEREAD_01 ("HCG", "HCG", true, false, false, true),
+		HCG_HCG_SAMEREAD_10 ("HCG", "HCG", true, false, true, false),
+		HCG_HCG_SAMEREAD_11 ("HCG", "HCG", true, false, true, true);
 		
 		private final String fromContext;
 		private final String toContext;
 		private final boolean sameRead;
 		private final boolean sameStrand;
+		private final boolean firstMeth;
+		private final boolean secondMeth;
 
-		private AutocorrConditions(String inFromContext, String inToContext, boolean inSameRead, boolean inSameStrand) 
+		private AutocorrConditions(String inFromContext, String inToContext, boolean inSameRead, boolean inSameStrand, boolean inFirstMeth, boolean inSecondMeth) 
 		{
 			this.sameRead = inSameRead;
 			this.fromContext = inFromContext;
 			this.toContext = inToContext;
 			this.sameStrand = inSameStrand;
+			this.firstMeth = inFirstMeth;
+			this.secondMeth = inSecondMeth;
 		}
 		
 		public CpgWalkerAllpairsAutocorrByread createWalker(int windSize)
+		{
+			return createWalker(windSize, null, 0, false, 0);
+		}
+			
+			public CpgWalkerAllpairsAutocorrByread createWalker(int windSize, String inGff, int inFeatWindSize, boolean inCensor, int inDownscaleCols)
 		{
 			CpgWalkerParams params = new CpgWalkerParams();
 			params.maxScanningWindSize = windSize;
@@ -287,8 +333,15 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 					fromContext,
 					toContext);
 			out.useSummarizers(false); // These summarizers don't work with merging
-			
 			out.useOnlyCG(false);
+			
+			if (inGff != null)
+			{
+				// Add gff
+				out.enableFeatAlignment(inGff, inFeatWindSize, inCensor, inDownscaleCols, firstMeth, secondMeth);
+			}
+				
+			
 			return out;
 		}
 		
