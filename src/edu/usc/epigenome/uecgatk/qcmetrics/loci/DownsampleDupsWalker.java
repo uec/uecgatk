@@ -2,6 +2,7 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import net.sf.samtools.SAMRecord;
 
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -10,6 +11,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
+import edu.usc.epigenome.uecgatk.testing.ZackTestWalker;
+
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,15 +39,47 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     @Output
     PrintStream out;
     
-    @Argument(fullName="downsampleRate", shortName="p", doc="the downsample ratio", required=true)
-    protected double PROBABILITY = 0.5;
+    @Argument(fullName="samplesize", shortName="p", doc="number of reads to sample", required=true)
+    protected long SAMPLESIZE = 5000000L;
 
     @Argument(fullName="numberTrials", shortName="trials", doc="the number of trials", required=true)
     protected int NUMTRIALS = 10;
 
+    protected double PROBABILITY = 0.5;
+    
     public void initialize() 
     {
-    	 
+    	System.err.println();
+    	CommandLineGATK readcount = new CommandLineGATK();
+    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", "tmpLineCounterStats.txt" , "-L" ,"chr19"};
+    	try
+		{
+			CommandLineGATK.start(readcount, countargs);
+	
+			// Open the file that is the first 
+			// command line parameter
+			FileInputStream fstream = new FileInputStream("tmpLineCounterStats.txt");
+			// Get the object of DataInputStream
+			DataInputStream in = new DataInputStream(fstream);
+			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+			String strLine;
+			//Read File Line By Line
+			while ((strLine = br.readLine()) != null)   
+			{
+				System.err.println ("total reads found: " + strLine);
+				PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
+				System.err.println(SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
+			}
+			//Close the input stream
+			in.close();
+				  
+		} catch (Exception e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
     }
     
     /**

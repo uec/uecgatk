@@ -35,7 +35,7 @@ public class ZackTestWalker extends LocusWalker<Integer,Long> {
     		out.printf("Hello %d  locus %s; your ref base is %c and you have %d reads%n", counter, context.getLocation(), ref.getBase(), context.getBasePileup().size() );
     	}
         counter++;
-        return 1;
+        return 1;        
     }
 
     /**
@@ -54,7 +54,8 @@ public class ZackTestWalker extends LocusWalker<Integer,Long> {
      * @return The total count of loci processed so far.
      */
     @Override
-    public Long reduce(Integer value, Long sum) {
+    public Long reduce(Integer value, Long sum) 
+    {
         return sum + value;
     }
 
@@ -64,7 +65,8 @@ public class ZackTestWalker extends LocusWalker<Integer,Long> {
      *               by the reduce function. 
      */
     @Override
-    public void onTraversalDone(Long result) {
-        out.println("Number of loci viewed is: " + result);
+    public void onTraversalDone(Long result) 
+    {
+        out.println(result);        
     }
 }
