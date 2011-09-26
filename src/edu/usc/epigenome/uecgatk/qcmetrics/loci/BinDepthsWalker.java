@@ -1,4 +1,7 @@
 package edu.usc.epigenome.uecgatk.qcmetrics.loci;
+import net.sf.samtools.SAMRecord;
+
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -6,7 +9,16 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 //import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+
 import org.apache.commons.math.stat.descriptive.*;
 
 
@@ -31,6 +43,8 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     protected int WINSIZE = 50000;
     @Argument(fullName="dumpvals", shortName="dumpv", doc="dumps coverage for each window", required=false)
     protected Boolean dump = false;
+    @Argument(fullName="downsample", shortName="p", doc="number of reads to sample", required=false)
+    protected long SAMPLESIZE = 0;
     
     protected  long count;
     protected  long current_window;
@@ -38,6 +52,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     int count_index;
     protected String current_contigName;
     DescriptiveStatistics stats;
+    protected double PROBABILITY = 1.0;
 
     public void initialize() 
     {
@@ -47,6 +62,39 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	 current_window = 0;
     	 count_index = 0;
     	 stats = new DescriptiveStatistics();
+    	 
+    	if(SAMPLESIZE > 0)
+    	{
+	    	CommandLineGATK readcount = new CommandLineGATK();
+	     	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", "tmpLineCounterStats.txt" };
+	     	try
+	 		{
+	 			CommandLineGATK.start(readcount, countargs);
+	 	
+	 			// Open the file that is the first 
+	 			// command line parameter
+	 			FileInputStream fstream = new FileInputStream("tmpLineCounterStats.txt");
+	 			// Get the object of DataInputStream
+	 			DataInputStream in = new DataInputStream(fstream);
+	 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+	 			String strLine;
+	 			//Read File Line By Line
+	 			while ((strLine = br.readLine()) != null)   
+	 			{
+	 				System.err.println ("total reads found: " + strLine);
+	 				PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
+	 				System.err.println("Downsampling to: " + SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
+	 			}
+	 			//Close the input stream
+	 			in.close();
+	 				  
+	 		} catch (Exception e)
+	 		{
+	 			// TODO Auto-generated catch block
+	 			e.printStackTrace();
+	 		}
+    	 
+    	}
     }
     
     /**
@@ -68,6 +116,16 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	String contigName = ref.getLocus().getContig();
     	long pos = context.getPosition();
     	int depth = context.getBasePileup().getBases().length;
+    	if(SAMPLESIZE > 0)
+    	{   		
+    		int dsDepth = 0;
+    		Random rand = new Random();
+    		for(int i = 0; i <  context.getBasePileup().getBases().length; i++)
+    			if(rand.nextDouble() < PROBABILITY)
+    				dsDepth++;
+    		depth = dsDepth;
+    	}
+    	
     	
     	
     	if(current_contig != contig || pos % WINSIZE == 0)

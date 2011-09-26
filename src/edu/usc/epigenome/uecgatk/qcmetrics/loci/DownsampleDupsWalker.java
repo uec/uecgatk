@@ -2,6 +2,7 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import net.sf.samtools.SAMRecord;
 
+import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -10,9 +11,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 //import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-
-import edu.usc.epigenome.uecgatk.testing.ZackTestWalker;
-
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
@@ -51,7 +49,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     {
     	System.err.println();
     	CommandLineGATK readcount = new CommandLineGATK();
-    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", "tmpLineCounterStats.txt" , "-L" ,"chr19"};
+    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", "tmpLineCounterStats.txt" };
     	try
 		{
 			CommandLineGATK.start(readcount, countargs);
@@ -68,7 +66,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
 			{
 				System.err.println ("total reads found: " + strLine);
 				PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
-				System.err.println(SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
+				System.err.println("Downsampling to: " + SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
 			}
 			//Close the input stream
 			in.close();
@@ -187,8 +185,13 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     @Override
     public void onTraversalDone(Integer[] result) 
     {
+    	DescriptiveStatistics stats = new DescriptiveStatistics();
     	for(int i = 0; i < NUMTRIALS; i++)
+    	{
     		out.printf("sampled=%d dups=%d => d/s = %f%n", result[i], result[i+NUMTRIALS], (1.0 * result[i+NUMTRIALS] / result[i]) );
+    		stats.addValue((1.0 * result[i+NUMTRIALS] / result[i]));
+    	}
+    	out.printf("avg d/s = %f%n", stats.getMean());
     }
 
 	@Override
