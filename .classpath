@@ -18,9 +18,10 @@
 	<classpathentry kind="lib" path="lib/UscKeck.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis-ext.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis.jar"/>
-	<classpathentry kind="lib" path="lib/genomeLibs.jar"/>
 	<classpathentry kind="lib" path="lib/AnalyzeCovariates.jar"/>
 	<classpathentry kind="lib" path="lib/StingUtils.jar"/>
 	<classpathentry kind="lib" path="lib/commons-math-2.2.jar"/>
+	<classpathentry kind="lib" path="lib/genomeLibs.jar"/>
+	<classpathentry kind="lib" path="lib/biojava-live.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
