@@ -11,6 +11,7 @@ import org.apache.commons.math.fraction.Fraction;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import edu.usc.epigenome.genomeLibs.IupacPatterns;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
 import edu.usc.epigenome.uecgatk.benWalkers.ReadWalkerToBisulfiteCytosineReadWalker;
@@ -29,6 +30,8 @@ public class FractionByContextCytosineReadWalker extends
 
     @Argument(fullName = "mergeEqualVals", shortName = "m", doc = "Merges methylation states with the same vals, i.e. 1/2 and 2/4", required = false)
     public boolean mergeEqualVals = false;
+
+    protected static IupacPatterns patternMap = null;
 
     public FractionByContextCytosineReadWalker() {
 		super();
@@ -59,10 +62,15 @@ public class FractionByContextCytosineReadWalker extends
 		FracPair outPair = new FracPair(this.mergeEqualVals);
 		for (Cpg c : cs)
 		{
-			String cContext = c.context();
+			String contextOrig = c.getPrevBasesRef() + "C" + c.getNextBasesRef();
+			String cContext = this.patternMap.firstMatch(contextOrig);
+			
 			boolean isMethylated = (c.cReads>0);
 			
-			if (cContext.equalsIgnoreCase("GCH"))
+			if (cContext == null)
+			{
+			}
+			else if (cContext.equalsIgnoreCase("GCH"))
 			{
 				outPair.incrementGCH(isMethylated);
 			}
@@ -73,7 +81,7 @@ public class FractionByContextCytosineReadWalker extends
 			else
 			{
 				// Ignore other context
-				//System.err.printf("Ignoring cytosine: %d, %s, %s\n", positionInRead, cContext, isMethylated);
+				System.err.printf("Ignoring cytosine: context=%s, %s\n", cContext, isMethylated);
 			}
 		}
 
@@ -111,6 +119,14 @@ public class FractionByContextCytosineReadWalker extends
 	@Override
 	public void initialize() {
 		super.initialize();
+
+		patternMap = new IupacPatterns();
+		for (String pat : new String[] {"GCH", "HCG"})
+		{
+			patternMap.register(pat);
+		}
+
+	
 	}
 
 	@Override
