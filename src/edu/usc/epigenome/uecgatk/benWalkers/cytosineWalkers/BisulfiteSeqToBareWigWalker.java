@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.usckeck.genome.ChromFeatures;
 
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
@@ -27,9 +28,16 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
     @Argument(fullName = "outputAllContexts", shortName = "all", doc = "Output optional contexts HCH, GCG (default false)", required = false)
     public boolean outputAllContexts = false;
     
-    
+    @Argument(fullName = "bedMode", shortName = "bed", doc = "Output with chr number field, not guaranteed to be ordered, but can run in multi-thread mode", required = false)
+    public boolean bedMode = false;
+   
+    @Argument(fullName = "csvMode", shortName = "csv", doc = "Output with chr number field, not guaranteed to be ordered, but can run in multi-thread mode", required = false)
+    public boolean csvMode = false;
+   
     Map<String,PrintWriter> wigByContext = new HashMap<String,PrintWriter>();
     
+    int curChrNum = 0;
+    String curChr = "";
     
 	/**
 	 * locus walker overrides
@@ -51,11 +59,14 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 	@Override
 	public void initialize() {
 		super.initialize();
-		
-		if (this.getToolkit().getArguments().numberOfThreads>1)
-		{
-			System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
-			System.exit(1);
+
+		if (!bedMode && !csvMode)
+		{	
+			if (this.getToolkit().getArguments().numberOfThreads>1)
+			{
+				System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
+				System.exit(1);
+			}
 		}
 		
 //		this.outputCph = true; // Because GNOME-seq used GCH
@@ -72,8 +83,12 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 	@Override
 	public Long treeReduce(Long lhs, Long rhs) 
 	{
-		System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
-		System.exit(1);
+		if (!bedMode && !csvMode)
+		{	
+			System.err.println("BisulfiteSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
+			System.exit(1);
+		}
+		System.err.printf("treeReduce(%d,%d)\n",lhs,rhs);
 		return lhs + rhs;
 	}
 
@@ -103,6 +118,8 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 	protected void alertNewContig(String newContig) 
 	{
 		System.err.printf("New chrom: %s\n",newContig);
+		this.curChr = newContig;
+		this.curChrNum = (new ChromFeatures()).chrom_from_public_str(newContig);
 		
 		for (String context : this.wigByContext.keySet())
 		{
@@ -133,6 +150,7 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 		}
 		
 		double meth = thisC.fracMeth(false);
+		int nreads = (int)thisC.totalReadsCorT(true);
 		
 		PrintWriter wigpw = null;
 		if (this.wigByContext.containsKey(context))
@@ -145,7 +163,8 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 			// We use the wigByContext for merging
 //			String outfn = String.format("%s.%s.wig.%s",this.outPrefix,context,this.wigByContext.hashCode());
 			String name = String.format("%s.%s-minct%d-minconv%d", this.outPrefix, context, this.minCT, this.minConv);
-			String outfn = String.format("%s.wig",name,context);
+			String suffix = (this.bedMode) ? ".bed" : ((this.csvMode) ? ".csv" : ".wig"); 
+			String outfn = String.format("%s%s",name,suffix);
 			logger.info("NEW wig " + outfn);
 			try
 			{
@@ -158,15 +177,31 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 				System.exit(1);
 			}
 			
-			String desc = String.format("%s-wig", name);
-			wigpw.printf("track type=wiggle_0 name=%s description=%s color=204,102,0 visibility=full " +
-					" graphType=points autoScale=off alwaysZero=off maxHeightPixels=64:32:10 viewLimits=0:100\n", desc, desc);	
-			wigpw.printf("variableStep chrom=%s\n", thisC.getGenomeLoc().getContig());
+			if (!csvMode)
+			{
+				String desc = String.format("%s-wig", name);
+				wigpw.printf("track type=wiggle_0 name=%s description=%s color=204,102,0 visibility=full " +
+						" graphType=points autoScale=off alwaysZero=off maxHeightPixels=64:32:10 viewLimits=0:100\n", desc, desc);	
+				wigpw.printf("variableStep chrom=%s\n", this.curChr);
+			}
 
 			this.wigByContext.put(context, wigpw);
 		}
 		
-		wigpw.printf("%d\t%d\n",thisC.getGenomeLoc().getStart(), (int)Math.round(100.0*meth));
+		if (this.bedMode)
+		{
+			wigpw.printf("%s\t%d\t%d\t%d\n",this.curChr, thisC.getGenomeLoc().getStart(),
+					thisC.getGenomeLoc().getStart(), (int)Math.round(100.0*meth));
+		}
+		else if (this.csvMode)
+		{
+			wigpw.printf("%d,%d,%d,%d\n",this.curChrNum, thisC.getGenomeLoc().getStart(), 
+					(int)Math.round(100.0*meth), nreads);
+		}
+		else
+		{
+			wigpw.printf("%d\t%d\n",thisC.getGenomeLoc().getStart(), (int)Math.round(100.0*meth));
+		}
 		//logger.info(String.format("\tWriting pos %d to wig \"%s\" (this=%s)\n", thisC.chromPos, context,this));
 		out++;
 		
