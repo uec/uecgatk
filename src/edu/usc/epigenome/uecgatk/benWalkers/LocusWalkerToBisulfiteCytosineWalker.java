@@ -39,6 +39,9 @@ import java.util.List;
  * Keeps a window of cytosines upstream and downstram of current CpG (note that this
  * is not guaranteed to work well with out-of-order sharding strategies.
  * 
+ * NOTE BadMateFilter.  Looks like this doesn't use properly paired flag, but just checks
+ * that it's on the same chromosome.
+ * 
  * Must implement tree-reducible to get parallel execution.
  */
 @ReadFilters( {MappingQualityReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class} ) // Filter out all reads with zero mapping quality
@@ -484,6 +487,9 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 	/**
 	 * ******* You should only pass in PileupElements on the cytosine strand. *******
+	 * 
+	 * *** TO DO:  MOVE THIS TO A NEW GATK.FILTERS.READFILTER OBJECT. THAT WILL BE MUCH
+	 *             MORE EFFICIENT THAN CALLING IT FOR EVERY LOCUS, WHICH MAY BE REDUNDANT.
 	 * 
 	 * @param pe
 	 * @param ref
