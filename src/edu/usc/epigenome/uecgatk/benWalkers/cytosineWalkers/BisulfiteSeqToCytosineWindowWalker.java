@@ -31,13 +31,19 @@ public abstract class BisulfiteSeqToCytosineWindowWalker extends LocusWalkerToBi
     @Argument(fullName="minCpgs",shortName = "mincs", doc="minimum Cpgs (each strand counted separately) in window (8)", required = true)
     protected int minCpgs = 8;
     
-    @Argument(fullName="maxWindStretch",shortName = "maxwind", doc="maximum amount to stretch window to find minCpgs cpgs (5000)", required = true)
+    @Argument(fullName="maxWindStretch",shortName = "maxwind", doc="maximum amount to stretch window to find minCpgs cpgs (10000)", required = true)
     protected int maxWindStretch = 10000;
 
     @Argument(fullName = "gnomeMode", shortName = "gnome", doc = "GNOMe mode - outputs only GCH datapoints (default false)", required = false)
     public boolean gnomeMode = false;
     
-//  @Argument(fullName = "windSize", shortName = "w", doc = "minimum window size (500)", required = true)
+    @Argument(fullName = "useFixedWind", shortName = "fixed", doc = "Use a fixed window (must set fixedWindMinLength)", required = false)
+    public boolean useFixedWind = false;
+
+    @Argument(fullName="fixedWindMinLength",shortName = "fixedlen", doc="Minimum fixed window length (5000)", required = false)
+    protected int fixedWindMinLength = 5000;
+   
+    //  @Argument(fullName = "windSize", shortName = "w", doc = "minimum window size (500)", required = true)
 //  public int windSize = 500;
 
     ////////////////////////////////
@@ -63,7 +69,7 @@ public abstract class BisulfiteSeqToCytosineWindowWalker extends LocusWalkerToBi
 			new HashMap<BisulfiteSeqToCytosineWindowWalker.ContextConditions,CpgWalker>();
 		for (ContextConditions cond : this.validContexts())
 		{
-			CpgWalker walker = cond.createWalker(this.minCpgs, this.maxWindStretch, this.cpgWalkerType);
+			CpgWalker walker = cond.createWalker(this.minCpgs, this.maxWindStretch, this.cpgWalkerType, this.useFixedWind, this.fixedWindMinLength);
 			out.put(cond, walker);
 		}
 		
@@ -297,11 +303,21 @@ public abstract class BisulfiteSeqToCytosineWindowWalker extends LocusWalkerToBi
 		
 		public CpgWalker createWalker(int minCs, int maxWindStretch, String cpgWalkerClassName)
 		{
+			// Default to variable window
+			return createWalker(minCs, maxWindStretch, cpgWalkerClassName, false, 0);
+		}
+		
+		public CpgWalker createWalker(int minCs, int maxWindStretch, String cpgWalkerClassName, boolean useFixedWind, int fixedWindMinSize)
+		{
 
 			CpgWalkerParams params = new CpgWalkerParams();
-			params.useVariableWindow = true;
+			params.useVariableWindow = !useFixedWind;
 			params.maxScanningWindSize = maxWindStretch;
 			params.minScanningWindCpgs = minCs;
+			if (useFixedWind)
+			{
+				params.minScanningWindSize = fixedWindMinSize;
+			}
 			
 			CpgWalker out = null;
 			
