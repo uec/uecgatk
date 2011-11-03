@@ -31,7 +31,7 @@ public abstract class BisulfiteSeqToCytosineWindowWalker extends LocusWalkerToBi
     @Argument(fullName="minCpgs",shortName = "mincs", doc="minimum Cpgs (each strand counted separately) in window (8)", required = true)
     protected int minCpgs = 8;
     
-    @Argument(fullName="maxWindStretch",shortName = "maxwind", doc="maximum amount to stretch window to find minCpgs cpgs (10000)", required = true)
+    @Argument(fullName="maxWindStretch",shortName = "maxwind", doc="maximum amount to stretch window to find minCpgs cpgs (10000)", required = false)
     protected int maxWindStretch = 10000;
 
     @Argument(fullName = "gnomeMode", shortName = "gnome", doc = "GNOMe mode - outputs only GCH datapoints (default false)", required = false)
