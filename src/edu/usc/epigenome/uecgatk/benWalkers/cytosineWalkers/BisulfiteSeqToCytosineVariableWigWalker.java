@@ -37,7 +37,7 @@ public class BisulfiteSeqToCytosineVariableWigWalker extends
 			
 			String maxsec = (this.useFixedWind) ? String.format("fixedWind%d", this.fixedWindMinLength) : String.format("varMaxStretch%d", this.maxWindStretch);
 			
-			String name = String.format("%s-%s-minc%d-%s", this.outPrefix, cond.name(), this.minCpgs, maxsec);
+			String name = String.format("%s-%s-minc%d-minct%d-%s", this.outPrefix, cond.name(), this.minCpgs, this.minCT, maxsec);
 			String fn = String.format("%s.wig", name);
 			String fnBedgraph = String.format("%s.%s", name, (csvMode)?"csv":"bedGraph");
 			System.err.printf("Initializing file: %s\n",fn);
