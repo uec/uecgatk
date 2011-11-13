@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.biojava.bio.seq.StrandedFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.usckeck.genome.ChromFeatures;
 
@@ -195,7 +196,8 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 		}
 		else if (this.csvMode)
 		{
-			wigpw.printf("%d,%d,%d,%d\n",this.curChrNum, thisC.getGenomeLoc().getStart(), 
+			int strandint = (thisC.getStrand() == StrandedFeature.NEGATIVE) ? -1 : 1; // Unstranded does not exist for Cpg objects.
+			wigpw.printf("%d,%d,%d,%d,%d\n",this.curChrNum, thisC.getGenomeLoc().getStart(), strandint, 
 					(int)Math.round(100.0*meth), nreads);
 		}
 		else
