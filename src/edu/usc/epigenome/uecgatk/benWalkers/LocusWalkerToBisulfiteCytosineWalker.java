@@ -72,6 +72,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     @Argument(fullName = "upstreamNumContextBases", shortName = "upcontext", doc = "Number of bases of context upstream of the cytosine (default=1)", required = false)
     public int upstreamNumContextBases = 1;
     
+    
     @Argument(fullName = "downstreamNumContextBases", shortName = "downcontext", doc = "Number of bases of context downstream of the cytosine (default=1)", required = false)
     public int downstreamNumContextBases = 1;
 
