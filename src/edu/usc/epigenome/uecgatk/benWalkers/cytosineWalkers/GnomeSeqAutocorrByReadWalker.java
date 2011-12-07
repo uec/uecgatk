@@ -41,6 +41,10 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
     
     @Argument(fullName = "censor", shortName = "censor", doc = "Only count cytosines within the element itself", required = false)
     public boolean censor = false;
+
+    @Argument(fullName = "useOnlyDifferentReads", shortName = "diff", doc = "only use those on different reads.  Otherwise, any is any read", required = false)
+    public static boolean useOnlyDifferentReads = false;
+    
     Map<GnomeSeqAutocorrByReadWalker.AutocorrConditions,CpgWalkerAllpairsAutocorrByread> walkerByCondition = null;
     
     
@@ -329,7 +333,7 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 					this.sameStrand,
 					false,
 					this.sameRead,
-					false,
+					(useOnlyDifferentReads) ? !this.sameRead : false, // in different read
 					fromContext,
 					toContext);
 			out.useSummarizers(false); // These summarizers don't work with merging
