@@ -15,7 +15,6 @@ import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerParams;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
-
 /**
  * @author benb
  * 
@@ -279,25 +278,17 @@ public class GnomeSeqAutocorrByReadWalker extends LocusWalkerToBisulfiteCytosine
 //		GCH_HCG_ANYREAD ("GCH", "HCG", false, false, true, true),
 //		GCH_GCH_ANYREAD ("GCH", "GCH", false, false, true, true),
 		
-		HCG_GCH_ANYREAD_00 ("HCG", "GCH", false, false, false, false),
-		HCG_GCH_ANYREAD_01 ("HCG", "GCH", false, false, false, true),
-		HCG_GCH_ANYREAD_10 ("HCG", "GCH", false, false, true, false),
-		HCG_GCH_ANYREAD_11 ("HCG", "GCH", false, false, true, true),
+
+		WCG_GCH_DIFFERENTREAD_00 ("WCG", "GCH", false, false, false, false),
+		WCG_GCH_DIFFERENTREAD_01 ("WCG", "GCH", false, false, false, true),
+		WCG_GCH_DIFFERENTREAD_10 ("WCG", "GCH", false, false, true, false),
+		WCG_GCH_DIFFERENTREAD_11 ("WCG", "GCH", false, false, true, true),
 		
-		HCG_GCH_SAMEREAD_00 ("HCG", "GCH", true, false, false, false),
-		HCG_GCH_SAMEREAD_01 ("HCG", "GCH", true, false, false, true),
-		HCG_GCH_SAMEREAD_10 ("HCG", "GCH", true, false, true, false),
-		HCG_GCH_SAMEREAD_11 ("HCG", "GCH", true, false, true, true),
-		
-		HCG_HCG_ANYREAD_00 ("HCG", "HCG", false, false, false, false),
-		HCG_HCG_ANYREAD_01 ("HCG", "HCG", false, false, false, true),
-		HCG_HCG_ANYREAD_10 ("HCG", "HCG", false, false, true, false),
-		HCG_HCG_ANYREAD_11 ("HCG", "HCG", false, false, true, true),
-		
-		HCG_HCG_SAMEREAD_00 ("HCG", "HCG", true, false, false, false),
-		HCG_HCG_SAMEREAD_01 ("HCG", "HCG", true, false, false, true),
-		HCG_HCG_SAMEREAD_10 ("HCG", "HCG", true, false, true, false),
-		HCG_HCG_SAMEREAD_11 ("HCG", "HCG", true, false, true, true);
+		WCG_GCH_SAMEREAD_00 ("WCG", "GCH", true, false, false, false),
+		WCG_GCH_SAMEREAD_01 ("WCG", "GCH", true, false, false, true),
+		WCG_GCH_SAMEREAD_10 ("WCG", "GCH", true, false, true, false),
+		WCG_GCH_SAMEREAD_11 ("WCG", "GCH", true, false, true, true);
+
 		
 		private final String fromContext;
 		private final String toContext;
