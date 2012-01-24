@@ -1,9 +1,27 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM, Normal sequencing mode: NM", required = false)
@@ -11,6 +29,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	@Argument(fullName = "paired_end_mode", shortName = "pem", doc = "work in paired end mode", required = false)
     public boolean pairedEndMode = false;
+	
+	@Argument(fullName = "bisulfite_conversion_only_on_one_strand", shortName = "bcm", doc = "true: Illumina protocol which is often used, only bisulfite conversion strand is kept ;false: Steven jacobson Lab protocol, which both of two strands are kept", required = false)
+    public boolean bisulfiteConversionMode = true;
 	
 	@Argument(fullName = "auto_estimate_cpg_methylation", shortName = "aecpg", doc = "the first run would be to run auto_estimate_cpg methylation status", required = false)
     public boolean autoEstimateCpg = true;
@@ -69,6 +90,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "test_location", shortName = "loc", doc = "for debug only, output the detail information in the location", required = false)
     public long testLocus = -1;
 	
+	@Argument(fullName = "minmum_cytosine_converted", shortName = "minConv", doc = "disregard first few cytosines in the reads which may come from uncomplete bisulfite conversion in the first few cytosines of the reads", required = false)
+    public short minConv = 0;
+	
 	@Argument(fullName = "bisulfite_conversion_rate", shortName = "bsRate", doc = "bisulfite conversion rate", required = false)
     public double bsRate = 0.9975;
 	
@@ -81,20 +105,48 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "novelDbsnpHet", shortName = "ndh", doc = "heterozygous SNP rate when the loci is discovered as SNP in dbSNP and but not validated, the default value is human genome", required = false)
     public double novelDbsnpHet = 0.02;
 	
-	@Argument(fullName = "reference_genome_error", shortName = "rge", doc = "reference genome error, the default value is human genome, in hg17, it is less than 1e-4; in SOAPsnp, it is 1e-5; in GATK it is 1e-6. so is it because hg18 error rate is 1e-5, and hg19 is 1e-6? can't find any reference about it..", required = false)
+	@Argument(fullName = "reference_genome_error", shortName = "rge", doc = "Reference genome error, the default value is human genome, in hg16 it is 99.99% accurate,  in hg17/hg18/hg19, it is less than 1e-4 (USCS genome browser described); We define it here default for human genome assembly(hg18,h19) to be 1e-6 as GATK did ", required = false)
     public double referenceGenomeErr = 1e-6;
 	
-	@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not, not used yet, in test", required = false)
-    public boolean tcga = false;
+	@Argument(fullName = "ti_vs_tv", shortName = "tvt", doc = "Transition rate vs. Transversion rate, in human genome, the default is 2", required = false)
+    public int tiVsTv = 2;
 	
-    @Argument(fullName = "output_genotype", shortName = "out_genotype", doc = "Should we output confident genotypes (i.e. including ref calls),just the variants, just homozygous CpG or just homozygous Cytosines?", required = false)
-    public BisulfiteGenotyperEngine.OUTPUT_MODE OutputMode = BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES;
+	//@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not, not used yet, in test", required = false)
+    //public boolean tcga = false;
 	
+    @Argument(fullName = "output_modes", shortName = "out_modes", doc = "Output modes[EMIT_VARIANTS_ONLY,EMIT_ALL_CONFIDENT_SITES,EMIT_ALL_SITES,EMIT_ALL_CPG, EMIT_ALL_CYTOSINES,EMIT_HET_SNPS_ONLY, DEFAULT_FOR_TCGA]", required = false)
+    public BisulfiteGenotyperEngine.OUTPUT_MODE OutputMode = BisulfiteGenotyperEngine.OUTPUT_MODE.DEFAULT_FOR_TCGA;
+    
+  //  @Argument(fullName = "vcf_file_name", shortName = "vfn", doc = "output Vcf file", required = true)
+//	public String vfn = null;
+    
+    @Argument(fullName = "vcf_file_name_1", shortName = "vfn1", doc = "output Vcf file, when used for [DEFAULT_FOR_TCGA] output mode, it is used to store all CpG sites. While the original vcf file is to store all CpG sites", required = true)
+	public String vfn1 = null;
+    
+    @Argument(fullName = "vcf_file_name_2", shortName = "vfn2", doc = "output Vcf file 2, only used for [DEFAULT_FOR_TCGA] output mode, it is used to store all SNP sites. While the original vcf file is to store all CpG sites", required = false)
+	public String vfn2 = null;
+	
+    @Argument(fullName = "output_reads_after_downsampling", shortName = "orad", doc = "output Bam file that after downsapling, for performance test only", required = false)
+    public boolean orad = false;
+    
+    @Argument(fullName = "file_name_output_reads_after_downsampling", shortName = "fnorad", doc = "output Bam file's name that after downsapling, for performance test only", required = false)
+	public String fnorad = null;
+    
+    @Argument(fullName = "output_reads_coverage_after_downsampling", shortName = "orcad", doc = "define output Bam file's mean coverage that after downsapling, for performance test only", required = false)
+	public int orcad = 1;
+    
+    @Argument(fullName = "file_name_output_bed_reads_detail", shortName = "fnobrd", doc = "output Bed file that contain each position in reads information, for test only", required = false)
+	public String fnobrd = null;
+    
+    @Argument(fullName = "file_name_output_verbose_detail", shortName = "fnovd", doc = "output file that contain verbose information, for test only", required = false)
+	public String fnovd = null;
+    
+    @Argument(fullName = "output_verbose_detail", shortName = "ovd", doc = "output_verbose_detail, for performance test only", required = false)
+    public boolean ovd = false;
 	
 	public BisulfiteArgumentCollection clone() {
 		BisulfiteArgumentCollection bac = new BisulfiteArgumentCollection();
 		bac.GLmodel = GLmodel;
-        bac.heterozygosity = heterozygosity;
         bac.PCR_error = PCR_error;
         bac.GenotypingMode = GenotypingMode;
         bac.OutputMode = OutputMode;
@@ -114,6 +166,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
         bac.sequencingMode = sequencingMode;
         bac.pairedEndMode = pairedEndMode;
+        bac.bisulfiteConversionMode = bisulfiteConversionMode;
         bac.autoEstimateChg = autoEstimateChg;
         bac.autoEstimateChh = autoEstimateChh;
         bac.autoEstimateCpg = autoEstimateCpg;
@@ -133,13 +186,23 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         
         bac.cTypeThreshold = cTypeThreshold;
         bac.testLocus = testLocus;
+        bac.minConv = minConv;
         bac.bsRate = bsRate;
         bac.overRate = overRate;
         bac.validateDbsnpHet = validateDbsnpHet;
         bac.novelDbsnpHet = novelDbsnpHet;
         bac.referenceGenomeErr = referenceGenomeErr;
         bac.heterozygosity = heterozygosity;
-    
+        bac.tiVsTv = tiVsTv;
+        
+        bac.orad = orad;
+        bac.fnorad = fnorad;
+        bac.vfn2 = vfn2;
+        bac.fnobrd = fnobrd;
+        bac.vfn1 = vfn1;
+        bac.fnovd = fnovd;
+        bac.ovd = ovd;
+        
         return bac;
     }
 

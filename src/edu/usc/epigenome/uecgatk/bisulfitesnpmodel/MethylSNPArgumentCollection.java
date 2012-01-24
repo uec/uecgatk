@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 

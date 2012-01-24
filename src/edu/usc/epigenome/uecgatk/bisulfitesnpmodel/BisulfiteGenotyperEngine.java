@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -66,6 +66,24 @@ import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteSNPGenotyp
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteVCFConstants;
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 public class BisulfiteGenotyperEngine{
 
 	private BisulfiteArgumentCollection BAC = null;
@@ -80,7 +98,7 @@ public class BisulfiteGenotyperEngine{
     private ThreadLocal<double[]> log10AlleleFrequencyPosteriors = new ThreadLocal<double[]>();
 
     // the priors object
-    private GenotypePriors genotypePriors;
+ //   private GenotypePriors genotypePriors;
 
     // samples in input
     private Set<String> samples = new TreeSet<String>();
@@ -115,7 +133,7 @@ public class BisulfiteGenotyperEngine{
 	protected void initialize(GenomeAnalysisEngine toolkit, BisulfiteArgumentCollection BAC, Logger logger, int numSamples) {
         this.BAC = BAC.clone();
         this.logger = logger;
-        genotypePriors = BisulfiteGenotyperEngine.createGenotypePriors(BAC);
+     //   genotypePriors = BisulfiteGenotyperEngine.createGenotypePriors(BAC);
         filter.add(LOW_QUAL_FILTER_NAME);
 
         try {
@@ -140,7 +158,7 @@ public class BisulfiteGenotyperEngine{
      */
     public BisulfiteVariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(BAC, refContext, rawContext);
-        Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
+        Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs = new HashMap<String, BisulfiteBiallelicGenotypeLikelihoods>();
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null, GLs);
         
         if ( vc == null )
@@ -150,14 +168,14 @@ public class BisulfiteGenotyperEngine{
         
         return vcc;
     }
-	
-	protected static GenotypePriors createGenotypePriors(BisulfiteArgumentCollection BAC) {
-        return new BisulfiteDiploidSNPGenotypePriors();
-    }
+	//
+	//protected static GenotypePriors createGenotypePriors(BisulfiteArgumentCollection BAC) {
+   //     return new BisulfiteDiploidSNPGenotypePriors();
+   // }
 	
 
 
-    protected VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse, Map<String, BiallelicGenotypeLikelihoods> GLs) {
+    protected VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse, Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs) {
 		if ( stratifiedContexts == null ){
 			 return null;
 		}
@@ -171,7 +189,7 @@ public class BisulfiteGenotyperEngine{
         BisulfiteSNPGenotypeLikelihoodsCalculationModel bglcm = (BisulfiteSNPGenotypeLikelihoodsCalculationModel) bglcms.get();
         bglcm.initialize(ctss.get(), BAC, autoEstimateC, secondIteration);
         
-        Allele refAllele = bglcm.getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
+        Allele refAllele = bglcm.getBsLikelihoods(tracker, refContext, stratifiedContexts, type, GLs, alternateAlleleToUse);
        
         if (refAllele != null)
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
@@ -189,13 +207,13 @@ public class BisulfiteGenotyperEngine{
     }
 	
 
-	protected BisulfiteVariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, Map<String, BiallelicGenotypeLikelihoods> GLs, VariantContext vc) {
+	protected BisulfiteVariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs, VariantContext vc) {
 		// initialize the data for this thread if that hasn't been done yet
         if ( bglcms.get() == null ) {
             return null;
         }
         log10AlleleFrequencyPosteriors.set(new double[3]);
-        for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
+        for ( BisulfiteBiallelicGenotypeLikelihoods GL : GLs.values() ) {
         	assignAFPosteriors(GL.getLikelihoods(),log10AlleleFrequencyPosteriors.get());
         	int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
             int secondAFguess = MathUtils.minElementIndex(log10AlleleFrequencyPosteriors.get());
@@ -221,7 +239,7 @@ public class BisulfiteGenotyperEngine{
                 	sum += normalizedPosteriors[j];
                     
                double PofF = Math.min(sum, 1.0);
-                return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
+                return estimateReferenceConfidence(stratifiedContexts, BAC.heterozygosity, true, 1.0 - PofF);
             }
             
             HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
@@ -251,7 +269,7 @@ public class BisulfiteGenotyperEngine{
 
             double cytosineMethyLevel = 0;
             
-           Integer[] cytosineStat = bglcms.get().getCytosineStatus();
+           Integer[] cytosineStat = GL.getCytosineStatus();
             if(BAC.ASSUME_SINGLE_SAMPLE != null){
             	 if(passesCallThreshold(logRatio)){
             		 
@@ -263,7 +281,7 @@ public class BisulfiteGenotyperEngine{
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, cytosineStat[1]);
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, cytosineStat[3]);
                                 attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, false);
-                                attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
+                                //attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
                                 attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(false, cytosineMethyLevel));
                  			 }
                  			 else if(genotypeTemp.getAllele(0).getBases()[0]==BaseUtils.G){
@@ -271,7 +289,7 @@ public class BisulfiteGenotyperEngine{
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, cytosineStat[0]);
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, cytosineStat[2]);
                                 attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, true);
-                                attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
+                               // attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
                                 attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(true, cytosineMethyLevel));
                  			 }
                  		 }
@@ -281,7 +299,7 @@ public class BisulfiteGenotyperEngine{
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, cytosineStat[1]);
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, cytosineStat[3]);
                                 attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, false);
-                                attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
+                              //  attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
                                 attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(false, cytosineMethyLevel));
                  			 }
                  			 else if(genotypeTemp.getAllele(1).getBases()[0]==BaseUtils.G){
@@ -289,7 +307,7 @@ public class BisulfiteGenotyperEngine{
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, cytosineStat[0]);
                                 attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, cytosineStat[2]);
                                 attributes.put(BisulfiteVCFConstants.C_IN_NEG_STRAND_KEY, true);
-                                attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
+                             //   attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, cytosineMethyLevel);
                                 attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, getCytosineTypeStatus(true, cytosineMethyLevel));
                  			 }
                  		 }
@@ -307,7 +325,7 @@ public class BisulfiteGenotyperEngine{
 	}
 	
 	protected boolean passesEmitThreshold(double conf, int bestAFguess) {
-        return (BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CYTOSINES || BAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CPG || bestAFguess != 0) && conf >= Math.min(BAC.STANDARD_CONFIDENCE_FOR_CALLING, BAC.STANDARD_CONFIDENCE_FOR_EMITTING);
+        return (BAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES || bestAFguess != 0) && conf >= Math.min(BAC.STANDARD_CONFIDENCE_FOR_CALLING, BAC.STANDARD_CONFIDENCE_FOR_EMITTING);
     }
 	
 	
@@ -608,7 +626,7 @@ public class BisulfiteGenotyperEngine{
               }
     }
 	
-    private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BiallelicGenotypeLikelihoods> GLs) {
+    private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs) {
         
         List<Allele> noCall = new ArrayList<Allele>();
         noCall.add(Allele.NO_CALL);
@@ -618,7 +636,7 @@ public class BisulfiteGenotyperEngine{
         boolean addedAltAllele = false;
 
         HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
-        for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
+        for ( BisulfiteBiallelicGenotypeLikelihoods GL : GLs.values() ) {
             if ( !addedAltAllele ) {
                 addedAltAllele = true;              
                 alleles.add(GL.getAlleleA());
@@ -653,11 +671,13 @@ public class BisulfiteGenotyperEngine{
     }
     
     public enum OUTPUT_MODE {
-        EMIT_VARIANTS_ONLY,
+        EMIT_VARIANTS_ONLY, //only confident variants
         EMIT_ALL_CONFIDENT_SITES,
         EMIT_ALL_SITES,
-        EMIT_ALL_CPG,
-        EMIT_ALL_CYTOSINES
+        EMIT_ALL_CPG, //only confident cpgs
+        EMIT_ALL_CYTOSINES, //only confident cytosines
+        EMIT_HET_SNPS_ONLY, //only confident heterozygous snps
+        DEFAULT_FOR_TCGA //output two vcf files: 1. confident variants vcf file (not contain cytosine info), 2. confident cpgs vcf file (only contain homozygous cpg info), 3. in future, output cpg_read files
     }
     
 }

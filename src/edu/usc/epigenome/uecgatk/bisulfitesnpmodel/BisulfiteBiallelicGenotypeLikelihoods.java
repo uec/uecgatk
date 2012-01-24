@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.gatk.walkers.genotyper.BiallelicGenotypeLikelihoods;
+
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
  * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
@@ -18,29 +21,30 @@ package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import org.broadinstitute.sting.gatk.uscec.writer.SortingVCFWriterOwn;
+public class BisulfiteBiallelicGenotypeLikelihoods extends
+		BiallelicGenotypeLikelihoods {
 
-public class SortingTcgaVCFWriter extends SortingVCFWriterOwn {
-
-	protected TcgaVCFWriter tcgaInnerWriter = null;
-	public SortingTcgaVCFWriter(TcgaVCFWriter innerWriter,
-			int maxCachingStartDistance, boolean takeOwnershipOfInner) {
-		super(innerWriter, maxCachingStartDistance, takeOwnershipOfInner);
-		tcgaInnerWriter = innerWriter;
+	private Integer[] CytosineStatus;
+	
+	public BisulfiteBiallelicGenotypeLikelihoods(String sample, Allele A,
+			Allele B, double log10aaLikelihoods, double log10abLikelihoods,
+			double log10bbLikelihoods, int depth) {
+		super(sample, A, B, log10aaLikelihoods, log10abLikelihoods,
+				log10bbLikelihoods, depth);
 		// TODO Auto-generated constructor stub
 	}
-
-	public SortingTcgaVCFWriter(TcgaVCFWriter innerWriter,
-			int maxCachingStartDistance) {
-		super(innerWriter, maxCachingStartDistance);
-		tcgaInnerWriter = innerWriter;
+	
+	public BisulfiteBiallelicGenotypeLikelihoods(String sample, Allele A,
+			Allele B, double log10aaLikelihoods, double log10abLikelihoods,
+			double log10bbLikelihoods, int depth, Integer[] CytosineStatus) {
+		super(sample, A, B, log10aaLikelihoods, log10abLikelihoods,
+				log10bbLikelihoods, depth);
+		this.CytosineStatus = CytosineStatus;
 		// TODO Auto-generated constructor stub
 	}
-
-	public TcgaVCFWriter getInnerWriter(){
-		return this.tcgaInnerWriter;
-	}
 	
+	public Integer[] getCytosineStatus() {
+        return this.CytosineStatus;
+    }
 
-	
 }

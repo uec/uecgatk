@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -25,6 +25,23 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	protected BisulfiteDiploidSNPGenotypePriors priors = null;
@@ -62,8 +79,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
      * set prior calculated
      */
 	public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygousity, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc){
-		
-		this.priors.setPriors(tracker, ref, heterozygousity, PROB_OF_REFERENCE_ERROR, novelDbsnpHet, validateDbsnpHet, loc);
+		this.priors.setPriors(tracker, ref, heterozygousity, PROB_OF_REFERENCE_ERROR, novelDbsnpHet, validateDbsnpHet, loc, BAC.tiVsTv);
         setToZeroBs();
 	}
 	
@@ -151,7 +167,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     	
         byte qual = p.getQual();
         if ( qual > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+            throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
         if ( capBaseQualsAtMappingQual )
             qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
         

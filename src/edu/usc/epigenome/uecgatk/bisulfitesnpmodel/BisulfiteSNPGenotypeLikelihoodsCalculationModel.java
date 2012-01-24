@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +33,23 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		NonRefDependSNPGenotypeLikelihoodsCalculationModel {
@@ -43,14 +59,14 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	protected Byte bestAllele = null;
 	protected Byte alternateAllele = null;
 	protected long testLoc;
-	protected static Integer numCNegStrand = 0;
-	protected static Integer numTNegStrand = 0;
-	protected static Integer numCPosStrand = 0;
-	protected static Integer numTPosStrand = 0;
+	protected int numCNegStrand = 0;
+	protected int numTNegStrand = 0;
+	protected int numCPosStrand = 0;
+	protected int numTPosStrand = 0;
 	private CytosineTypeStatus cts = null;
 	
-	private static boolean autoEstimateC = false;
-    private static boolean secondIteration = false;
+	private boolean autoEstimateC = false;
+    private boolean secondIteration = false;
     private double FALT_METHY_STATUS = 0.5;
 	
 
@@ -79,14 +95,13 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	
 	
 	@Override
-	public Allele getLikelihoods(RefMetaDataTracker tracker,
+	public Allele getBsLikelihoods(RefMetaDataTracker tracker,
 			ReferenceContext ref,
 			Map<String, StratifiedAlignmentContext> contexts,
-			StratifiedContextType contextType, GenotypePriors priors,
-			Map<String, BiallelicGenotypeLikelihoods> GLs,
+			StratifiedContextType contextType,
+			Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs,
 			Allele alternateAlleleToUse) {
-		if ( !(priors instanceof BisulfiteDiploidSNPGenotypePriors) )
-            throw new StingException("Only Bisulfite diploid-based SNP priors are supported in the BSSNP GL model");
+		
 
 		byte refBase = ref.getBase();
 		
@@ -187,7 +202,13 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 				}
             }
           
-            BisulfiteDiploidSNPGenotypeLikelihoods GL = checkCytosineStatus(pileup, cts, BAC.cTypeThreshold, tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors);
+            Integer[] cytosineStatus = new Integer[4];
+			cytosineStatus[0] = numCNegStrand;
+			cytosineStatus[1] = numCPosStrand;
+			cytosineStatus[2] = numTNegStrand;
+			cytosineStatus[3] = numTPosStrand;
+			BisulfiteDiploidSNPGenotypePriors priors = new BisulfiteDiploidSNPGenotypePriors();
+            BisulfiteDiploidSNPGenotypeLikelihoods GL = checkCytosineStatus(pileup, cts, BAC.cTypeThreshold, tracker, ref, priors);
             
             if(GL == null)
             	return refAllele;
@@ -259,13 +280,14 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             	System.err.println("Cytosine status: C-neg: " + numCNegStrand + "\tC-pos: " + numCPosStrand + "\tT-neg: " + numTNegStrand + "\tT-pos: " + numTPosStrand);
             }
             
-            	GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
+            	GLs.put(sample.getKey(), new BisulfiteBiallelicGenotypeLikelihoods(sample.getKey(),
             			AlleleA,
             			AlleleB,
             			posterior[AAGenotype.ordinal()],
             			posterior[ABGenotype.ordinal()],
             			posterior[BBGenotype.ordinal()],
-                        getFilteredDepth(pileup)));
+                        getFilteredDepth(pileup),
+                        cytosineStatus));
         }
 
         return refAllele;
@@ -378,7 +400,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         
       
 	}
-
+//not use this anymore
 	protected Integer[] getCytosineStatus(){
 		Integer[] value = new Integer[4];
 		value[0] = numCNegStrand;
@@ -421,7 +443,12 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 			}
 			ReadBackedPileup tmpPileup = new ReadBackedPileupImpl(loc,reads,elementOffsets);
 			
+			if( !ref.getWindow().containsP(loc) )
+				continue;
+			
 			ReferenceContext tmpRef = new ReferenceContext(ref.getGenomeLocParser(),loc, ref.getWindow(),ref.getBases());
+			 
+		//	ReferenceContext tmpRef = new ReferenceContext(ref.getGenomeLocParser(),loc, loc, ref.getBases());
 			 
 			
 			BisulfiteDiploidSNPGenotypeLikelihoods tmpGL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, tmpRef, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, tmpMethy.clone());

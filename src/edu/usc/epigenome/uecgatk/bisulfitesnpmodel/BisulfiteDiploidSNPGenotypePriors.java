@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,6 +18,24 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
 	// --------------------------------------------------------------------------------------------------------------
     //
@@ -26,12 +44,14 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     // --------------------------------------------------------------------------------------------------------------
     public static double HETEROZYGOSITY = 1e-3;
     
+    public static double TRANSITION_VS_TRANSVERSION = 2.0;
+    
     public static double DBSNP_VALIDATE_HETEROZYGOSITY = 0.1;
     public static double DBSNP_NOVAL_HETEROZYGOSITY = 0.02;
     
     protected static double BISULFITE_CONVERSION_RATE = 0; 
     protected static double OVER_CONVERSION_RATE = 0;
-    protected static double CYTOSINE_METHYLATION_RATE = 0;
+    //protected static double CYTOSINE_METHYLATION_RATE = 0;
 
     private final static double[] flatPriors = new double[DiploidGenotype.values().length];
 
@@ -74,11 +94,11 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     }
     
     //set prior for each locus
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc, double tiVsTv) {
     	
     	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
     	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
-    	
+    	TRANSITION_VS_TRANSVERSION = tiVsTv;
         byte refBase = ref.getBase();
         
         Collection<VariantContext> contexts = tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, loc, true, false);
@@ -113,7 +133,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
      * @param h
      * @return
      */
-    public static double heterozygosity2HomRefProbability(double h) {
+    public double heterozygosity2HomRefProbability(double h) {
         if (MathUtils.isNegative(h)) {
             throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
         }
@@ -126,7 +146,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return v;
     }
 
-    public static double heterozygosity2HetProbability(double h) {
+    public double heterozygosity2HetProbability(double h) {
         if (MathUtils.isNegative(h)) {
             throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
         }
@@ -134,7 +154,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         return h;
     }
 
-    public static double heterozygosity2HomVarProbability(double h) {
+    public double heterozygosity2HomVarProbability(double h) {
         if (MathUtils.isNegative(h)) {
             throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
         }
@@ -145,7 +165,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     /**
     *check if the base is transition or transversion relative to reference base
     */
-    public static boolean isTransition(byte base, byte ref) {
+    public boolean isTransition(byte base, byte ref) {
         boolean transition;
     	switch(ref){
         	case BaseUtils.A: transition = base == BaseUtils.G ? true : false; break;
@@ -180,7 +200,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
      * @param pRefError
      */
 
-    public static double[] getReferencePolarizedPriors(byte ref, double heterozyosity, double pRefError) {
+    public double[] getReferencePolarizedPriors(byte ref, double heterozyosity, double pRefError) {
         if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
             throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
         }
@@ -200,8 +220,11 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double POfG = 1;
 
-            final double transitionRate = 2.0/3.0;
-            final double transversionRate = 1.0/6.0;
+            //final double transitionRate = 2.0/3.0;
+            //final double transversionRate = 1.0/6.0;
+            
+            final double transversionRate = 1.0/(TRANSITION_VS_TRANSVERSION + 1);
+            final double transitionRate = transversionRate * TRANSITION_VS_TRANSVERSION;
            
             if(BaseUtils.basesAreEqual(ref, BaseUtils.A)){								//**ref = A
             	if(BaseUtils.basesAreEqual(g.base1, BaseUtils.A)){

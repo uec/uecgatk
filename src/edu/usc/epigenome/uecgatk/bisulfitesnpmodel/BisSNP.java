@@ -1,4 +1,4 @@
-package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
+package org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,6 +12,7 @@ import java.util.ResourceBundle;
 import net.sf.picard.filter.SamRecordFilter;
 
 import org.broad.tribble.TribbleException;
+import org.broad.tribble.vcf.SortingVCFWriter;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
@@ -38,8 +39,27 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker;
 
 import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteGenotyper;
+
+/*
+ * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
+ * massively parallel sequencing (Bisulfite-seq and NOMe-seq) on Illumina platform
+ * Copyright (C) <2011>  <Yaping Liu: lyping1986@gmail.com>
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 public class BisSNP extends CommandLineExecutable {
 	
@@ -50,8 +70,8 @@ public class BisSNP extends CommandLineExecutable {
     private static boolean autoEstimateC = false;
 	
 	 //control the output, output to TCGA VCF 
-    @Output(doc="File to which variants should be written",required=true)
-    protected TcgaVCFWriter writer = null;
+    //@Output(doc="File to which variants should be written",required=false)
+   // protected SortingVCFWriter writer = null;
  
 
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
@@ -84,6 +104,7 @@ public class BisSNP extends CommandLineExecutable {
 		return analysisName;
 	}
 
+	
 
 	@Override
 	protected GATKArgumentCollection getArgumentCollection() {
@@ -91,7 +112,7 @@ public class BisSNP extends CommandLineExecutable {
 		return argCollection;
 	}
 
-    
+     
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -116,20 +137,19 @@ public class BisSNP extends CommandLineExecutable {
 	//set up Writer information. if writer is not initiat here, then there will be some wired close stream problem.
 	public void setupInfo(){
 		if(walker instanceof BisulfiteGenotyper){
-			
 
 			if(argCollection.numberOfThreads == 1){
-				((BisulfiteGenotyper) walker).setWriter(writer);
+			//	((BisulfiteGenotyper) walker).setWriter(writer);
 
 			}
 			else{
-				((BisulfiteGenotyper) walker).setWriter(writer);
+			//	((BisulfiteGenotyper) walker).setWriter(writer);
 			}
 		}
 	}
 	
 	public static List<String> createApplicationHeader() {
-        String version = "Bis-SNP-0.28";
+        String version = "Bis-SNP-0.33";
 		List<String> header = new ArrayList<String>();
         header.add(String.format("The Bis-SNP v%s, Compiled %s",version, getBuildTime()));
         header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.0.5336.tar.bz2)",getVersionNumber()));
@@ -209,10 +229,11 @@ public class BisSNP extends CommandLineExecutable {
                     loadArgumentsIntoObject(filter);
                     bisulfiteArgumentSources.add(filter);
                 }
-                if(walker instanceof BisulfiteGenotyper){      			
-        				((BisulfiteGenotyper) walker).setWriter(writer);
+                setupInfo();
+                //if(walker instanceof BisulfiteGenotyper){      			
+        				//((BisulfiteGenotyper) walker).setWriter(writer);
 
-        		}
+        		//}
                 
                 engine.execute();
                 if(walker instanceof BisulfiteGenotyper){
