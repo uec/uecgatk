@@ -26,11 +26,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisSNPUtils;
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypePriors;
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteVariantCallContext;
-import org.broadinstitute.sting.gatk.uscec.writer.bedObject;
-import org.broadinstitute.sting.gatk.uscec.writer.bedObjectWriterImp;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisSNPUtils;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypePriors;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteVariantCallContext;
+import edu.usc.epigenome.uecgatk.YapingWriter.bedObject;
+import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -48,7 +48,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.gatk.uscec.YapingWalker.NDRdetectWalker.windowsObject;
+import edu.usc.epigenome.uecgatk.YapingWalker.NDRdetectWalker.windowsObject;
 
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @Reference(window=@Window(start=-300,stop=300))

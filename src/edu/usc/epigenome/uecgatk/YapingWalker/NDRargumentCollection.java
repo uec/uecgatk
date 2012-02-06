@@ -2,7 +2,7 @@ package edu.usc.epigenome.uecgatk.YapingWalker;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.uscec.bisulfitesnpmodel.BisulfiteArgumentCollection;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteArgumentCollection;
 
 public class NDRargumentCollection extends BisulfiteArgumentCollection {
 
