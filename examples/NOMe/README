@@ -1,0 +1,44 @@
+
+# Ben Berman
+# Jan 2, 2011
+
+# - - - - - Files in directory
+# Input files
+BAM: IMR90GNOMe-815C5ABXX-81B71ABXX-NODUPS.calmd.bam
+ctcf sites: ctcf.chr11.hg18.gff
+reference genome (hg18): hg18_unmasked.plusContam.*
+
+# Perl scripts
+gffToBed.pl
+
+
+# - - - - - Commands to generate data
+# Generate data files (.csv)
+./README.sh
+
+# Run MATLAB code (from within matlab)
+> NOMePlots.m
+
+
+
+# - - - - - Output files
+
+# Full alignments
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcf-GCH.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcf-WCG.csv
+
+# Alignments, stratified by WCG/GCH pairs
+# 00 = WCG unmethylated, GCH unmethylated
+# 01 = WCG unmethylated, GCH methylated
+# 10 = WCG methylated,   GCH unmethylated
+# 11 = WCG methylated,   GCH methylated
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_DIFFERENTREAD_00.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_DIFFERENTREAD_01.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_DIFFERENTREAD_10.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_DIFFERENTREAD_11.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_SAMEREAD_00.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_SAMEREAD_01.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_SAMEREAD_10.csv
+ALIGN_2000_1000_mapq30_minct3_mincontext0.90_ctcfPairs-featAligner-WCG_GCH_SAMEREAD_11.csv
+
+
