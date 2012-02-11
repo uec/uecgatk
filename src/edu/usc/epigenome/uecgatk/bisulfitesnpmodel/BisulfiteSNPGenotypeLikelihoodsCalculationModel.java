@@ -118,6 +118,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
             for ( PileupElement p : pileup ) {
             	SAMRecord samRecord = p.getRead();
+            	if(samRecord.getDuplicateReadFlag()){ //get rid of duplicate reads
+                	continue;
+                }
             	int offset = p.getOffset();
             	if(offset < 0)//is deletion
             		continue;

@@ -32,6 +32,13 @@ public class NDRCallContext {
 		return context;
 	}
 	
+	public boolean hasRealContext(){
+		if(context == null){
+			return false;
+		}
+		return context.hasBasePileup();
+	}
+	
 	public AlignmentContext getFakeContext(){
 		
 		ReadBackedPileupImpl fakePileup = new ReadBackedPileupImpl(loc);

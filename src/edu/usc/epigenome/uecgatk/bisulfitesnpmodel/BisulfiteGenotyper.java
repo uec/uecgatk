@@ -2,7 +2,9 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -940,7 +942,18 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     }
 
     public void onTraversalDone(ContextCondition sum) {
-        logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
+    	String fn = BAC.vfn1 + ".BisSNPMethySummarizeList.txt"; //write summarize cytosine methylation pattern information into a file. This is easy for BisSNP API to use.	
+    	PrintWriter outWriter = null;
+    	String outLine = null;
+		try {
+			outWriter = new PrintWriter(new File(fn));
+			 
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	logger.info(String.format("Visited bases                                %d", sum.nBasesVisited));
         logger.info(String.format("Callable bases                               %d", sum.nBasesCallable));
         logger.info(String.format("Confidently called bases                     %d", sum.nBasesCalledConfidently));
         logger.info(String.format("%% callable bases of all loci                 %3.3f", sum.percentCallableOfAll()));
@@ -948,6 +961,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         logger.info(String.format("%% confidently called bases of callable loci  %3.3f", sum.percentCalledOfCallable()));
         logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
         logger.info(String.format("%% Methylation level of Cytosine loci       %3.3f", sum.percentMethyLevelOfC()));
+
+        outLine = "C-1:" + sum.percentMethyLevelOfC() + "\t" + sum.nCallsMade  + "\n";
         
         //logger.info(String.format("%% Methylation level of CHH loci       %3.3f", sum.percentMethyLevelOfChh()));
        // logger.info(String.format("%% Methylation level of CHG loci       %3.3f", sum.percentMethyLevelOfChg()));
@@ -958,6 +973,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             logger.info(String.format("%% Methylation level of CpH loci       %3.3f", sum.percentMethyLevelOfCph()));
         	
             logger.info(String.format("%% number of CpH loci       %d", sum.nCphBasesCalledConfidently));
+            outLine = "CG-1:" + sum.percentMethyLevelOfCpg() + "\t" + sum.nCpgBasesCalledConfidently  + "\n";
+            outLine = "CH-1:" + sum.percentMethyLevelOfCph() + "\t" + sum.nCphBasesCalledConfidently  + "\n";
         }
         
      //   logger.info(String.format("%% sum of Cytosine methy       %3.3f", sum.sumMethyCytosineBasesCalledConfidently));
@@ -980,9 +997,13 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             logger.info(String.format("%% Methylation level of GCG loci       %3.3f", sum.percentMethyLevelOfGcg()));
             logger.info(String.format("%% number of GCG loci       %d", sum.nGcgBasesCalledConfidently));
             
+            outLine = "GCH-2:" + sum.percentMethyLevelOfGch() + "\t" + sum.nGchBasesCalledConfidently  + "\n";
+            outLine = "HCH-2:" + sum.percentMethyLevelOfHch() + "\t" + sum.nHchBasesCalledConfidently  + "\n";
+            outLine = "WCH-2:" + sum.percentMethyLevelOfWch() + "\t" + sum.nWchBasesCalledConfidently  + "\n";
             
-            
-            
+            outLine = "WCG-2:" + sum.percentMethyLevelOfWcg() + "\t" + sum.nWcgBasesCalledConfidently  + "\n";
+            outLine = "HCG-2:" + sum.percentMethyLevelOfHcg() + "\t" + sum.nHcgBasesCalledConfidently  + "\n";
+            outLine = "GCG-2:" + sum.percentMethyLevelOfGcg() + "\t" + sum.nGcgBasesCalledConfidently  + "\n";
         }
         if(!BAC.forceOtherCytosine.isEmpty() || !BAC.autoEstimateOtherCytosine.isEmpty()){
         	for(String key : sum.otherCytosine.keySet()){
@@ -992,6 +1013,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         //		logger.info(String.format("%% Methylation sum of %s loci       %3.3f", name, values[1]));
         		logger.info(String.format("%% Methylation level of %s loci       %3.3f", name, values[1]/values[0]));
         		logger.info(String.format("%% number of %s loci       %d", name, values[0].intValue()));
+        		outLine = key + ":" + values[1]/values[0] + "\t" + values[0].intValue()  + "\n";
 			}
 		}
         
@@ -1112,7 +1134,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 				
 			}
 		}
-       
+       outWriter.println(outLine);
+       outWriter.close();
     }
     
     //receive cytosine statistics status from main program

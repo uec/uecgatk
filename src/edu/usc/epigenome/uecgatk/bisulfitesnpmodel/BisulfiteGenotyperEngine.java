@@ -422,7 +422,9 @@ public class BisulfiteGenotyperEngine{
 	            ReadBackedPileup pileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
 	            for ( PileupElement p : pileup ) {
 	                final SAMRecord read = p.getRead();
-
+	                if(read.getDuplicateReadFlag()){ //get rid of duplicate reads
+	                	continue;
+	                }
 	                if ( p.isDeletion() ) {
 	                    // if it's a good read, count it
 	                    if ( read.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE &&

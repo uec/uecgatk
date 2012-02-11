@@ -75,7 +75,7 @@ public class BisSNPUtils {
 	}
 	
 	public boolean isGch(ReadBackedPileup pileup, RefMetaDataTracker tracker,ReferenceContext ref, double methyStatus){
-		return checkCytosineStatus("GCH-1", pileup, tracker, ref, genotypePriors, BAC, methyStatus);
+		return checkCytosineStatus("GCH-2", pileup, tracker, ref, genotypePriors, BAC, methyStatus);
 		
 	}
 	
@@ -399,7 +399,9 @@ public class BisSNPUtils {
 	            ReadBackedPileup pileup = stratifiedContexts.getBasePileup();
 	            for ( PileupElement p : pileup ) {
 	                final SAMRecord read = p.getRead();
-
+	                if(read.getDuplicateReadFlag()){ //get rid of duplicate reads
+	                	continue;
+	                }
 	                if ( p.isDeletion() ) {
 	                    // if it's a good read, count it
 	                    if ( read.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE &&
