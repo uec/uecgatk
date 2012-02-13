@@ -4,6 +4,7 @@
 package edu.usc.epigenome.uecgatk.YapingWalker;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,8 @@ import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -109,6 +112,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	private String chr = null;
 	private int bedStart = 0;
 	private int bedEnd = 0;
+	private SimpleBEDFeature bed = null;
+	private Strand strand = null;
 
 	private GenotypePriors genotypePriors;
 	
@@ -137,7 +142,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	  //  	 throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", feature));
 	   //  }
 	    // Iterator<Object> iter = featureList.iterator();
-	     Strand strand = null;
+	     
 	     
 	     GenomeLoc loc = ref.getLocus().getLocation();
     	 GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(ref.getLocus().getLocation().getContig(), ref.getLocus().getLocation().getStart()-distance, ref.getLocus().getLocation().getStart()+distance);
@@ -151,21 +156,37 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 return null;
     	 }
     	 else{
-    		 SimpleBEDFeature bed = (SimpleBEDFeature)locRodIt.seekForward(searchLoc).get(0).getUnderlyingObject();
-    		 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) <= distance){
+    		 if(!inFeature){
+    			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
+
+    			// if(rodList.size() > 1){
+    			//	 
+    			// }
+    		//	 else{
+    				 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
+            		 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
+            			 bed = bedTmp;
+            			 strand = bedTmp.getStrand();
+        	    		 chr = bedTmp.getChr();
+        	    		 bedStart = bedTmp.getStart();
+        	    		 bedEnd = bedTmp.getEnd();
+        	    		 inFeature = true;
+        	    		 writtenObject = false;
+        	    	//	 System.err.println(bed.getStart());
+        	    		// break;
+        	    	 }
+    			// }
     			 
-    			 strand = bed.getStrand();
-	    		 chr = bed.getChr();
-	    		 bedStart = bed.getStart();
-	    		 bedEnd = bed.getEnd();
-	    		 inFeature = true;
-	    		 writtenObject = false;
-	    	//	 System.err.println(bed.getStart());
-	    		// break;
-	    	 }
-	    	 else{
-	    		 inFeature = false; 
-	    	 }
+    		 }
+    		 else{
+    			 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
+
+    	    		 inFeature = false;
+    	    		 writtenObject = false;
+    	    	//	 System.err.println(bed.getStart());
+    	    		// break;
+    	    	 }
+    		 }
     	 }
     	 
     	// System.err.println(loc.toString());
@@ -210,13 +231,21 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	     */
 	     if(!inFeature){
 	    	 if(!writtenObject && (!tmpMethyValueListGch.isEmpty() || !tmpMethyValueListWcg.isEmpty() || !tmpMethyValueListHcg.isEmpty())){
+	    		 if(tmpMethyValueListGch.size() == distance * 2 + 1){
+	    			 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListGch); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+		    		 gchWriter.add(bedLineGch);
+	    		 }
+	    		
+	    		 if(tmpMethyValueListWcg.size() == distance * 2 + 1){
+	    			 bedObject bedLineWcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListWcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+		    		 wcgWriter.add(bedLineWcg);
+	    		 }
 	    		 
-	    		 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListGch); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
-	    		 gchWriter.add(bedLineGch);
-	    		 bedObject bedLineWcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListWcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
-	    		 wcgWriter.add(bedLineWcg);
-	    		 bedObject bedLineHcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListHcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
-	    		 hcgWriter.add(bedLineHcg);
+	    		 if(tmpMethyValueListHcg.size() == distance * 2 + 1){
+	    			 bedObject bedLineHcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListHcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+		    		 hcgWriter.add(bedLineHcg);
+	    		 }
+
 	    		 tmpMethyValueListGch.clear();
 	    		 tmpMethyValueListWcg.clear();
 	    		 tmpMethyValueListHcg.clear();
