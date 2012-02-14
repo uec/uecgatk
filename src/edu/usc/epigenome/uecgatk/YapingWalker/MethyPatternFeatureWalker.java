@@ -83,6 +83,9 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature", required = false)
     public int distance = 2000;
 	
+	@Argument(fullName = "minium_CT_reads_count", shortName = "minCTdepth", doc = "minium number of CT reads should contained to calculate methylation value", required = false)
+    public int minCTdepth = 1;
+	
 	//@Argument(fullName = "space_before_feature", shortName = "before", doc = "define the space before feature to detect", required = false)
   //  public int before = 2000;
 	
@@ -145,7 +148,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	     
 	     
 	     GenomeLoc loc = ref.getLocus().getLocation();
-    	 GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(ref.getLocus().getLocation().getContig(), ref.getLocus().getLocation().getStart()-distance, ref.getLocus().getLocation().getStart()+distance);
+    	 GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(ref.getLocus().getLocation().getContig(), ref.getLocus().getLocation().getStart()-distance-10, ref.getLocus().getLocation().getStart()+distance+10);
     	 
     	 LocationAwareSeekableRODIterator locRodIt = rodIt.seek(searchLoc);
     	 if(!locRodIt.hasNext()){
@@ -156,6 +159,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 return null;
     	 }
     	 else{
+    		 
     		 if(!inFeature){
     			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
 
@@ -179,6 +183,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     			 
     		 }
     		 else{
+    			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)));
     			 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
 
     	    		 inFeature = false;
@@ -252,6 +257,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    		 writtenObject = true;
 	    		 logger.info(chr + "\t" + bedStart + "\t" + bedEnd);
 	    	 }
+	    	
 	    	 return null;
 	     }
 	     else{
@@ -279,7 +285,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		boolean isWcg = it.checkCytosineStatus(cytosinePatternWcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
 	 		boolean isHcg = it.checkCytosineStatus(cytosinePatternHcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
 	 		GetCytosineContext contextToTest = new GetCytosineContext();
- 			contextStatus status = contextToTest.getContext(stratifiedContexts.getBasePileup(), BAC.pairedEndMode);		
+ 			contextStatus status = contextToTest.getContext(stratifiedContexts.getBasePileup(), BAC.pairedEndMode, minCTdepth, minCTdepth);		
 	 		if(isGch){
 	 			
 	 			addContextToList(status, strand, tmpMethyValueListGch);

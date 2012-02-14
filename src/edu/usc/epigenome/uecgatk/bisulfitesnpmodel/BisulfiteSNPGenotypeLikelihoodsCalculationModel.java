@@ -510,7 +510,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	                 	}
 	                 }
 	            	 
-	            	 if(tmpMethyStatus.genotype.isHet()){
+	            	 if(tmpMethyStatus.genotype.isHet()){ //this is wrong, since GCH, if het H, like A/T heterozygouse SNP is still H?
 	 	            	break;
 	 	             }	
 	 	             else{

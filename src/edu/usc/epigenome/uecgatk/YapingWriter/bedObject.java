@@ -1,15 +1,16 @@
 package edu.usc.epigenome.uecgatk.YapingWriter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class bedObject implements genomeObject {
 
 	private String chr;
 	private int start;
 	private int end;
-	private ArrayList<Object> values;
+	private List<Object> values;
 	
-	public bedObject(String chr, int start, int end, ArrayList<Object> values) {
+	public bedObject(String chr, int start, int end, List<Object> values) {
 		// TODO Auto-generated constructor stub
 		this.chr = chr;
 		this.start = start;
@@ -35,7 +36,7 @@ public class bedObject implements genomeObject {
 		return end;
 	}
 	
-	public ArrayList<Object> getValueObject() {
+	public List<Object> getValueObject() {
 		// TODO Auto-generated method stub
 		return values;
 	}
