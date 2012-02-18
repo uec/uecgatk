@@ -134,7 +134,8 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
         }
             
         SAMRecord samRecord = p.getRead();
-        if(BAC.pairedEndMode){
+        boolean paired = samRecord.getReadPairedFlag();
+        if(paired){
         	try {
     			samRecord = (SAMRecord) p.getRead().clone();
     		} catch (CloneNotSupportedException e) {
@@ -142,7 +143,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     			e.printStackTrace();
     		}
         	
-        	boolean Paired = samRecord.getReadPairedFlag();
+        	//boolean Paired = samRecord.getReadPairedFlag();
         	boolean secondOfPair = samRecord.getSecondOfPairFlag();
         	if (samRecord.getNotPrimaryAlignmentFlag())
     		{
@@ -155,7 +156,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     			if (samRecord.getSecondOfPairFlag()) return 0;
     			//System.err.printf("Inverted dup %d%s (%s)\n", samRecord.getAlignmentStart(), samRecord.getReadNegativeStrandFlag()?"-":"+", PicardUtils.getReadString(samRecord, true));
     		}
-        	if (Paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
+        	if (paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
     		{
         		return 0;
     		}

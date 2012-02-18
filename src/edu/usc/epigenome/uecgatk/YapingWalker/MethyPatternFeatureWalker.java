@@ -285,7 +285,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		boolean isWcg = it.checkCytosineStatus(cytosinePatternWcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
 	 		boolean isHcg = it.checkCytosineStatus(cytosinePatternHcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
 	 		GetCytosineContext contextToTest = new GetCytosineContext();
- 			contextStatus status = contextToTest.getContext(stratifiedContexts.getBasePileup(), BAC.pairedEndMode, minCTdepth, minCTdepth);		
+	 		boolean paired = stratifiedContexts.getBasePileup().getReads().get(0).getReadPairedFlag();
+ 			contextStatus status = contextToTest.getContext(stratifiedContexts.getBasePileup(), paired, minCTdepth, minCTdepth);		
 	 		if(isGch){
 	 			
 	 			addContextToList(status, strand, tmpMethyValueListGch);

@@ -1257,14 +1257,14 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
         	int offset = p.getOffset();
         	if(offset < 0)//is deletion
         		continue;
-        	if(NAC.pairedEndMode){
+        	boolean paired = samRecord.getReadPairedFlag();
+        	if(paired){
         		try {
 					samRecord = (SAMRecord) p.getRead().clone();
 				} catch (CloneNotSupportedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-            	boolean Paired = samRecord.getReadPairedFlag();	
 	        	boolean secondOfPair = samRecord.getSecondOfPairFlag();
 
 	        	if (samRecord.getNotPrimaryAlignmentFlag())
@@ -1277,7 +1277,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 				{
 					if (samRecord.getSecondOfPairFlag()) continue;
    				}
-	        	if (Paired  && !NAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
+	        	if (paired  && !NAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
 				{
 					continue;
 				}

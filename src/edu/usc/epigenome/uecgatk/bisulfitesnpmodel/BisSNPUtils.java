@@ -1,5 +1,10 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -113,6 +118,35 @@ public class BisSNPUtils {
 			BisulfiteArgumentCollection bac, double methyStatus, String cytosineTypeToCheck){ //should be "CH-1" style..
 		return checkCytosineStatus(cytosineTypeToCheck, pileup, tracker, ref, genotypePriors, BAC, methyStatus);
 		
+	}
+	
+	public boolean checkCytosineStatus(String cytosinePattern, ReadBackedPileup pileup, RefMetaDataTracker tracker,ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, 
+			BisulfiteArgumentCollection bac, String methySummaryFileName){
+		
+		FileReader methySummaryFile=null;
+		try {
+			methySummaryFile = new FileReader(methySummaryFileName);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		BufferedReader br = new BufferedReader(methySummaryFile);
+		String line;
+		double methyStatus = 0.5;
+		try {
+			while( (line = br.readLine()) != null){
+				if(line.startsWith(cytosinePattern)){
+					methyStatus = Double.parseDouble(line.split("\t")[0].split(":")[1]);
+					break;
+				}
+					
+				
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return checkCytosineStatus(cytosinePattern, pileup, tracker, ref, priors, bac, methyStatus); 
 	}
 	
 	public boolean checkCytosineStatus(String cytosinePattern, ReadBackedPileup pileup, RefMetaDataTracker tracker,ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, 
@@ -470,8 +504,9 @@ public class BisSNPUtils {
             }            
 
             BitSet mismatches;
+            boolean paired = record.getReadPairedFlag();
             if(BAC.sequencingMode == MethylSNPModel.BM || BAC.sequencingMode == MethylSNPModel.GM){
-            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode, BAC.pairedEndMode);
+            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode, paired);
             }
             else{
             	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);

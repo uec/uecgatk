@@ -23,19 +23,19 @@ public class GetCytosineContext {
 		
 	}
 	
-	public contextStatus getContext(ReadBackedPileup pileup, boolean paired, boolean useBadMate){
-		return getContext(pileup, paired, useBadMate, 0, 0);
+	public contextStatus getContext(ReadBackedPileup pileup, boolean useBadMate){
+		return getContext(pileup, useBadMate, 0, 0);
 	}
 	
-	public contextStatus getContext(ReadBackedPileup pileup, boolean paired, int minDepth, int minCTDepth){
-		return getContext(pileup, paired, false, 0, 0);
+	public contextStatus getContext(ReadBackedPileup pileup, int minDepth, int minCTDepth){
+		return getContext(pileup, false, 0, 0);
 	}
 	
-	public contextStatus getContext(ReadBackedPileup pileup, boolean paired){
-		return getContext(pileup, paired, false, 0, 0);
+	public contextStatus getContext(ReadBackedPileup pileup){
+		return getContext(pileup, false, 0, 0);
 	}
 	
-	public contextStatus getContext(ReadBackedPileup pileup, boolean paired, boolean useBadMate, int minDepth, int minCTDepth){
+	public contextStatus getContext(ReadBackedPileup pileup, boolean useBadMate, int minDepth, int minCTDepth){
 		
 		contextStatus num = new contextStatus();
 		
@@ -50,14 +50,14 @@ public class GetCytosineContext {
         	int offset = p.getOffset();
         	if(offset < 0)//is deletion
         		continue;
+        	boolean paired = samRecord.getReadPairedFlag();
         	if(paired){
         		try {
 					samRecord = (SAMRecord) p.getRead().clone();
 				} catch (CloneNotSupportedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
-            	boolean Paired = samRecord.getReadPairedFlag();	
+				}	
 	        	boolean secondOfPair = samRecord.getSecondOfPairFlag();
 
 	        	if (samRecord.getNotPrimaryAlignmentFlag())
@@ -70,7 +70,7 @@ public class GetCytosineContext {
 				{
 					if (samRecord.getSecondOfPairFlag()) continue;
    				}
-	        	if (Paired  && !useBadMate && !samRecord.getProperPairFlag())
+	        	if (paired  && !useBadMate && !samRecord.getProperPairFlag())
 				{
 					continue;
 				}

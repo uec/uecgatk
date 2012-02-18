@@ -1,5 +1,9 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -124,7 +128,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             	int offset = p.getOffset();
             	if(offset < 0)//is deletion
             		continue;
-            	if(BAC.pairedEndMode){
+            	boolean paired = samRecord.getReadPairedFlag();
+            	if(paired){
             		try {
     					samRecord = (SAMRecord) p.getRead().clone();
     				} catch (CloneNotSupportedException e) {
@@ -199,7 +204,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 					System.err.println("before filter:\t" + onRefCoord + "\t" + offset + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
 					System.err.println("refBase: " + refBase);
 					
-					if(BAC.pairedEndMode)
+					if(paired)
 						System.err.println("isGoodBase: " + ((GATKSAMRecord)p.getRead()).isGoodBase(offset) + "\tsecondOfPair: " + "\tchanged: " + samRecord.getSecondOfPairFlag());
 		                     
 				}
@@ -700,6 +705,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		
 		return maxGL;	
 	}
+	
+	
 	
 	//inner class to record genotype and posterior ratio of best and second best genotype
 	public static class methyStatus{
