@@ -2,6 +2,9 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
@@ -18,8 +21,12 @@ import org.apache.commons.math.stat.descriptive.*;
 /**
  * Bin Depths walker. calculate coverage in windows across genome.
  * report stats upon these windows
+ * 
+ * NOTE BadMateFilter.  Looks like this doesn't use properly paired flag, but just checks
+ * that it's on the same chromosome.
  */
 @By(DataSource.REFERENCE)
+@ReadFilters( {MappingQualityReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class} ) // Filter out all reads with zero mapping quality
 public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean>  
 {
     @Output
