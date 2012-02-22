@@ -18,6 +18,7 @@ import java.util.List;
 
 import jsc.independentsamples.MannWhitneyTest;
 import jsc.independentsamples.SmirnovTest;
+import jsc.independentsamples.TwoSampleTtest;
 import jsc.tests.H1;
 
 import net.sf.samtools.SAMRecord;
@@ -126,6 +127,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	
 	private int tmpGchDepthWind = 0;
 	
+	private int tmpGchDotWind = 0;
+	
 
 	
 	private double tmpGchMethyWind = 0;
@@ -136,6 +139,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	
 	private int tmpGchNumWindLinker = 0;
 	
+	private int tmpGchDotWindLinker = 0;
+	
 	private double tmpGchMethyWindLinker = 0;
 	
 	private int tmpGchNumWindNDR = 0;
@@ -143,6 +148,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	private int tmpGchCTDepthWindNDR = 0;
 	
 	private int tmpGchDepthWindNDR = 0;
+	
+	private int tmpGchDotWindNDR = 0;
 	
 	private double tmpGchMethyWindNDR = 0;
 	
@@ -168,6 +175,9 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	        /** The average sequence depth inside window */
 	        double sumGchDepthWind = 0;
 	     
+	        /** The average sequence depth inside window */
+	        double sumGchDotWind = 0;
+	        
 	        /** The number of Gch bases called confidently (according to user threshold), either ref or other */
 	        long sumGchNumInWindCalledConfidently = 0;
 	        
@@ -179,6 +189,9 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	        
 	        /** The average sequence depth inside NDR window */
 	        double sumGchDepthInNDRWind = 0;
+	        
+	        /** The average sequence depth inside NDR window */
+	        double sumGchDotInNDRWind = 0;
 	     
 	        /** The number of Gch bases called confidently (according to user threshold), either ref or other in NDR windows*/
 	        long sumGchNumInNDRWind = 0;
@@ -195,6 +208,9 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	        /** The average sequence depth inside NDR window */
 	        double sumGchDepthInNDRWindLinker = 0;
 	        
+	        /** The average sequence depth inside NDR window */
+	        double sumGchDotInNDRWindLinker = 0;
+	        
 	        /** The number of Gch bases called confidently (according to user threshold), either ref or other in NDR windows*/
 	        long sumGchNumInNDRWindLinker = 0;
 	        
@@ -210,15 +226,18 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	        double percentGchMethyOfCallableWindows() { return (double)sumGchMethyWindowsCalledConfidently/(nWindowsCallable * percentGchNumOfCallableWindows());}
 	        double percentGchCTDepthOfCallableWindows() { return (double)sumGchCTDepthWind/(nWindowsCallable * percentGchNumOfCallableWindows());}
 	        double percentGchDepthOfCallableWindows() { return (double)sumGchDepthWind/(nWindowsCallable * percentGchNumOfCallableWindows());}
+	        double percentGchDotOfCallableWindows() { return (double)sumGchDotWind/(nWindowsCallable);}
 	        double percentGchNumOfCallableWindows() { return (double)sumGchNumInWindCalledConfidently/(nWindowsCallable);}
 	        double percentNDRWindowOfCallableWindows() { return (double)nNDRWindowsCalledConfidently/nWindowsCallable;}
 	        double percentGchMethyOfNDRWindowsCalledConfidently() { return (double)sumGchMethyNDRWindowsCalledConfidently/(nNDRWindowsCalledConfidently * percentGchNumOfNDRWindows());}
 	        double percentGchCTDepthOfNDRWindows() { return (double)sumGchCTDepthInNDRWind/(nNDRWindowsCalledConfidently * percentGchNumOfNDRWindows());}
 	        double percentGchDepthOfNDRWindows() { return (double)sumGchDepthInNDRWind/(nNDRWindowsCalledConfidently * percentGchNumOfNDRWindows());}
+	        double percentGchDotOfNDRWindows() { return (double)sumGchDotInNDRWind/(nNDRWindowsCalledConfidently);}
 	        double percentGchNumOfNDRWindows() { return (double)sumGchNumInNDRWind/(nNDRWindowsCalledConfidently);}
 	        double percentGchMethyOfCallableWindowsLinker() { return (double)sumGchMethyNDRWindowsCalledConfidentlyLinker/(nNDRWindowsCalledConfidentlyLinker * percentGchNumOfCallableWindowsLinker());}
 	        double percentGchCTDepthOfCallableWindowsLinker() { return (double)sumGchCTDepthInNDRWindLinker/(nNDRWindowsCalledConfidentlyLinker * percentGchNumOfCallableWindowsLinker());}
 	        double percentGchDepthOfCallableWindowsLinker() { return (double)sumGchDepthInNDRWindLinker/(nNDRWindowsCalledConfidentlyLinker * percentGchNumOfCallableWindowsLinker());}
+	        double percentGchDotOfCallableWindowsLinker() { return (double)sumGchDotInNDRWindLinker/(nNDRWindowsCalledConfidentlyLinker);}
 	        double percentGchNumOfCallableWindowsLinker() { return (double)sumGchNumInNDRWindLinker/(nNDRWindowsCalledConfidentlyLinker);}
 	 }
 	 
@@ -231,12 +250,12 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		 genotypePriors = new BisulfiteDiploidSNPGenotypePriors();
 		 File fn = new File(NAC.outFile);
 		 writer = new bedObjectWriterImp(fn);
-		 String bedHeadLine = "chr\tstart\tend\taveMethyNDR\tgchNumNDR\tgchDepthNDR\tgchCTdepthNDR\taveMethyLinker\tgchNumLinker\tgchDepthLinker\tgchCTdepthLinker\tsigValue\n";
+		 String bedHeadLine = "chr\tstart\tend\taveMethyNDR\tgchNumNDR\tgchDepthNDR\tgchCTdepthNDR\tgchDotNDR\taveMethyLinker\tgchNumLinker\tgchDepthLinker\tgchCTdepthLinker\tgchDotLinker\tsigValue\n";
 		 writer.addHeader(bedHeadLine);
 		 if(NAC.ptMode){
 			 File fncw = new File(NAC.ocwf);
 			 callableWindWriter = new bedObjectWriterImp(fncw);
-			 String bedHeadLineWind = "chr\tstart\tend\taveMethyWind\tgchNumWind\tgchDepthWind\tgchCTdepthWind\tsigValue\n";
+			 String bedHeadLineWind = "chr\tstart\tend\taveMethyWind\tgchNumWind\tgchDepthWind\tgchCTdepthWind\tgchDotWind\tsigValue\n";
 			 callableWindWriter.addHeader(bedHeadLineWind);
 		 }
 		 if(NAC.vm){
@@ -485,16 +504,19 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		logger.info(String.format("Average GCH CT reads depth in callable windows                                %.2f", summary.percentGchCTDepthOfCallableWindows()));
 		
 		logger.info(String.format("Average GCH number in callable windows                                %.2f", summary.percentGchNumOfCallableWindows()));
+		logger.info(String.format("Average GCH data point in callable windows                                %.2f", summary.percentGchDotOfCallableWindows()));
 		
 		logger.info(String.format("Average GCH methylation in NDR windows                                %.2f", summary.percentGchMethyOfNDRWindowsCalledConfidently()));
 		logger.info(String.format("Average GCH reads depth in NDR windows                                %.2f", summary.percentGchDepthOfNDRWindows()));
 		logger.info(String.format("Average GCH CT reads depth in NDR windows                                %.2f", summary.percentGchCTDepthOfNDRWindows()));
 		logger.info(String.format("Average GCH number in NDR windows                                %.2f", summary.percentGchNumOfNDRWindows()));
+		logger.info(String.format("Average GCH data point in NDR windows                                %.2f", summary.percentGchDotOfNDRWindows()));
 		
 		logger.info(String.format("Average GCH methylation in NDR linker windows                                %.2f", summary.percentGchMethyOfCallableWindowsLinker()));
 		logger.info(String.format("Average GCH reads depth in NDR linker windows                                %.2f", summary.percentGchDepthOfCallableWindowsLinker()));
 		logger.info(String.format("Average GCH CT reads depth in NDR linker windows                                %.2f", summary.percentGchCTDepthOfCallableWindowsLinker()));
 		logger.info(String.format("Average GCH number in NDR linker windows                                %.2f", summary.percentGchNumOfCallableWindowsLinker()));
+		logger.info(String.format("Average GCH data point in NDR linker windows                                %.2f", summary.percentGchDotOfCallableWindowsLinker()));
 		
 		writer.close();
 		if(NAC.ptMode){
@@ -505,297 +527,6 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	// by statistics test comparing with fake region simulate whole genome level GCH methylation
 	public void getNDRFromWindowsBySigTestWithRandomNoise(windowsObject windows){
 		
-		windowsReturnObject objMid = getGchListFromWindow(windows.windowsMid);	
-		windowsReturnObject objPre = getGchListFromWindow(windows.windowsPre);		
-		windowsReturnObject objPost = getGchListFromWindow(windows.windowsPost);
-		
-		
-		
-		
-		//something wrong here, callable window are not so many. 
-		
-		if(objMid.numValidGch >= NAC.minGchNum){
-			
-			
-			
-			int[] num = validateGch(windows.windowsMid.peekLast());
-			int numC = 0;
-			int numT = 0;
-			int numO = 0;
-			if(num != null){
-				numC = num[0];
-				numT = num[1];
-				numO = num[2];
-			}
-			winChr = windows.windowsMid.peekFirst().getLoc().getContig();
-			//look at windows callable or not
-			if(!winEndflag){
-				if(winStartflag && winInflag){
-					if(num != null){
-						tmpGchNumWind++;
-						tmpGchCTDepthWind = tmpGchCTDepthWind + numC + numT;
-						tmpGchDepthWind = tmpGchDepthWind + numC + numT + numO;
-						tmpGchMethyWind += (double)numC/(double)(numC + numT);
-					}
-					if(winForceEndflag){
-						winEndflag = true;
-						winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
-					}
-				}
-				else{
-					if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
-						winPreLinkerflag = true;
-						winStartflag = true;
-						winInflag = true;
-						winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-						tmpGchNumWind = objMid.numValidGch;
-						tmpGchCTDepthWind = objMid.sumGchCTDepth;
-						tmpGchDepthWind = objMid.sumGchDepth;
-						tmpGchMethyWind = objMid.sumGchMethy;
-						double sigValue = getSigTest(objMid.dot, objPre.dot);
-						if(!NDRInflag && winInflag){
-							if(this.sigValueMem >= sigValue || this.sigValueMem == -1){
-								this.sigValueMem = sigValue;
-							}
-								
-						}
-						if(winForceEndflag){
-							winEndflag = true;
-							winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
-						}
-					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
-						winPostLinkerflag = true;
-						
-						if(!winPreLinkerflag){
-							winStartflag = true;
-							winInflag = true;
-							winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-							tmpGchNumWind = objMid.numValidGch;
-							tmpGchCTDepthWind = objMid.sumGchCTDepth;
-							tmpGchDepthWind = objMid.sumGchDepth;
-							tmpGchMethyWind = objMid.sumGchMethy;
-							double sigValue = getSigTest(objMid.dot, objPost.dot);
-							if(!NDRInflag && winInflag){
-								if(this.sigValueMem >= sigValue || this.sigValueMem == -1){
-									this.sigValueMem = sigValue;
-								}
-									
-							}
-							if(winForceEndflag){
-								winEndflag = true;
-								winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
-							}
-						}
-						
-						
-					}
-					
-				}
-			}
-			
-			//look at NDR
-			if(!NDREndflag){
-				if(NDRStartflag && NDRInflag){
-					if(num != null){
-						tmpGchNumWindNDR++;
-						tmpGchCTDepthWindNDR = tmpGchCTDepthWindNDR + numC + numT;
-						tmpGchDepthWindNDR = tmpGchDepthWindNDR + numC + numT + numO;
-						tmpGchMethyWindNDR += (double)numC/(double)(numC + numT);
-						if(NAC.vm){
-							Double[] tmpGch = new Double[2];
-							tmpGch[0] = (double) windows.windowsMid.peekLast().getLoc().getStart();
-							tmpGch[1] =	(double)numC/(double)(numC + numT);
-							gchListForVerboseMode.add(tmpGch);
-						}
-					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
-						double sigValue = getSigTest(objMid.dot, objPost.dot);
-						if(sigValue < NAC.sigValue){
-							NDREndflag = true;
-							NDRPostLinkerflag = true;
-							NDREndCor = windows.windowsMid.peekLast().getLoc().getStart();
-							if(NDRPreLinkerflag){
-								tmpGchNumWindLinker += objPost.numValidGch;
-								tmpGchCTDepthWindLinker += objPost.sumGchCTDepth;
-								tmpGchDepthWindLinker += objPost.sumGchDepth;
-								tmpGchMethyWindLinker += objPost.sumGchMethy;
-							}
-							else{
-								
-								sigValueMem = sigValue;
-
-								tmpGchNumWindLinker = objPost.numValidGch;
-								tmpGchCTDepthWindLinker = objPost.sumGchCTDepth;
-								tmpGchDepthWindLinker = objPost.sumGchDepth;
-								tmpGchMethyWindLinker = objPost.sumGchMethy;
-								
-							}	
-							winStartflag = true;
-							winInflag = true;
-							winEndflag = true;
-							winEndCor = NDREndCor;
-							winStartCor = NDRStartCor;
-							tmpGchNumWind = tmpGchNumWindNDR;
-							tmpGchCTDepthWind = tmpGchCTDepthWindNDR;
-							tmpGchDepthWind = tmpGchDepthWindNDR;
-							tmpGchMethyWind = tmpGchMethyWindNDR;
-						}
-						
-						
-					}
-					
-					if(winForceEndflag){
-						NDREndCor = windows.windowsMid.peekLast().getLoc().getStart();
-						NDREndflag = true;
-						winStartflag = true;
-						winInflag = true;
-						winEndflag = true;
-						winEndCor = NDREndCor;
-						winStartCor = NDRStartCor;
-						tmpGchNumWind = tmpGchNumWindNDR;
-						tmpGchCTDepthWind = tmpGchCTDepthWindNDR;
-						tmpGchDepthWind = tmpGchDepthWindNDR;
-						tmpGchMethyWind = tmpGchMethyWindNDR;
-					}
-				}
-				else{
-					if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
-						double sigValue = getSigTest(objMid.dot, objPre.dot);
-						if(sigValue < NAC.sigValue){
-							NDRStartflag = true;
-							NDRInflag = true;
-							NDRPreLinkerflag = true;
-							sigValueMem = sigValue;
-							NDRStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-							tmpGchNumWindNDR = objMid.numValidGch;
-							tmpGchCTDepthWindNDR = objMid.sumGchCTDepth;
-							tmpGchDepthWindNDR = objMid.sumGchDepth;
-							tmpGchMethyWindNDR = objMid.sumGchMethy;
-							if(NAC.vm){
-								Iterator<NDRCallContext> it = windows.windowsMid.iterator();
-								while(it.hasNext()){
-								//	if(it.next().getCytosinePatternFlag()){
-										Double[] tmpGch = new Double[2];
-										NDRCallContext tmp = it.next();
-										tmpGch[0] = (double) tmp.getLoc().getStart();
-										int[] numVm = validateGch(tmp);
-										
-										if(numVm != null){
-											tmpGch[1] =	(double)numVm[0]/(double)(numVm[0] + numVm[1]);
-											gchListForVerboseMode.add(tmpGch);
-										}
-										
-										
-								//	}
-									
-								}
-								
-							}
-							tmpGchNumWindLinker = objPre.numValidGch;
-							tmpGchCTDepthWindLinker = objPre.sumGchCTDepth;
-							tmpGchDepthWindLinker = objPre.sumGchDepth;
-							tmpGchMethyWindLinker = objPre.sumGchMethy;
-							//force wind start at NDR start place
-							winStartflag = true;
-							winInflag = true;
-							winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-							tmpGchNumWind = objMid.numValidGch;
-							tmpGchCTDepthWind = objMid.sumGchCTDepth;
-							tmpGchDepthWind = objMid.sumGchDepth;
-							tmpGchMethyWind = objMid.sumGchMethy;
-
-						}
-						if(winForceEndflag){
-							NDREndCor = windows.windowsMid.peekLast().getLoc().getStart();
-							NDREndflag = true;
-						}
-						
-					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
-						double sigValue = getSigTest(objMid.dot, objPost.dot);
-						if(sigValue < NAC.sigValue){
-							NDREndflag = true;
-							NDRPostLinkerflag = true;
-							NDREndCor = windows.windowsMid.peekLast().getLoc().getStart();
-							if(NDRPreLinkerflag){
-								tmpGchNumWindLinker += objPost.numValidGch;
-								tmpGchCTDepthWindLinker += objPost.sumGchCTDepth;
-								tmpGchDepthWindLinker += objPost.sumGchDepth;
-								tmpGchMethyWindLinker += objPost.sumGchMethy;
-							}
-							else{
-								NDRStartflag = true;
-								NDRInflag = true;
-								sigValueMem = sigValue;
-								NDRStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-								tmpGchNumWindNDR = objMid.numValidGch;
-								tmpGchCTDepthWindNDR = objMid.sumGchCTDepth;
-								tmpGchDepthWindNDR = objMid.sumGchDepth;
-								tmpGchMethyWindNDR = objMid.sumGchMethy;
-								
-								if(NAC.vm){
-									Iterator<NDRCallContext> it = windows.windowsMid.iterator();
-									while(it.hasNext()){
-										//if(it.next().getCytosinePatternFlag()){
-										Double[] tmpGch = new Double[2];
-										NDRCallContext tmp = it.next();
-										tmpGch[0] = (double) tmp.getLoc().getStart();
-										int[] numVm = validateGch(tmp);
-										
-										if(numVm != null){
-											tmpGch[1] =	(double)numVm[0]/(double)(numVm[0] + numVm[1]);
-											gchListForVerboseMode.add(tmpGch);
-										}
-											
-											
-										//}
-										
-									}
-									
-								}
-								tmpGchNumWindLinker = objPost.numValidGch;
-								tmpGchCTDepthWindLinker = objPost.sumGchCTDepth;
-								tmpGchDepthWindLinker = objPost.sumGchDepth;
-								tmpGchMethyWindLinker = objPost.sumGchMethy;
-								
-								winStartflag = true;
-								winInflag = true;
-								winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
-								tmpGchNumWind = objMid.numValidGch;
-								tmpGchCTDepthWind = objMid.sumGchCTDepth;
-								tmpGchDepthWind = objMid.sumGchDepth;
-								tmpGchMethyWind = objMid.sumGchMethy;
-							}
-							winEndflag = true;
-							winEndCor = NDREndCor;
-						}
-						if(winForceEndflag){
-							winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
-							winEndflag = true;
-						}
-					}
-					
-				}
-			}
-			
-		}
-		else{
-			if(winStartflag && winInflag){
-				winEndflag = true;
-			//	winStartflag = false;
-			//	winInflag = false;
-				winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
-
-			}
-			if(NDRStartflag && NDRInflag){
-				NDREndflag = true;
-			//	NDRStartflag = false;
-			//	NDRInflag = false;
-				NDREndCor = windows.windowsMid.peekLast().getLoc().getStart();
-			}
-			
-		}
 		
 	}
 	
@@ -813,8 +544,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		
 		//something wrong here, callable window are not so many. 
 		
-		if(objMid.numValidGch >= NAC.minGchNum){
-			
+		//if(objMid.numValidGch >= NAC.minGchNum){
+		if(objMid.numGchDot >= NAC.minGchDotWindow && objMid.numValidGch >= NAC.minGchNum){	
 			
 			
 			int[] num = validateGch(windows.windowsMid.peekLast());
@@ -833,6 +564,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 					if(num != null){
 						tmpGchNumWind++;
 						tmpGchCTDepthWind = tmpGchCTDepthWind + numC + numT;
+						tmpGchDotWind = tmpGchDotWind + numC + numT;
 						tmpGchDepthWind = tmpGchDepthWind + numC + numT + numO;
 						tmpGchMethyWind += (double)numC/(double)(numC + numT);
 					}
@@ -842,13 +574,15 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 					}
 				}
 				else{
-					if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
+					//if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
+					if(objPre.numGchDot >= NAC.minGchDotLinkerWindow && objPre.numValidGch >= NAC.minGchNumLinkerWindow){
 						winPreLinkerflag = true;
 						winStartflag = true;
 						winInflag = true;
 						winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 						tmpGchNumWind = objMid.numValidGch;
 						tmpGchCTDepthWind = objMid.sumGchCTDepth;
+						tmpGchDotWind = objMid.numGchDot;
 						tmpGchDepthWind = objMid.sumGchDepth;
 						tmpGchMethyWind = objMid.sumGchMethy;
 						double sigValue = getSigTest(objMid.dot, objPre.dot);
@@ -863,7 +597,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							winEndCor = windows.windowsMid.peekLast().getLoc().getStart();
 						}
 					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					//if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					if(objPost.numGchDot >= NAC.minGchDotLinkerWindow && objPost.numValidGch >= NAC.minGchNumLinkerWindow){
 						winPostLinkerflag = true;
 						
 						if(!winPreLinkerflag){
@@ -872,6 +607,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 							tmpGchNumWind = objMid.numValidGch;
 							tmpGchCTDepthWind = objMid.sumGchCTDepth;
+							tmpGchDotWind = objMid.numGchDot;
 							tmpGchDepthWind = objMid.sumGchDepth;
 							tmpGchMethyWind = objMid.sumGchMethy;
 							double sigValue = getSigTest(objMid.dot, objPost.dot);
@@ -899,6 +635,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 					if(num != null){
 						tmpGchNumWindNDR++;
 						tmpGchCTDepthWindNDR = tmpGchCTDepthWindNDR + numC + numT;
+						tmpGchDotWindNDR = tmpGchDotWindNDR + numC + numT;
 						tmpGchDepthWindNDR = tmpGchDepthWindNDR + numC + numT + numO;
 						tmpGchMethyWindNDR += (double)numC/(double)(numC + numT);
 						if(NAC.vm){
@@ -908,7 +645,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							gchListForVerboseMode.add(tmpGch);
 						}
 					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					//if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					if(objPost.numGchDot >= NAC.minGchDotLinkerWindow && objPost.numValidGch >= NAC.minGchNumLinkerWindow){
 						double sigValue = getSigTest(objMid.dot, objPost.dot);
 						if(sigValue < NAC.sigValue){
 							NDREndflag = true;
@@ -917,6 +655,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							if(NDRPreLinkerflag){
 								tmpGchNumWindLinker += objPost.numValidGch;
 								tmpGchCTDepthWindLinker += objPost.sumGchCTDepth;
+								tmpGchDotWindLinker += objPost.numGchDot;
 								tmpGchDepthWindLinker += objPost.sumGchDepth;
 								tmpGchMethyWindLinker += objPost.sumGchMethy;
 							}
@@ -926,6 +665,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 
 								tmpGchNumWindLinker = objPost.numValidGch;
 								tmpGchCTDepthWindLinker = objPost.sumGchCTDepth;
+								tmpGchDotWindLinker = objPost.numGchDot;
 								tmpGchDepthWindLinker = objPost.sumGchDepth;
 								tmpGchMethyWindLinker = objPost.sumGchMethy;
 								
@@ -937,6 +677,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							winStartCor = NDRStartCor;
 							tmpGchNumWind = tmpGchNumWindNDR;
 							tmpGchCTDepthWind = tmpGchCTDepthWindNDR;
+							tmpGchDotWind = tmpGchDotWindNDR;
 							tmpGchDepthWind = tmpGchDepthWindNDR;
 							tmpGchMethyWind = tmpGchMethyWindNDR;
 						}
@@ -954,12 +695,14 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 						winStartCor = NDRStartCor;
 						tmpGchNumWind = tmpGchNumWindNDR;
 						tmpGchCTDepthWind = tmpGchCTDepthWindNDR;
+						tmpGchDotWind = tmpGchDotWindNDR;
 						tmpGchDepthWind = tmpGchDepthWindNDR;
 						tmpGchMethyWind = tmpGchMethyWindNDR;
 					}
 				}
 				else{
-					if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
+					//if(objPre.numValidGch >= NAC.minGchNumLinkerWindow){
+					if(objPre.numGchDot >= NAC.minGchDotLinkerWindow && objPre.numValidGch >= NAC.minGchNumLinkerWindow){
 						double sigValue = getSigTest(objMid.dot, objPre.dot);
 						if(sigValue < NAC.sigValue){
 							NDRStartflag = true;
@@ -969,6 +712,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							NDRStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 							tmpGchNumWindNDR = objMid.numValidGch;
 							tmpGchCTDepthWindNDR = objMid.sumGchCTDepth;
+							tmpGchDotWindNDR = objMid.numGchDot;
 							tmpGchDepthWindNDR = objMid.sumGchDepth;
 							tmpGchMethyWindNDR = objMid.sumGchMethy;
 							if(NAC.vm){
@@ -993,6 +737,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							}
 							tmpGchNumWindLinker = objPre.numValidGch;
 							tmpGchCTDepthWindLinker = objPre.sumGchCTDepth;
+							tmpGchDotWindLinker = objPre.numGchDot;
 							tmpGchDepthWindLinker = objPre.sumGchDepth;
 							tmpGchMethyWindLinker = objPre.sumGchMethy;
 							//force wind start at NDR start place
@@ -1001,6 +746,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 							tmpGchNumWind = objMid.numValidGch;
 							tmpGchCTDepthWind = objMid.sumGchCTDepth;
+							tmpGchDotWind = objMid.numGchDot;
 							tmpGchDepthWind = objMid.sumGchDepth;
 							tmpGchMethyWind = objMid.sumGchMethy;
 
@@ -1011,7 +757,8 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 						}
 						
 					}
-					if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					//if(objPost.numValidGch >= NAC.minGchNumLinkerWindow){
+					if(objPost.numGchDot >= NAC.minGchDotLinkerWindow && objPost.numValidGch >= NAC.minGchNumLinkerWindow){
 						double sigValue = getSigTest(objMid.dot, objPost.dot);
 						if(sigValue < NAC.sigValue){
 							NDREndflag = true;
@@ -1020,6 +767,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 							if(NDRPreLinkerflag){
 								tmpGchNumWindLinker += objPost.numValidGch;
 								tmpGchCTDepthWindLinker += objPost.sumGchCTDepth;
+								tmpGchDotWindLinker += objPost.numGchDot;
 								tmpGchDepthWindLinker += objPost.sumGchDepth;
 								tmpGchMethyWindLinker += objPost.sumGchMethy;
 							}
@@ -1030,6 +778,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 								NDRStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 								tmpGchNumWindNDR = objMid.numValidGch;
 								tmpGchCTDepthWindNDR = objMid.sumGchCTDepth;
+								tmpGchDotWindNDR = objMid.numGchDot;
 								tmpGchDepthWindNDR = objMid.sumGchDepth;
 								tmpGchMethyWindNDR = objMid.sumGchMethy;
 								
@@ -1055,6 +804,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 								}
 								tmpGchNumWindLinker = objPost.numValidGch;
 								tmpGchCTDepthWindLinker = objPost.sumGchCTDepth;
+								tmpGchDotWindLinker = objPost.numGchDot;
 								tmpGchDepthWindLinker = objPost.sumGchDepth;
 								tmpGchMethyWindLinker = objPost.sumGchMethy;
 								
@@ -1063,6 +813,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 								winStartCor = windows.windowsMid.peekFirst().getLoc().getStart();
 								tmpGchNumWind = objMid.numValidGch;
 								tmpGchCTDepthWind = objMid.sumGchCTDepth;
+								tmpGchDotWind = objMid.numGchDot;
 								tmpGchDepthWind = objMid.sumGchDepth;
 								tmpGchMethyWind = objMid.sumGchMethy;
 							}
@@ -1199,8 +950,10 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	public windowsReturnObject getGchListFromWindow(LinkedList<NDRCallContext> window){
 		double sumGchMethy = 0;
 		int numValidGch = 0;
+		int numGchDot = 0;
 		int sumGchCTDepth = 0;
 		int sumGchDepth = 0;
+		//ArrayList<Double> dot = new ArrayList<Double>();
 		ArrayList<Double> dot = new ArrayList<Double>();
 		Iterator<NDRCallContext> itContext = window.iterator();
 		while(itContext.hasNext()){
@@ -1213,28 +966,37 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 				int numO = num[2];
 				numValidGch++;
 				sumGchCTDepth += (numC + numT);
+				numGchDot += (numC + numT);
 				sumGchDepth += (numC + numT + numO);
 				sumGchMethy += (double)numC/(double)(numC + numT);
+				//for(int i=numC; i>=0;i--){
+				//	dot.add(1);
+				//}
+				//for(int i=numT; i>=0;i--){
+				//	dot.add(0);
+				//}
 				dot.add((double)numC/(double)(numC + numT));
 			 }	
 			//	System.out.println("loc: " + tmpContext.getLoc().getStart() + "\tGchMethy: " + (double)numC/(double)(numC + numT) + "\tnumC: " + numC + "\tnumT: " + numT);
 			
 		}
-		windowsReturnObject obj = new windowsReturnObject(numValidGch, sumGchDepth, sumGchCTDepth, sumGchMethy, dot);
+		windowsReturnObject obj = new windowsReturnObject(numValidGch, sumGchDepth, sumGchCTDepth, sumGchMethy, numGchDot, dot);
 		return obj;
 	}
 
 	public class windowsReturnObject {
 		public int numValidGch;
+		public int numGchDot;
 		public int sumGchCTDepth;
 		public int sumGchDepth;
 		public double sumGchMethy;
 		public ArrayList<Double> dot;
-		public windowsReturnObject(int numValidGch,int sumGchDepth, int sumGchCTDepth,double sumGchMethy, ArrayList<Double> dot){
+		public windowsReturnObject(int numValidGch,int sumGchDepth, int sumGchCTDepth,double sumGchMethy, int numGchDot, ArrayList<Double> dot){
 			this.numValidGch = numValidGch;
 			this.sumGchCTDepth = sumGchCTDepth;
 			this.sumGchDepth = sumGchDepth;
 			this.sumGchMethy = sumGchMethy;
+			this.numGchDot = numGchDot;
 			this.dot = dot;
 		}
 	}
@@ -1344,18 +1106,29 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		for(int i = 0; i < dotAdj.size();i++){
 			adj[i] = dotAdj.get(i);
 		}
-		if(NAC.ksTest){
+		if(NAC.test.equalsIgnoreCase("ksTest")){
+			MannWhitneyTest test = new MannWhitneyTest(mid, adj, H1.GREATER_THAN);
+			return test.getSP();	
+		}
+		else if(NAC.test.equalsIgnoreCase("tTest")){
+			TwoSampleTtest test = new TwoSampleTtest(mid, adj, H1.GREATER_THAN, NAC.samVar);
+			return test.getSP();	
+		}
+		else if(NAC.test.equalsIgnoreCase("ksTest")){
 			SmirnovTest test = new SmirnovTest(mid, adj, H1.GREATER_THAN);
 			return test.getSP();	
 		}
 		else{
-			MannWhitneyTest test = new MannWhitneyTest(mid, adj, H1.GREATER_THAN);
-			return test.getSP();
+			System.err.println("Wrong test name!");
+			System.exit(1);
 		}
+		return Double.POSITIVE_INFINITY;
 		
 		//
 		
 	}
+	
+	
 	
 	public void addNDRtoWriter(){
 		boolean outputFlag = false;
@@ -1367,10 +1140,12 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 			valuesNDR.add(tmpGchNumWindNDR);
 			valuesNDR.add(tmpGchDepthWindNDR/tmpGchNumWindNDR);
 			valuesNDR.add(tmpGchCTDepthWindNDR/tmpGchNumWindNDR);
+			valuesNDR.add(tmpGchDotWindNDR);
 			valuesNDR.add(tmpGchMethyWindLinker/tmpGchNumWindLinker);
 			valuesNDR.add(tmpGchNumWindLinker);
 			valuesNDR.add(tmpGchDepthWindLinker/tmpGchNumWindLinker);
 			valuesNDR.add(tmpGchCTDepthWindLinker/tmpGchNumWindLinker);
+			valuesNDR.add(tmpGchDotWindLinker);
 			valuesNDR.add(this.sigValueMem);
 			if(NAC.vm){
 				Iterator<Double[]> it = gchListForVerboseMode.iterator();
@@ -1390,8 +1165,10 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 			summary.nNDRWindowsCalledConfidentlyLinker++;
 			summary.sumGchCTDepthInNDRWind += tmpGchCTDepthWindNDR;
 			summary.sumGchDepthInNDRWind += tmpGchDepthWindNDR;
+			summary.sumGchDotInNDRWind += tmpGchDotWindNDR;
 			summary.sumGchCTDepthInNDRWindLinker += tmpGchCTDepthWindLinker;
 			summary.sumGchDepthInNDRWindLinker += tmpGchDepthWindLinker;
+			summary.sumGchDotInNDRWindLinker += tmpGchDotWindLinker;
 			summary.sumGchMethyNDRWindowsCalledConfidently += tmpGchMethyWindNDR;
 			summary.sumGchMethyNDRWindowsCalledConfidentlyLinker += tmpGchMethyWindLinker;
 			summary.sumGchNumInNDRWind += tmpGchNumWindNDR;
@@ -1412,6 +1189,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 				valuesWind.add(tmpGchNumWind);
 				valuesWind.add(tmpGchDepthWind/tmpGchNumWind);
 				valuesWind.add(tmpGchCTDepthWind/tmpGchNumWind);
+				valuesWind.add(tmpGchDotWind);
 				valuesWind.add(this.sigValueMem);
 				
 				bedObject bedLineWind = new bedObject(winChr, winStartCor, winEndCor, valuesWind); //chr, start, end, aveMethyWind, gchNumWind, gchCTdepthWind
@@ -1421,6 +1199,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 				summary.sumGchCTDepthWind += tmpGchCTDepthWind;
 				summary.sumGchMethyWindowsCalledConfidently += tmpGchMethyWind;
 				summary.sumGchNumInWindCalledConfidently += tmpGchNumWind;
+				summary.sumGchDotWind += tmpGchDotWind;
 				
 				clearPtModeStatus();
 			}
@@ -1459,11 +1238,13 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		tmpGchDepthWindNDR = 0;
 		tmpGchNumWindNDR = 0;
 		tmpGchMethyWindNDR = 0;
+		tmpGchDotWindNDR = 0;
 		
 		tmpGchCTDepthWindLinker = 0;
 		tmpGchDepthWindLinker = 0;
 		tmpGchNumWindLinker = 0;
 		tmpGchMethyWindLinker = 0;
+		tmpGchDotWindLinker = 0;
 		
 		sigValueMem = -1;
 		
@@ -1485,6 +1266,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		tmpGchDepthWind = 0;
 		tmpGchNumWind = 0;
 		tmpGchMethyWind = 0;
+		tmpGchDotWind = 0;
 	}
 	
 	private void modifyIntervals(){
@@ -1545,6 +1327,11 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 	}
 	
 	private boolean passWindowFilter(NDRCallContext value){
+		
+		return true;
+	}
+	/*
+	private boolean passWindowFilter(NDRCallContext value){
 		if(NAC.ptMode){
 			if ( value == null ){
 				return false;
@@ -1571,5 +1358,5 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		}
 		return true;
 	}
-	
+	*/
 }

@@ -25,6 +25,9 @@ public class NDRargumentCollection extends BisulfiteArgumentCollection {
 	@Argument(fullName = "minimum_CT_depth_for_gch_in_window", shortName = "mcd", doc = "minimum CT reads depth for count as valid GCH inside window", required = false)
     public int minCTDepth = 1;
 	
+	@Argument(fullName = "minimum_data_point_for_gch_in_window", shortName = "mdp", doc = "minimum data point of GCH inside a window", required = false)
+    public int minGchDotWindow = 10;
+	
 	@Argument(fullName = "minimum_depth_for_gch_in_window", shortName = "md", doc = "minimum reads depth for count as GCH inside window", required = false)
     public int minDepth = 1;
 	
@@ -36,6 +39,9 @@ public class NDRargumentCollection extends BisulfiteArgumentCollection {
 	
 	@Argument(fullName = "minimum_depth_for_gch_in_linker_window", shortName = "mdlw", doc = "minimum reads depth for GCH insidelinker  window", required = false)
     public int minDepthLinkerWindow = 1;
+	
+	@Argument(fullName = "minimum_data_point_for_gch_in_linker_window", shortName = "mdplw", doc = "minimum data point of gch in linker window", required = false)
+    public int minGchDotLinkerWindow = 100;
 	
 	@Argument(fullName = "outputFile", shortName = "outFile", doc = "bed File to which variants should be written", required = true)
     public String outFile = null;
@@ -49,8 +55,11 @@ public class NDRargumentCollection extends BisulfiteArgumentCollection {
 	@Argument(fullName = "enable_stat_test_for_ndr", shortName = "statTest", doc = "enable statitics test rather than hard threshold to detect NDR region", required = false)
     public boolean statTest = false;
 	
-	@Argument(fullName = "enable_ks_test_for_ndr", shortName = "ksTest", doc = "enable KS test rather than hard threshold to detect NDR region, otherwise, it will use Wilcoxon rank sum test", required = false)
-    public boolean ksTest = false;
+	@Argument(fullName = "test_name", shortName = "test", doc = "specify test it use. default is rankSumTest, the other choice is tTest, ksTest.", required = false)
+    public String test = "rankSumTest";
+	
+	@Argument(fullName = "same_Varation_for_t_test", shortName = "samVar", doc = "if use two sample T test, is it same variation of two group", required = false)
+    public boolean samVar = false;
 	
 	@Argument(fullName = "sig_threshold_for_test", shortName = "sigValue", doc = "significance threshold to detect NDR region", required = false)
     public double sigValue = 0.01;
@@ -86,10 +95,14 @@ public class NDRargumentCollection extends BisulfiteArgumentCollection {
 		nac.ndrThreshold = ndrThreshold;
 		nac.ndrDiffThreshold = ndrDiffThreshold;
 		nac.statTest = statTest;
-		nac.ksTest = ksTest;
+		nac.test = test;
+		nac.samVar = samVar;
 		nac.sigValue = sigValue;
 		nac.randomNoise = randomNoise;
 		nac.gchGmValue = gchGmValue;
+		
+		nac.minGchDotWindow = minGchDotWindow;
+		nac.minGchDotLinkerWindow = minGchDotLinkerWindow;
 		
 		nac.ptMode = ptMode;
 		nac.ocwf = ocwf;
