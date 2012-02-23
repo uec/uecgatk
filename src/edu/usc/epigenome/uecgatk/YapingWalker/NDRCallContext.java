@@ -1,5 +1,6 @@
 package edu.usc.epigenome.uecgatk.YapingWalker;
 
+import org.broad.tribble.bed.SimpleBEDFeature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -9,12 +10,20 @@ public class NDRCallContext {
 	private AlignmentContext context= null;
 	private GenomeLoc loc = null;
 	private boolean flag = false;
+	private SimpleBEDFeature rodLoci = null;
 	private double aveMethyInWindow = Double.NaN; //record the average GCH methylation value in the window which end in this genomic position.
 	
 	public NDRCallContext(AlignmentContext context, GenomeLoc loc) {
 		// TODO Auto-generated constructor stub
 		this.context = context;
 		this.loc = loc;
+	}
+	
+	public NDRCallContext(AlignmentContext context, GenomeLoc loc, SimpleBEDFeature rodLoci) {
+		// TODO Auto-generated constructor stub
+		this.context = context;
+		this.loc = loc;
+		this.rodLoci = rodLoci;
 	}
 
     /** The average sequence depth inside window */
@@ -48,6 +57,10 @@ public class NDRCallContext {
 	
 	public GenomeLoc getLoc(){
 		return loc;
+	}
+	
+	public SimpleBEDFeature getRodLoc(){
+		return rodLoci;
 	}
 	
 	public boolean getCytosinePatternFlag(){
