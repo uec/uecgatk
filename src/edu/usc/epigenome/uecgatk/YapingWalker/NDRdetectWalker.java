@@ -273,7 +273,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		AlignmentContext stratifiedContexts = it.getFilteredAndStratifiedContexts(NAC, ref, context);
 		
 		NDRCallContext ncc = new NDRCallContext(stratifiedContexts, ref.getLocus()); // this make some biad for seq poor region's nuc window 
-		
+		System.err.println(ref.getLocus().getStart());
 		if(stratifiedContexts == null){
 			ncc.setCytosinePatternFlag(false);
 			return ncc;
@@ -1106,7 +1106,7 @@ public class NDRdetectWalker extends LocusWalker<NDRCallContext,windowsObject> i
 		for(int i = 0; i < dotAdj.size();i++){
 			adj[i] = dotAdj.get(i);
 		}
-		if(NAC.test.equalsIgnoreCase("ksTest")){
+		if(NAC.test.equalsIgnoreCase("rankSumTest")){
 			MannWhitneyTest test = new MannWhitneyTest(mid, adj, H1.GREATER_THAN);
 			return test.getSP();	
 		}
