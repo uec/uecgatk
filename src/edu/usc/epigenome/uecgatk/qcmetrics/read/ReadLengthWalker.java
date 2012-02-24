@@ -25,7 +25,7 @@
 
 package edu.usc.epigenome.uecgatk.qcmetrics.read;
 
-import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -48,7 +48,7 @@ import java.io.*;
  */
 
 /**
- * Walks over the input data set, counts the number of nmers of a specified length (size given as input on cmd line)
+ * Walks over the input data set, counts various stats regarding alignment length of the reads
  */
 @Requires({DataSource.READS})
 public class ReadLengthWalker extends ReadWalker<ReadLengthWalker.ReadLenInfo,Integer> {
@@ -61,14 +61,14 @@ public class ReadLengthWalker extends ReadWalker<ReadLengthWalker.ReadLenInfo,In
     @Argument(fullName="skip", shortName="skip", doc="When provided, only every skip reads are analyzed", required=false)
     protected int SKIP = 1;
 
-    HashMap<String,DescriptiveStatistics> stats;
+    HashMap<String,SummaryStatistics> stats;
     
     
     public void initialize() 
     {
-    	stats=new HashMap<String,DescriptiveStatistics>();
+    	stats=new HashMap<String,SummaryStatistics>();
     	for (String s : Arrays.asList("ReadLength", "NumClippingEvents", "NumClippedBases", "PercentClipped"))
-    		stats.put(s, new DescriptiveStatistics());
+    		stats.put(s, new SummaryStatistics());
     	
     }
 
