@@ -27,18 +27,18 @@ import org.apache.commons.math.stat.descriptive.*;
  */
 @By(DataSource.REFERENCE)
 @ReadFilters( {MappingQualityReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class} ) // Filter out all reads with zero mapping quality
-public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean>  
+public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>  
 {
     @Output
     PrintStream out;
     protected  long count;
     protected  long current_window;
-    DescriptiveStatistics stats;
+    SynchronizedSummaryStatistics stats;
    
 
     public void initialize() 
     {
-    	 stats = new DescriptiveStatistics();
+    	 stats = new SynchronizedSummaryStatistics();
     }
     
     /**
@@ -100,6 +100,12 @@ public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean>
     	//for(double i=10.0; i<=100.0; i+=10.0)
     	//	out.println(i + " percentile=" + stats.getPercentile(i));    	
     }
+
+	@Override
+	public Boolean treeReduce(Boolean arg0, Boolean arg1)
+	{
+		return true;
+	}
 
 
 }
