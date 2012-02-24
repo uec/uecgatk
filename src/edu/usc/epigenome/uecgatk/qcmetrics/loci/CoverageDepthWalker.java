@@ -96,8 +96,9 @@ public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean>
     	out.println("mean=" + stats.getMean());
     	out.println("max=" + stats.getMax());
     	out.println("std dev=" + stats.getStandardDeviation());
-    	for(double i=10.0; i<=100.0; i+=10.0)
-    		out.println(i + " percentile=" + stats.getPercentile(i));    	
+    	//#this take too long
+    	//for(double i=10.0; i<=100.0; i+=10.0)
+    	//	out.println(i + " percentile=" + stats.getPercentile(i));    	
     }
 
 
