@@ -602,7 +602,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	
 		}
     	
-
+       
         // can't make a confident variant call here
         if ( value.vc == null)
             return sum;
@@ -625,9 +625,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     	        }
     		}
             if(autoEstimateC){
-            	if(secondIteration){ //in auto estimate mode, don't output in the first iteration
-            		
-            		
+            	if(secondIteration){ //in auto estimate mode, don't output in the first iteration	
             		if(BAC.OutputMode == BisulfiteGenotyperEngine.OUTPUT_MODE.EMIT_ALL_CYTOSINES){ // only output homozygous cytosine
             			if(value.cts.isC){
             				if(getToolkit().getArguments().numberOfThreads > 1){
@@ -758,6 +756,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             		else{
             			if(getToolkit().getArguments().numberOfThreads > 1){
             				multiThreadWriter.add(value.vc, value.refBase);
+            				
             				COUNT_CACHE_FOR_OUTPUT_VCF++;
             				if(COUNT_CACHE_FOR_OUTPUT_VCF % MAXIMUM_CACHE_FOR_OUTPUT_VCF ==0 ){
             					//writer.writeFlush();
@@ -776,6 +775,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             			}
             			else{
             				writer.add(value.vc, value.refBase);
+            				
             			}
             			
             		}

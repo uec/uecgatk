@@ -24,7 +24,7 @@ import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteGenotyperEngine.BadBaseFilterBisulfite;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteGenotyperEngine.OUTPUT_MODE;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel.methyStatus;
+
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -564,6 +564,14 @@ public class BisSNPUtils {
 	
 	public static String getRefGenomeVersion(){
 		return BisulfiteGenotyper.getBAC().referenceGenomeVer;
+	}
+	
+	public class methyStatus{
+		DiploidGenotype genotype;
+		double ratio;
+		methyStatus(){
+			
+		}
 	}
 	
 }

@@ -163,6 +163,7 @@ public class BisulfiteGenotyperEngine{
         
         if ( vc == null )
             return null;
+        
 
         BisulfiteVariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, GLs, vc);
         
@@ -190,7 +191,7 @@ public class BisulfiteGenotyperEngine{
         bglcm.initialize(ctss.get(), BAC, autoEstimateC, secondIteration);
         
         Allele refAllele = bglcm.getBsLikelihoods(tracker, refContext, stratifiedContexts, type, GLs, alternateAlleleToUse);
-       
+        
         if (refAllele != null)
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
         else
@@ -212,9 +213,13 @@ public class BisulfiteGenotyperEngine{
         if ( bglcms.get() == null ) {
             return null;
         }
+        
         log10AlleleFrequencyPosteriors.set(new double[3]);
         for ( String sample : GLs.keySet() ) {
         	BisulfiteBiallelicGenotypeLikelihoods GL = GLs.get(sample);
+        	if(vc.getStart() == BAC.testLocus){
+            	System.err.println("hah\t" + vc.getStart());
+            }
         	assignAFPosteriors(GL.getLikelihoods(),log10AlleleFrequencyPosteriors.get());
         	int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
             int secondAFguess = MathUtils.minElementIndex(log10AlleleFrequencyPosteriors.get());
@@ -234,14 +239,14 @@ public class BisulfiteGenotyperEngine{
             	logRatio = 10*(Math.log10(normalizedPosteriors[bestAFguess]) - Math.log10(normalizedPosteriors[secondAFguess]));
             }
             
-            if ( BAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(logRatio, bestAFguess) ) {
-            	double sum = 0.0;
-            	for (int j = 1; j < log10AlleleFrequencyPosteriors.get().length; j++)       	
-                	sum += normalizedPosteriors[j];
+           // if ( BAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(logRatio, bestAFguess) ) {
+           // 	double sum = 0.0;
+           // 	for (int j = 1; j < log10AlleleFrequencyPosteriors.get().length; j++)       	
+          //      	sum += normalizedPosteriors[j];
                     
-               double PofF = Math.min(sum, 1.0);
-                return estimateReferenceConfidence(stratifiedContexts, BAC.heterozygosity, true, 1.0 - PofF);
-            }
+          //     double PofF = Math.min(sum, 1.0);
+          //      return estimateReferenceConfidence(stratifiedContexts, BAC.heterozygosity, true, 1.0 - PofF);
+           // }
             
             HashMap<String, Genotype> genotypes = new HashMap<String, Genotype>();
             
@@ -380,8 +385,10 @@ public class BisulfiteGenotyperEngine{
                     myAlleles, genotypes, logRatio/10.0, passesCallThreshold(logRatio) ? null : filter, attributes);
             BisulfiteVariantCallContext call = new BisulfiteVariantCallContext(vcCall, rawContext,  passesCallThreshold(logRatio), ctss.get(), passesEmitThreshold(logRatio));
             call.setRefBase(refContext.getBase());
+            
             return call;
         }
+        
 		return null;
 	}
 	
@@ -570,15 +577,15 @@ public class BisulfiteGenotyperEngine{
 		else{
 			cPos = 0;
 		}
-		boolean first = true;
+		boolean cytosineOnly = false;
 		for(String cytosineType : ctss.get().cytosineListMap.keySet()){
 			String[] tmpKey = cytosineType.split("-");
 			Double[] value = ctss.get().cytosineListMap.get(cytosineType);
 
 			if(Double.compare(value[3], 1.0) == 0){ //in first iteration, it will require higher confidance for calling C, 100 times more than the other type of C; then second iteration, it just 10 times more likelihood than any other type of C
-				if(first){
-					cTypeStatus = tmpKey[0];
-					first = false;
+				if(tmpKey[0].equalsIgnoreCase("C")){
+					//cTypeStatus = tmpKey[0];
+					cytosineOnly = true;
 				}
 				else{
 					cTypeStatus = cTypeStatus + "," + tmpKey[0];
@@ -674,7 +681,14 @@ public class BisulfiteGenotyperEngine{
 			}
 			
  		}
-		return cTypeStatus;
+		if(cytosineOnly){
+			return cTypeStatus;
+		}
+		else{
+			cTypeStatus="";
+			return cTypeStatus;
+		}
+		
 	}
 
 	   /**

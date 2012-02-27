@@ -43,7 +43,7 @@ public class NDRargumentCollection extends BisulfiteArgumentCollection {
 	@Argument(fullName = "minimum_data_point_for_gch_in_linker_window", shortName = "mdplw", doc = "minimum data point of gch in linker window", required = false)
     public int minGchDotLinkerWindow = 100;
 	
-	@Argument(fullName = "outputFile", shortName = "outFile", doc = "bed File to which variants should be written", required = true)
+	@Argument(fullName = "outputFile", shortName = "outFile", doc = "bed File to which variants should be written", required = false)
     public String outFile = null;
 	
 	@Argument(fullName = "minimum_gch_methy_for_ndr", shortName = "ndrThreshold", doc = "minimum GCH methylation value criteria to be NDR region", required = false)
