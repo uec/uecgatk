@@ -577,7 +577,7 @@ public class BisulfiteGenotyperEngine{
 		else{
 			cPos = 0;
 		}
-		boolean cytosineOnly = false;
+	//	boolean cytosineOnly = false;
 		for(String cytosineType : ctss.get().cytosineListMap.keySet()){
 			String[] tmpKey = cytosineType.split("-");
 			Double[] value = ctss.get().cytosineListMap.get(cytosineType);
@@ -585,7 +585,7 @@ public class BisulfiteGenotyperEngine{
 			if(Double.compare(value[3], 1.0) == 0){ //in first iteration, it will require higher confidance for calling C, 100 times more than the other type of C; then second iteration, it just 10 times more likelihood than any other type of C
 				if(tmpKey[0].equalsIgnoreCase("C")){
 					//cTypeStatus = tmpKey[0];
-					cytosineOnly = true;
+			//		cytosineOnly = true;
 				}
 				else{
 					cTypeStatus = cTypeStatus + "," + tmpKey[0];
@@ -681,13 +681,13 @@ public class BisulfiteGenotyperEngine{
 			}
 			
  		}
-		if(cytosineOnly){
+	//	if(cytosineOnly){
 			return cTypeStatus;
-		}
-		else{
-			cTypeStatus="";
-			return cTypeStatus;
-		}
+	//	}
+	//	else{
+	//		cTypeStatus="";
+	//		return cTypeStatus;
+	//	}
 		
 	}
 
