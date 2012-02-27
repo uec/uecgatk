@@ -962,7 +962,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         logger.info(String.format("Actual calls made                            %d", sum.nCallsMade));
         logger.info(String.format("%% Methylation level of Cytosine loci       %3.3f", sum.percentMethyLevelOfC()));
 
-        outLine = "C-1:" + sum.percentMethyLevelOfC() + "\t" + sum.nCallsMade  + "\n";
+        outLine = "C-1:" + sum.percentMethyLevelOfC() + "\t" + sum.nCytosineBasesCalledConfidently  + "\n";
         
         //logger.info(String.format("%% Methylation level of CHH loci       %3.3f", sum.percentMethyLevelOfChh()));
        // logger.info(String.format("%% Methylation level of CHG loci       %3.3f", sum.percentMethyLevelOfChg()));
