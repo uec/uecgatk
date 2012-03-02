@@ -10,6 +10,8 @@ public class NDRCallContext {
 	private AlignmentContext context= null;
 	private GenomeLoc loc = null;
 	private boolean flag = false;
+	private boolean wcgFlag = false;
+	private boolean hcgFlag = false;
 	private SimpleBEDFeature rodLoci = null;
 	private double aveMethyInWindow = Double.NaN; //record the average GCH methylation value in the window which end in this genomic position.
 	
@@ -66,10 +68,27 @@ public class NDRCallContext {
 	public boolean getCytosinePatternFlag(){
 		return flag;
 	}
-	
+
 	public void setCytosinePatternFlag(boolean cytosinePatternFlag){
 		this.flag = cytosinePatternFlag;
 	}
+	
+	public void setWcgPatternFlag(boolean wcgPatternFlag){
+		this.wcgFlag = wcgPatternFlag;
+	}
+	
+	public boolean getWcgPatternFlag(){
+		return wcgFlag;
+	}
+	
+	public void setHcgPatternFlag(boolean hcgPatternFlag){
+		this.hcgFlag = hcgPatternFlag;
+	}
+	
+	public boolean getHcgPatternFlag(){
+		return hcgFlag;
+	}
+	
 	
 	public void setGchMethyInWindow(double aveMethy){
 		this.aveMethyInWindow = aveMethy;

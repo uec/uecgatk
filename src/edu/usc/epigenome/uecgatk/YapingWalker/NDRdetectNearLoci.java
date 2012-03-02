@@ -18,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -31,6 +32,8 @@ import jsc.tests.H1;
 
 import net.sf.samtools.SAMRecord;
 
+import org.apache.commons.math.distribution.BinomialDistributionImpl;
+import org.apache.commons.math.util.MathUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.bed.SimpleBEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
@@ -75,6 +78,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
+import cern.jet.stat.Probability;
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRdetectNearLoci.windowsObject;
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRargumentCollection;
 
@@ -131,12 +136,17 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 	
 	private int tmpGchDotWind = 0;
 	
-
+	private int tmpGchNumCDotWind = 0;
 	
 	private double tmpGchMethyWind = 0;
 
+	private double tmpGchMethyWindLinker = 0;
 	
+	private double tmpWcgMethyWind = 0;
 	
+	private int tmpWcgNumWind = 0;
+	
+	//private double tmpHcgMethyWind = 0;
 	
 	private double sigValueMem = -1;
 	
@@ -173,6 +183,18 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 	        
 	        /** The sum of GCH methylation value of windows called confidently (according to user threshold), contained enough confidantly GCH and enough seq depth */
 	        double sumGchMethyWindowsCalledConfidently = 0;
+	        
+	        /** The number of Gch bases called confidently (according to user threshold), either ref or other */
+	        long sumHcgNumInWindCalledConfidently = 0;
+	        
+	        /** The sum of GCH methylation value of windows called confidently (according to user threshold), contained enough confidantly GCH and enough seq depth */
+	        double sumHcgMethyWindowsCalledConfidently = 0;
+	        
+	        /** The number of Gch bases called confidently (according to user threshold), either ref or other */
+	        long sumWcgNumInWindCalledConfidently = 0;
+	        
+	        /** The sum of GCH methylation value of windows called confidently (according to user threshold), contained enough confidantly GCH and enough seq depth */
+	        double sumWcgMethyWindowsCalledConfidently = 0;
 	        
 	        /** The average sequence depth inside NDR window */
 	        double sumGchCTDepthInNDRWind = 0;
@@ -214,10 +236,14 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 	        
 	        double percentCallableWindowOfAll() { return (double)nWindowsCallable/nWindowsVisited;}
 	        double percentGchMethyOfCallableWindows() { return (double)sumGchMethyWindowsCalledConfidently/(nWindowsCallable * percentGchNumOfCallableWindows());}
+	        double percentHcgMethyOfCallableWindows() { return (double)sumHcgMethyWindowsCalledConfidently/(nWindowsCallable * percentHcgNumOfCallableWindows());}
+	        double percentWcgMethyOfCallableWindows() { return (double)sumWcgMethyWindowsCalledConfidently/(nWindowsCallable * percentWcgNumOfCallableWindows());}
 	        double percentGchCTDepthOfCallableWindows() { return (double)sumGchCTDepthWind/(nWindowsCallable * percentGchNumOfCallableWindows());}
 	        double percentGchDepthOfCallableWindows() { return (double)sumGchDepthWind/(nWindowsCallable * percentGchNumOfCallableWindows());}
 	        double percentGchDotOfCallableWindows() { return (double)sumGchDotWind/(nWindowsCallable);}
 	        double percentGchNumOfCallableWindows() { return (double)sumGchNumInWindCalledConfidently/(nWindowsCallable);}
+	        double percentHcgNumOfCallableWindows() { return (double)sumHcgNumInWindCalledConfidently/(nWindowsCallable);}
+	        double percentWcgNumOfCallableWindows() { return (double)sumWcgNumInWindCalledConfidently/(nWindowsCallable);}
 	        double percentNDRWindowOfCallableWindows() { return (double)nNDRWindowsCalledConfidently/nWindowsCallable;}
 	        double percentGchMethyOfNDRWindowsCalledConfidently() { return (double)sumGchMethyNDRWindowsCalledConfidently/(nNDRWindowsCalledConfidently * percentGchNumOfNDRWindows());}
 	        double percentGchCTDepthOfNDRWindows() { return (double)sumGchCTDepthInNDRWind/(nNDRWindowsCalledConfidently * percentGchNumOfNDRWindows());}
@@ -242,7 +268,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		 if(NAC.ptMode){
 			 File fncw = new File(NAC.ocwf);
 			 callableWindWriter = new bedObjectWriterImp(fncw);
-			 String bedHeadLineWind = "chr\tstart\tend\taveMethyWind\tgchNumWind\tgchDepthWind\tgchCTdepthWind\tgchDotWind\tsigValue\n";
+			 String bedHeadLineWind = "chr\tstart\tend\taveMethyWind\tgchNumWind\tgchDepthWind\tgchCTdepthWind\tgchDotWind\tsigValue\taveMethyWindLinker\twcgMethyWind\twcgNumWind\n";
 			 callableWindWriter.addHeader(bedHeadLineWind);
 		 }
 		 if(NAC.vm){
@@ -256,7 +282,11 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 	public NDRCallContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 		// TODO Auto-generated method stub
 		String cytosinePattern = "GCH-2";
+		String wcgPattern = "WCG-2";
+		//String hcgPattern = "HCG-2";
 		double methyStatus = 0.36; //H1: 0.36; imr90:0.45
+		double wcgMethyStatus = 0.80; //H1: 0.36; imr90:0.45
+		//double hcgMethyStatus = 0.80;
 		BisSNPUtils it = new BisSNPUtils(NAC);
 		AlignmentContext stratifiedContexts = it.getFilteredAndStratifiedContexts(NAC, ref, context);
 
@@ -267,17 +297,21 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 			return ncc;
 		}
 			
-		
 		if(it.checkCytosineStatus(cytosinePattern, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, NAC, methyStatus)){
-			//System.out.println(ref.getLocus().getStart());
-			 ncc.setCytosinePatternFlag(true);
-			 return ncc;
-		}	
-		else{
-			//make fake context in chrM, so we know it immediately it is not Gch
-			ncc.setCytosinePatternFlag(false);
-			return ncc;
+			ncc.setCytosinePatternFlag(true);
 		}
+		//else if(it.checkCytosineStatus(hcgPattern, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, NAC, hcgMethyStatus)){
+		//	ncc.setHcgPatternFlag(true);
+		else if(it.checkCytosineStatus(wcgPattern, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, NAC, wcgMethyStatus)){
+				ncc.setWcgPatternFlag(true);
+		}
+		//}
+		
+		
+		
+			//make fake context in chrM, so we know it immediately it is not Gch
+			
+			return ncc;
 		//return NDRD_engine.calculateNDRscore(tracker, ref, context);
 			
 	}
@@ -461,10 +495,14 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		//logger.info(String.format("Percentage of callable windows of all windows                                %.2f", summary.percentCallableWindowOfAll()));
 		
 		logger.info(String.format("Average GCH methylation in callable windows                                %.2f", summary.percentGchMethyOfCallableWindows()));
+		//logger.info(String.format("Average HCG methylation in callable windows                                %.2f", summary.percentHcgMethyOfCallableWindows()));
+		logger.info(String.format("Average WCG methylation in callable windows                                %.2f", summary.percentWcgMethyOfCallableWindows()));
 		logger.info(String.format("Average GCH reads depth in callable windows                                %.2f", summary.percentGchDepthOfCallableWindows()));
 		logger.info(String.format("Average GCH CT reads depth in callable windows                                %.2f", summary.percentGchCTDepthOfCallableWindows()));
 		
 		logger.info(String.format("Average GCH number in callable windows                                %.2f", summary.percentGchNumOfCallableWindows()));
+		//logger.info(String.format("Average HCG number in callable windows                                %.2f", summary.percentHcgNumOfCallableWindows()));
+		logger.info(String.format("Average WCG number in callable windows                                %.2f", summary.percentWcgNumOfCallableWindows()));
 		logger.info(String.format("Average GCH data point in callable windows                                %.2f", summary.percentGchDotOfCallableWindows()));
 		
 	
@@ -547,25 +585,33 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		if(objMid.numGchDot >= NAC.minGchDotWindow && objMid.numValidGch >= NAC.minGchNum){	
 			
 			
-			int[] num = validateGch(windows.windowsMid.peekLast());
+			cytosineStat num = validateGch(windows.windowsMid.peekLast());
 			int numC = 0;
 			int numT = 0;
 			int numO = 0;
 			if(num != null){
-				numC = num[0];
-				numT = num[1];
-				numO = num[2];
+				numC = num.numC;
+				numT = num.numT;
+				numO =num.numOther;
 			}
 			winChr = windows.windowsMid.peekFirst().getLoc().getContig();
 			//look at windows callable or not
 			if(!winEndflag){
 				if(winStartflag && winInflag){
 					if(num != null){
-						tmpGchNumWind++;
-						tmpGchCTDepthWind = tmpGchCTDepthWind + numC + numT;
-						tmpGchDotWind = tmpGchDotWind + numC + numT;
-						tmpGchDepthWind = tmpGchDepthWind + numC + numT + numO;
-						tmpGchMethyWind += (double)numC/(double)(numC + numT);
+						if(num.type==cytosineType.GCH){
+							tmpGchNumWind++;
+							tmpGchCTDepthWind = tmpGchCTDepthWind + numC + numT;
+							tmpGchDotWind = tmpGchDotWind + numC + numT;
+							tmpGchNumCDotWind = tmpGchNumCDotWind + numC;
+							tmpGchDepthWind = tmpGchDepthWind + numC + numT + numO;
+							tmpGchMethyWind += (double)numC/(double)(numC + numT);
+						}
+						else if(num.type==cytosineType.WCG){
+							tmpWcgNumWind++;
+							tmpWcgMethyWind += (double)numC/(double)(numC + numT);
+						}
+						
 					}
 					if(winForceEndflag){
 						winEndflag = true;
@@ -582,12 +628,24 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 						tmpGchNumWind = objMid.numValidGch;
 						tmpGchCTDepthWind = objMid.sumGchCTDepth;
 						tmpGchDotWind = objMid.numGchDot;
+						tmpGchNumCDotWind = objMid.numCOfGchDot;
 						tmpGchDepthWind = objMid.sumGchDepth;
 						tmpGchMethyWind = objMid.sumGchMethy;
-						double sigValue = getSigTest(objMid.dot, objPre.dot);
+						tmpWcgMethyWind = objMid.sumWcgMethy;
+						tmpWcgNumWind = objMid.numValidWcg;
+						double sigValue;
+						if(NAC.test.equalsIgnoreCase("binomialTest")){
+							sigValue = getBinomialSigTest(objMid.numCOfGchDot, objMid.numGchDot, objPre.sumGchMethy/objPre.numValidGch);
+						}
+						else{
+							sigValue = getSigTest(objMid.dot, objPre.dot);
+						}
+							
+						
 						
 							if(this.sigValueMem >= sigValue || this.sigValueMem == -1){
 								this.sigValueMem = sigValue;
+								this.tmpGchMethyWindLinker = objPre.sumGchMethy/objPre.numValidGch;
 							}
 								
 						
@@ -607,12 +665,22 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 							tmpGchNumWind = objMid.numValidGch;
 							tmpGchCTDepthWind = objMid.sumGchCTDepth;
 							tmpGchDotWind = objMid.numGchDot;
+							tmpGchNumCDotWind = objMid.numCOfGchDot;
 							tmpGchDepthWind = objMid.sumGchDepth;
 							tmpGchMethyWind = objMid.sumGchMethy;
-							double sigValue = getSigTest(objMid.dot, objPost.dot);
+							tmpWcgMethyWind = objMid.sumWcgMethy;
+							tmpWcgNumWind = objMid.numValidWcg;
+							double sigValue;
+							if(NAC.test.equalsIgnoreCase("binomialTest")){
+								sigValue = getBinomialSigTest(objMid.numCOfGchDot, objMid.numGchDot, objPost.sumGchMethy/objPost.numValidGch);
+							}
+							else{
+								sigValue = getSigTest(objMid.dot, objPost.dot);
+							}
 							if(winInflag){
 								if(this.sigValueMem >= sigValue || this.sigValueMem == -1){
 									this.sigValueMem = sigValue;
+									this.tmpGchMethyWindLinker = objPost.sumGchMethy/objPost.numValidGch;
 								}
 									
 							}
@@ -664,63 +732,93 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		double sumGchMethy = 0;
 		int numValidGch = 0;
 		int numGchDot = 0;
+		int numCOfGchDot = 0;
 		int sumGchCTDepth = 0;
 		int sumGchDepth = 0;
+		double sumWcgMethy = 0;
+		int numValidWcg = 0;
 		//ArrayList<Double> dot = new ArrayList<Double>();
 		ArrayList<Double> dot = new ArrayList<Double>();
 		Iterator<NDRCallContext> itContext = window.iterator();
 		while(itContext.hasNext()){
 			NDRCallContext tmpContext = itContext.next();
-			int[] num = validateGch(tmpContext);
+			cytosineStat num = validateGch(tmpContext);
 			
 			if(num != null){
-				int numC = num[0];
-				int numT = num[1];
-				int numO = num[2];
-				numValidGch++;
-				sumGchCTDepth += (numC + numT);
-				numGchDot += (numC + numT);
-				sumGchDepth += (numC + numT + numO);
-				sumGchMethy += (double)numC/(double)(numC + numT);
+				int numC = num.numC;
+				int numT = num.numT;
+				int numO = num.numOther;
+				if(num.type==cytosineType.GCH){
+					numValidGch++;
+					sumGchCTDepth += (numC + numT);
+					numGchDot += (numC + numT);
+					numCOfGchDot += numC;
+					sumGchDepth += (numC + numT + numO);
+					sumGchMethy += (double)numC/(double)(numC + numT);
+					dot.add((double)numC/(double)(numC + numT));
+				}
+				else if(num.type==cytosineType.WCG){
+					sumWcgMethy += (double)numC/(double)(numC + numT);
+					numValidWcg++;
+				}
+				
 				//for(int i=numC; i>=0;i--){
 				//	dot.add(1);
 				//}
 				//for(int i=numT; i>=0;i--){
 				//	dot.add(0);
 				//}
-				dot.add((double)numC/(double)(numC + numT));
+				
 			 }	
 			//	System.out.println("loc: " + tmpContext.getLoc().getStart() + "\tGchMethy: " + (double)numC/(double)(numC + numT) + "\tnumC: " + numC + "\tnumT: " + numT);
 			
 		}
-		windowsReturnObject obj = new windowsReturnObject(numValidGch, sumGchDepth, sumGchCTDepth, sumGchMethy, numGchDot, dot);
+		windowsReturnObject obj = new windowsReturnObject(numValidGch, sumGchDepth, sumGchCTDepth, sumGchMethy, numGchDot,numCOfGchDot, dot, sumWcgMethy, numValidWcg);
 		return obj;
 	}
 
 	public class windowsReturnObject {
 		public int numValidGch;
 		public int numGchDot;
+		public int numCOfGchDot;
 		public int sumGchCTDepth;
 		public int sumGchDepth;
 		public double sumGchMethy;
+		public int numValidWcg;
+		public double sumWcgMethy;
 		public ArrayList<Double> dot;
-		public windowsReturnObject(int numValidGch,int sumGchDepth, int sumGchCTDepth,double sumGchMethy, int numGchDot, ArrayList<Double> dot){
+		public windowsReturnObject(int numValidGch,int sumGchDepth, int sumGchCTDepth,double sumGchMethy, int numGchDot,int numCOfGchDot, ArrayList<Double> dot, double sumWcgMethy,int numValidWcg){
 			this.numValidGch = numValidGch;
 			this.sumGchCTDepth = sumGchCTDepth;
 			this.sumGchDepth = sumGchDepth;
 			this.sumGchMethy = sumGchMethy;
 			this.numGchDot = numGchDot;
+			this.numCOfGchDot = numCOfGchDot;
 			this.dot = dot;
+			this.numValidWcg = numValidWcg;
+			this.sumWcgMethy = sumWcgMethy;
 		}
 	}
 	
-	public int[] validateGch(NDRCallContext ncc){
-		int[] num = new int[3]; //0: number of C; 1: number of T; 2: number of other bases;
-		num[0] = 0;
-		num[1] = 0;
-		num[2] = 0;
-		if(!ncc.getCytosinePatternFlag())
+	public cytosineStat validateGch(NDRCallContext ncc){
+		cytosineStat returnObj = new cytosineStat();
+		//int[] num = new int[3]; //0: number of C; 1: number of T; 2: number of other bases;
+		//num[0] = 0;
+		//num[1] = 0;
+		//num[2] = 0;
+		if(ncc.getCytosinePatternFlag()){
+			returnObj.type = cytosineType.GCH;
+		}
+		//else if(ncc.getHcgPatternFlag()){
+		//	returnObj.type = cytosineType.HCG;
+		else if(ncc.getWcgPatternFlag()){
+				returnObj.type = cytosineType.WCG;
+			}
+		//}
+		else{
 			return null;
+		}
+			
 		int numC = 0;
 		int numT = 0;
 		int numO = 0;
@@ -797,10 +895,10 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 			
 		}
 		if((numC + numT) >= NAC.minCTDepth && (numC + numT + numO) >= NAC.minDepth){
-			num[0] = numC;
-			num[1] = numT;
-			num[2] = numO;
-			return num;
+			returnObj.numC = numC;
+			returnObj.numT = numT;
+			returnObj.numOther = numO;
+			return returnObj;
 		}
 		else{
 			return null;
@@ -841,6 +939,25 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		
 	}
 	
+	public double getBinomialSigTest(int k, int n, double pValue){
+		
+		//double p;
+		//if(k==0){
+		//	p = Probability.binomial(k,n,pValue);
+		//}
+		//else{
+		//	p = Probability.binomial(k,n,pValue)-Probability.binomial(k-1,n,pValue);
+		//}
+		//System.err.println(k + "\t" + n + "\t" + pValue + "\t" + p);
+		BinomialDistributionImpl binomial = new BinomialDistributionImpl(n, pValue);
+		
+		return binomial.probability(k);
+		//return p;
+		//
+		
+	}
+	
+	
 	public void addNDRtoWriter(){
 		addNDRtoWriter(true);
 	}
@@ -859,8 +976,13 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 				valuesWind.add(tmpGchNumWind);
 				valuesWind.add(tmpGchDepthWind/tmpGchNumWind);
 				valuesWind.add(tmpGchCTDepthWind/tmpGchNumWind);
-				valuesWind.add(tmpGchDotWind);
+				valuesWind.add(tmpGchDotWind);	
 				valuesWind.add(this.sigValueMem);
+				//valuesWind.add(tmpGchNumCDotWind);
+				valuesWind.add(tmpGchMethyWindLinker);
+				valuesWind.add(tmpWcgMethyWind/tmpWcgNumWind);
+				valuesWind.add(tmpWcgNumWind);
+				
 				
 				bedObject bedLineWind = new bedObject(winChr, winStartCor, winEndCor, valuesWind); //chr, start, end, aveMethyWind, gchNumWind, gchCTdepthWind
 				callableWindWriter.add(bedLineWind);
@@ -870,6 +992,10 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 				summary.sumGchMethyWindowsCalledConfidently += tmpGchMethyWind;
 				summary.sumGchNumInWindCalledConfidently += tmpGchNumWind;
 				summary.sumGchDotWind += tmpGchDotWind;
+				
+				summary.sumWcgNumInWindCalledConfidently += tmpWcgNumWind;
+				summary.sumWcgMethyWindowsCalledConfidently += tmpWcgMethyWind;
+				
 				outputFlag=true;
 				clearStatus(clearWind);
 			}
@@ -909,14 +1035,26 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		tmpGchNumWind = 0;
 		tmpGchMethyWind = 0;
 		tmpGchDotWind = 0;
+		tmpGchNumCDotWind = 0;
 		
+		tmpWcgNumWind = 0;
+		tmpWcgMethyWind = 0;
 		
 		
 	}
 	
 	
-	
-	
+	private class cytosineStat{
+		int numC;
+		int numT;
+		int numOther;
+		cytosineType type;
+	}
+	private enum cytosineType{
+		GCH,
+		HCG,
+		WCG
+	}
 	
 	
 	private boolean passWindowFilter(NDRCallContext value){
