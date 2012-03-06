@@ -35,6 +35,7 @@ import net.sf.samtools.SAMRecord;
 import org.apache.commons.math.distribution.BinomialDistributionImpl;
 import org.apache.commons.math.util.MathUtils;
 import org.apache.log4j.Logger;
+import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.bed.SimpleBEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
@@ -95,6 +96,12 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 	
 	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
     public String feature = "tss";
+	
+	@Argument(fullName = "downstream_of_rod", shortName = "down", doc = "length to check in the downstream of rod, from 0 to +X bp", required = false)
+    public int down = 0;
+	
+	@Argument(fullName = "upstream_of_rod", shortName = "up", doc = "length to check in the upstream of rod, from -X bp to 0 bp", required = false)
+    public int up = 100;
     
     protected bedObjectWriterImp callableWindWriter = null;
 	
@@ -368,7 +375,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 					
 					winForceEndflag = true;
 					
-							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),0,NAC.nucPosWindow, true) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),NAC.nucPosWindow, 0, true)){
+							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),up,down, true, false) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),up, down, true, false)){
 								getNDRFromWindowsBySigTest(windows);
 								addNDRtoWriter();
 							}
@@ -392,7 +399,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 					
 					winForceEndflag = true;
 					
-							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),0,NAC.nucPosWindow, true) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),NAC.nucPosWindow, 0, true)){
+							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),up,down, true, false) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),up, down, true, false)){
 								getNDRFromWindowsBySigTest(windows);
 								addNDRtoWriter();
 							}
@@ -413,7 +420,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 				if(value.getLoc().discontinuousP(windows.windowsPost.peekLast().getLoc())){
 					winForceEndflag = true;
 					
-							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),0,NAC.nucPosWindow, true) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),NAC.nucPosWindow, 0, true)){
+							if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),up,down, true, false) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),up, down, true, false)){
 								getNDRFromWindowsBySigTest(windows);
 								addNDRtoWriter();
 							}
@@ -436,20 +443,21 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		//if(NAC.largeLinker && !value.getCytosinePatternFlag() && !windows.windowsMid.peekLast().getCytosinePatternFlag() && !windows.windowsPre.peekLast().getCytosinePatternFlag()){
 		//	return windows;
 		//}
-		
-			
-		if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),0,NAC.nucPosWindow, true) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),NAC.nucPosWindow, 0, true)){
+		//if(windows.windowsMid.peekFirst().getLoc().getStart()>= 16665 && windows.windowsMid.peekFirst().getLoc().getStart()<=16765)
+		//	System.err.println(windows.windowsMid.peekFirst().getLoc().getStart() + "\t" + windows.windowsMid.peekLast().getLoc() + "\t" + winStartflag + "\t" + winEndflag + "\t" + winForceEndflag + "\trod: ");
+		if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),up,down, true, false) && checkNearRodLocation(windows.windowsMid.peekLast().getLoc(),up, down, true, false)){
+			//System.err.println(windows.windowsMid.peekFirst().getLoc().getStart() + "\t" + windows.windowsMid.peekLast().getLoc() + "\t" + winStartflag + "\t" + winEndflag + "\t" + winForceEndflag + "\trod: ");
 			if(!outputFlag){
 				
-				if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),1, 0, true)){
+				//if(checkNearRodLocation(windows.windowsMid.peekFirst().getLoc(),1, 0, true)){
 					winForceEndflag = true;
 					//System.err.println(windows.windowsMid.peekFirst().getLoc().getStart());
-				}
+				//}
 				
 				GenomeLoc tmp = windows.windowsMid.peekLast().getLoc();
-				boolean rodNextExist = checkNearRodLocation(tmp,-1,(NAC.nucPosWindow+2*NAC.nucLinkerWindow),false);
+				boolean rodNextExist = checkNearRodLocation(tmp,1,(NAC.nucPosWindow+2*NAC.nucLinkerWindow),false, false);
 				getNDRFromWindowsBySigTest(windows);
-			//	System.err.println(windows.windowsMid.peekFirst().getLoc().getStart() + "\t" + winStartflag + "\t" + winEndflag + "\t" + winForceEndflag);
+			//	System.err.println(windows.windowsMid.peekFirst().getLoc().getStart() + "\t" + winStartflag + "\t" + winEndflag + "\t" + winForceEndflag + "\trod: " + rodNextExist);
 				
 			//	System.err.println(tmpGchNumWind + "\t" + tmpGchDepthWind + "\t" + tmpGchCTDepthWind + "\t" + tmpGchDotWind + "\t" + tmpGchMethyWind + "\t" + sigValueMem);
 				addNDRtoWriter(!rodNextExist);
@@ -511,22 +519,30 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
 		
 	}
 	
-	public boolean checkNearRodLocation(GenomeLoc locus, int upstream, int downstream, boolean oneRod){
-		GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(locus.getContig(), locus.getStart()-upstream-1, locus.getStart()+downstream);
+	public boolean checkNearRodLocation(GenomeLoc locus, int upstream, int downstream, boolean oneRod, boolean noDirection){
+		GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(locus.getContig(), locus.getStart() - Math.max(upstream, downstream)-1, locus.getStart() + Math.max(upstream, downstream));
 		
 
 		LocationAwareSeekableRODIterator locRodIt = rodIt.seek(searchLoc);
-    	 
+		//if(searchLoc.getStart()>=1027383 && searchLoc.getStart()<=1027483){
+		//	SimpleBEDFeature bedtmp = (SimpleBEDFeature)locRodIt.seekForward(searchLoc).get(0).getUnderlyingObject();
+		//	System.err.println("what is:" + locus.getStart() + "\t" + bedtmp.getStart() + "\t" + (bedtmp.getStart()-upstream) + "\t" + (bedtmp.getStart() + downstream) + "\t" + bedtmp.getStrand().toString());
+		//}
     	// boolean locPre = locRodItPre.hasNext();
     	// boolean locPost = locRodItPost.hasNext();
 		boolean rodExist = false;
     	 if(locRodIt.hasNext()){
     		RODRecordList rodList = locRodIt.seekForward(searchLoc);
+    		
+    		
     		if(rodList.size()<=1){
     			if(oneRod){
     				SimpleBEDFeature bed = (SimpleBEDFeature)locRodIt.seekForward(searchLoc).get(0).getUnderlyingObject();
+    				
+    				
     				//System.err.println(locus.getStart() + "\t" +bed.getStart() + "\t" + (downstream) + "\t" + (upstream) );
-           		 	if(bed.getStart()-locus.getStart() <= downstream || locus.getStart() - bed.getStart() <= upstream){
+           		 	if((bed.getStrand()==Strand.POSITIVE && (locus.getStart() >= bed.getStart()-upstream && locus.getStart() < bed.getStart() + downstream)) || ((bed.getStrand()==Strand.NEGATIVE && (locus.getStart() > bed.getStart() - downstream && locus.getStart()<= bed.getStart() + upstream))) || (noDirection && (Math.abs(bed.getStart()-locus.getStart()) <= downstream || Math.abs(locus.getStart() - bed.getStart()) <= upstream))){
+           		// 	System.err.println(locus.getStart() + "\t" + bed.getStart() + "\t" + (bed.getStart()-upstream) + "\t" + (bed.getStart() + downstream) + "\t" + bed.getStrand().toString());
            		 		rodExist=true; 
            		 	}
     			}
@@ -537,7 +553,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
     			if(oneRod){
     				SimpleBEDFeature bed = (SimpleBEDFeature)locRodIt.seekForward(searchLoc).get(0).getUnderlyingObject();
     				//System.err.println(locus.getStart() + "\t" +bed.getStart() + "\t" + (downstream) + "\t" + ( upstream) );
-           		 	if(bed.getStart()-locus.getStart() <= downstream || locus.getStart() - bed.getStart() <= upstream){
+    				if((bed.getStrand()==Strand.POSITIVE && (locus.getStart() >= bed.getStart()-upstream && locus.getStart() < bed.getStart() + downstream)) || ((bed.getStrand()==Strand.NEGATIVE && (locus.getStart() > bed.getStart() - downstream && locus.getStart()<= bed.getStart() + upstream))) || (noDirection && (Math.abs(bed.getStart()-locus.getStart()) <= downstream || Math.abs(locus.getStart() - bed.getStart()) <= upstream))){
            		 		rodExist=true; 
            		 	}
     			}
@@ -545,7 +561,7 @@ public class NDRdetectNearLoci extends LocusWalker<NDRCallContext,windowsObject>
     				Iterator<GATKFeature> iter = locRodIt.seekForward(searchLoc).iterator();
     				while(iter.hasNext()){
     					SimpleBEDFeature bed = (SimpleBEDFeature)iter.next().getUnderlyingObject();
-               		 	if(bed.getStart()-locus.getStart() <= downstream || locus.getStart() - bed.getStart() <= upstream){
+    					if((bed.getStrand()==Strand.POSITIVE && (locus.getStart() >= bed.getStart()-upstream && locus.getStart() < bed.getStart() + downstream)) || ((bed.getStrand()==Strand.NEGATIVE && (locus.getStart() > bed.getStart() - downstream && locus.getStart()<= bed.getStart() + upstream))) || (noDirection && (Math.abs(bed.getStart()-locus.getStart()) <= downstream || Math.abs(locus.getStart() - bed.getStart()) <= upstream))){
                		 		rodExist=true;
                		 		break;
                		 	    
