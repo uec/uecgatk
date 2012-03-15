@@ -77,7 +77,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	@Argument(fullName = "hcg_file_name", shortName = "hcgFile", doc = "Output HCG files name", required = true)
     public String hcgFile = null;
 	
-	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = true)
+	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
     public String feature = null;
 	
 	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature", required = false)
@@ -264,8 +264,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    	 String cytosinePatternGch = "GCH-2";
 	 		String cytosinePatternWcg = "WCG-2";
 	 		String cytosinePatternHcg = "HCG-2";
-	 		double methyStatusGch = 0.36; //H1: 0.36; imr90:0.45
-	 		double methyStatusCpg = 0.80; //H1: 0.36; imr90:0.45
+	 		double methyStatusGch = BAC.forceGch; //H1: 0.36; imr90:0.45
+	 		double methyStatusCpg =BAC.forceCpg; //0.80
 
 	 		
 	 		BisSNPUtils it = new BisSNPUtils(BAC);
