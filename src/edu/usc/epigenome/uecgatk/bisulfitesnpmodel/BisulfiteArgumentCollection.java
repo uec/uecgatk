@@ -50,8 +50,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "auto_estimate_gch_methylation", shortName = "aegch", doc = "the first run would be to run auto_estimate_gch methylation status", required = false)
     public boolean autoEstimateGch = true;
 	
-	@Argument(fullName = "auto_estimate_hch_methylation", shortName = "aehch", doc = "the first run would be to run auto_estimate_hch methylation status", required = false)
-    public boolean autoEstimateHch = true;
+	@Argument(fullName = "auto_estimate_cch_methylation", shortName = "aecch", doc = "the first run would be to run auto_estimate_cch methylation status", required = false)
+    public boolean autoEstimateCch = true;
 	
 	@Argument(fullName = "auto_estimate_wch_methylation", shortName = "aewch", doc = "the first run would be to run auto_estimate_wch methylation status", required = false)
     public boolean autoEstimateWch = true;
@@ -59,8 +59,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "auto_estimate_gcg_methylation", shortName = "aegcg", doc = "the first run would be to run auto_estimate_gcg methylation status", required = false)
     public boolean autoEstimateGcg = true;
 	
-	@Argument(fullName = "auto_estimate_hcg_methylation", shortName = "aehcg", doc = "the first run would be to run auto_estimate_hcg methylation status", required = false)
-    public boolean autoEstimateHcg = true;
+	@Argument(fullName = "auto_estimate_ccg_methylation", shortName = "aeccg", doc = "the first run would be to run auto_estimate_ccg methylation status", required = false)
+    public boolean autoEstimateCcg = true;
 	
 	@Argument(fullName = "auto_estimate_wcg_methylation", shortName = "aewcg", doc = "the first run would be to run auto_estimate_wcg methylation status", required = false)
     public boolean autoEstimateWcg = true;
@@ -84,8 +84,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "force_gch_methylation", shortName = "fgch", doc = "force the gch methylation status", required = false)
     public double forceGch = 0.50;
 	
-	@Argument(fullName = "force_hch_methylation", shortName = "fhch", doc = "force the hch methylation status", required = false)
-    public double forceHch = 0.50;
+	@Argument(fullName = "force_cch_methylation", shortName = "fcch", doc = "force the cch methylation status", required = false)
+    public double forceCch = 0.50;
 	
 	@Argument(fullName = "force_wch_methylation", shortName = "fwch", doc = "force the wch methylation status", required = false)
     public double forceWch = 0.50;
@@ -93,8 +93,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "force_gcg_methylation", shortName = "fgcg", doc = "force the gcg methylation status", required = false)
     public double forceGcg = 0.50;
 	
-	@Argument(fullName = "force_hcg_methylation", shortName = "fhcg", doc = "force the hcg methylation status", required = false)
-    public double forceHcg = 0.50;
+	@Argument(fullName = "force_ccg_methylation", shortName = "fccg", doc = "force the ccg methylation status", required = false)
+    public double forceCcg = 0.50;
 	
 	@Argument(fullName = "force_wcg_methylation", shortName = "fwcg", doc = "force the wcg methylation status", required = false)
     public double forceWcg = 0.50;
@@ -202,14 +202,20 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.autoEstimateCph = autoEstimateCph;
         bac.autoEstimateGch = autoEstimateGch;
         bac.autoEstimateGcg = autoEstimateGcg;
-        bac.autoEstimateHcg = autoEstimateHcg;
+        bac.autoEstimateCcg = autoEstimateCcg;
+        bac.autoEstimateCch = autoEstimateCch;
+        bac.autoEstimateWcg = autoEstimateWcg;
+        bac.autoEstimateWch = autoEstimateWch;
         bac.forceChg = forceChg;
         bac.forceCpg = forceCpg;
         bac.forceCph = forceCph;
         bac.forceChh = forceChh;
         bac.forceGch = forceGch;
         bac.forceGcg = forceGcg;
-        bac.forceHcg = forceHcg;
+        bac.forceCcg = forceCcg;
+        bac.forceCch = forceCch;
+        bac.forceWcg = forceWcg;
+        bac.forceWch = forceWch;
         bac.autoEstimateOtherCytosine = autoEstimateOtherCytosine;
         bac.forceOtherCytosine = forceOtherCytosine;
         

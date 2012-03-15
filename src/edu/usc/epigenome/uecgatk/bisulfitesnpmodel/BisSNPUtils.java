@@ -90,6 +90,12 @@ public class BisSNPUtils {
 		
 	}
 	
+	public boolean isCcg(ReadBackedPileup pileup, RefMetaDataTracker tracker,ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, 
+			BisulfiteArgumentCollection bac, double methyStatus){
+		return checkCytosineStatus("CCG-2", pileup, tracker, ref, genotypePriors, BAC, methyStatus);
+		
+	}
+	
 	public boolean isWcg(ReadBackedPileup pileup, RefMetaDataTracker tracker,ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, 
 			BisulfiteArgumentCollection bac, double methyStatus){
 		return checkCytosineStatus("WCG-2", pileup, tracker, ref, genotypePriors, BAC, methyStatus);

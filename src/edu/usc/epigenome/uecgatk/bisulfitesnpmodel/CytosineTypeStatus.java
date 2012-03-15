@@ -29,10 +29,10 @@ public class CytosineTypeStatus {
 	//boolean isChh = false;
 	//boolean isChg = false;
 	boolean isGch = false;
-	boolean isHch = false;
+	boolean isCch = false;
 	boolean isWch = false;
 	boolean isGcg = false;
-	boolean isHcg = false;
+	boolean isCcg = false;
 	boolean isWcg = false;
 	double cytosineMethyLevel = 0;
 	double cpgMethyLevel = 0;
@@ -40,10 +40,10 @@ public class CytosineTypeStatus {
 	//double chgMethyLevel = 0;
 	//double chhMethyLevel = 0;
 	double gchMethyLevel = 0;
-	double hchMethyLevel = 0;
+	double cchMethyLevel = 0;
 	double wchMethyLevel = 0;
 	double gcgMethyLevel = 0;
-	double hcgMethyLevel = 0;
+	double ccgMethyLevel = 0;
 	double wcgMethyLevel = 0;
 	
 	BisulfiteArgumentCollection BAC = null;
@@ -110,13 +110,13 @@ public class CytosineTypeStatus {
 			tmpDouble = new Double[4];
 			tmpDouble[0] = Double.NEGATIVE_INFINITY;
 			tmpDouble[1] = Double.NEGATIVE_INFINITY;
-			tmpDouble[2] = BAC.forceGch;
+			tmpDouble[2] = BAC.forceCch;
 			tmpDouble[3] = 0.0;
-			cytosineListMap.put("HCH-2".toUpperCase(), tmpDouble);
+			cytosineListMap.put("CCH-2".toUpperCase(), tmpDouble);
 			tmpDouble = new Double[4];
 			tmpDouble[0] = Double.NEGATIVE_INFINITY;
 			tmpDouble[1] = Double.NEGATIVE_INFINITY;
-			tmpDouble[2] = BAC.forceGch;
+			tmpDouble[2] = BAC.forceWch;
 			tmpDouble[3] = 0.0;
 			cytosineListMap.put("WCH-2".toUpperCase(), tmpDouble);
 			tmpDouble = new Double[4];
@@ -128,13 +128,13 @@ public class CytosineTypeStatus {
 			tmpDouble = new Double[4];
 			tmpDouble[0] = Double.NEGATIVE_INFINITY;
 			tmpDouble[1] = Double.NEGATIVE_INFINITY;
-			tmpDouble[2] = BAC.forceHcg;
+			tmpDouble[2] = BAC.forceCcg;
 			tmpDouble[3] = 0.0;
-			cytosineListMap.put("HCG-2".toUpperCase(), tmpDouble);
+			cytosineListMap.put("CCG-2".toUpperCase(), tmpDouble);
 			tmpDouble = new Double[4];
 			tmpDouble[0] = Double.NEGATIVE_INFINITY;
 			tmpDouble[1] = Double.NEGATIVE_INFINITY;
-			tmpDouble[2] = BAC.forceHcg;
+			tmpDouble[2] = BAC.forceWcg;
 			tmpDouble[3] = 0.0;
 			cytosineListMap.put("WCG-2".toUpperCase(), tmpDouble);
 		}
@@ -183,10 +183,10 @@ public class CytosineTypeStatus {
 		//cts.isChg = this.isChg;
 		//cts.isChh = this.isChh;
 		cts.isGch = this.isGch;
-		cts.isHch = this.isHch;
+		cts.isCch = this.isCch;
 		cts.isWch = this.isWch;
 		cts.isGcg = this.isGcg;
-		cts.isHcg = this.isHcg;
+		cts.isCcg = this.isCcg;
 		cts.isWcg = this.isWcg;
 
 		cts.cytosineMethyLevel = this.cytosineMethyLevel;
@@ -195,10 +195,10 @@ public class CytosineTypeStatus {
 		//cts.chgMethyLevel = this.chgMethyLevel;
 		//cts.chhMethyLevel = this.chhMethyLevel;
 		cts.gchMethyLevel = this.gchMethyLevel;
-		cts.hchMethyLevel = this.hchMethyLevel;
+		cts.cchMethyLevel = this.cchMethyLevel;
 		cts.wchMethyLevel = this.wchMethyLevel;
 		cts.gcgMethyLevel = this.gcgMethyLevel;
-		cts.hcgMethyLevel = this.hcgMethyLevel;
+		cts.ccgMethyLevel = this.ccgMethyLevel;
 		cts.wcgMethyLevel = this.wcgMethyLevel;
 		
 		

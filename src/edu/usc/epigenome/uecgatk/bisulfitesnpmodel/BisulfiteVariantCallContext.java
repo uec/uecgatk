@@ -2,6 +2,8 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.CytosineTypeStatus;
 
 /*
@@ -25,7 +27,7 @@ import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.CytosineTypeStatus;
 public class BisulfiteVariantCallContext{
 
 	public VariantContext vc = null;
-    public byte refBase;
+    public ReferenceContext refBase;
     public CytosineTypeStatus cts = null;
     public AlignmentContext rawContext = null;
 
@@ -41,7 +43,7 @@ public class BisulfiteVariantCallContext{
         this.emited = emited;
     }
 
-    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, byte ref, boolean confidentlyCalledP, CytosineTypeStatus cts, boolean emited) {
+    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, ReferenceContext ref, boolean confidentlyCalledP, CytosineTypeStatus cts, boolean emited) {
         this.vc = vc;
         this.rawContext = rawContext;
         this.refBase = ref;
@@ -57,7 +59,7 @@ public class BisulfiteVariantCallContext{
         this.emited = emited;
     }
 
-    public void setRefBase(byte ref) {
+    public void setRefBase(ReferenceContext ref) {
         this.refBase = ref;
     }
 

@@ -256,6 +256,35 @@ public class BaseUtilsMore {
         }
     }
 	
+	//convert to IUPAC code in NOMe-seq mode
+	static public byte toIupacCodeNOMeSeqMode(byte base, int pos) {
+		base = toUpperCase(base);
+		if(pos==1){
+			switch (base) {
+        		case 'A':
+        			return 'W';
+        		case 'T':
+        			return 'W';
+        		default: return base;
+			}
+		}
+		else if(pos == 3){
+			switch (base) {
+    			case 'A':
+    				return 'H';
+    			case 'T':
+    				return 'H';
+    			case 'C':
+    				return 'H';
+    			default: return base;
+			}
+		}
+		else{
+			return base;
+		}
+		
+	}
+	
 	//reverse the read's base order
 	static public byte[] simpleReverse(byte[] bases) {
         byte[] rcbases = new byte[bases.length];
@@ -267,4 +296,21 @@ public class BaseUtilsMore {
         return rcbases;
     }
 	
+	//reverse the read's base order and make it to be complementary
+		static public byte[] simpleReverseIupacCodeComplement(byte[] bases) {
+	        byte[] rcbases = new byte[bases.length];
+
+	        for (int i = 0; i < bases.length; i++) {
+	            rcbases[i] = iupacCodeComplement(bases[bases.length - 1 - i]);
+	        }
+
+	        return rcbases;
+	    }
+		
+		//convert byte to String
+		static  public String convertByteToString(byte b) {
+	        //Creating a byte array and passing it to the String constructor
+	        return new String(new byte[] {b});
+	        
+	    }
 }

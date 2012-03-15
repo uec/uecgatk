@@ -384,7 +384,7 @@ public class BisulfiteGenotyperEngine{
             VariantContext vcCall = new VariantContext("BG_call", loc.getContig(), loc.getStart(), endLoc,
                     myAlleles, genotypes, logRatio/10.0, passesCallThreshold(logRatio) ? null : filter, attributes);
             BisulfiteVariantCallContext call = new BisulfiteVariantCallContext(vcCall, rawContext,  passesCallThreshold(logRatio), ctss.get(), passesEmitThreshold(logRatio));
-            call.setRefBase(refContext.getBase());
+            call.setRefBase(refContext);
             
             return call;
         }
@@ -632,10 +632,10 @@ public class BisulfiteGenotyperEngine{
 					}
 					
 				}
-				else if(tmpKey[0].equalsIgnoreCase("HCH")){
+				else if(tmpKey[0].equalsIgnoreCase("CCH")){
 					if(BAC.sequencingMode == MethylSNPModel.GM){
-						ctss.get().isHch = true;
-						ctss.get().hchMethyLevel = cytosineMethyLevel;
+						ctss.get().isCch = true;
+						ctss.get().cchMethyLevel = cytosineMethyLevel;
 						ctss.get().isC = true;
 						ctss.get().cytosineMethyLevel = cytosineMethyLevel;
 					}
@@ -668,10 +668,10 @@ public class BisulfiteGenotyperEngine{
 					}
 					
 				}
-				else if(tmpKey[0].equalsIgnoreCase("HCG")){
+				else if(tmpKey[0].equalsIgnoreCase("CCG")){
 					if(BAC.sequencingMode == MethylSNPModel.GM){
-						ctss.get().isHcg = true;
-						ctss.get().hcgMethyLevel = cytosineMethyLevel;
+						ctss.get().isCcg = true;
+						ctss.get().ccgMethyLevel = cytosineMethyLevel;
 						ctss.get().isC = true;
 						ctss.get().cytosineMethyLevel = cytosineMethyLevel;
 					}

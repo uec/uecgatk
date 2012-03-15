@@ -34,11 +34,21 @@ public class cpgReadsWriterImp extends FormatWriterBase {
 			e.printStackTrace();
 		}
 	}
+	
+	
 
 	@Override
 	public void addHeader(Object o) {
 		// TODO Auto-generated method stub
-
+		String header = "#chr\tpos\tmethyStatus\tbaseQ\tstrand\treadID\n";
+		try {
+			mWriter.write(header);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
+	
+	
 
 }
