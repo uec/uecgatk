@@ -13,6 +13,8 @@ import edu.usc.epigenome.uecgatk.pileup.BisulfitePileup;
 /**
  * @author benb
  *
+ * Question for Yaping.  Could this class simply "extend" an existing BisSNP class, and then implment the key
+ * method gatkLocusToBisulfitePileup?  I'll look how you do it in your BisSNPUtils, but I suspect this is possible.
  */
 public class BisulfitePileupBissnpEngine implements BisulfitePileupEngine {
 
