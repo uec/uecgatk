@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.usc.epigenome.uecgatk.FractionNonidentical;
+import edu.usc.epigenome.uecgatk.nmerContexts.NmerWithRef;
 
 /**
  * @author benb
@@ -17,6 +18,10 @@ import edu.usc.epigenome.uecgatk.FractionNonidentical;
  * 
  * We also support getting summaries by context.  How should we deal with contexts?  Do we need ot
  * get from the engine the number of upstream and downstream context positions supported?
+ * 
+ * This should just contain a single context, which is one of the ones in the CytosineContexts list.
+ * What about ones that have a crappy posterior for the best context? Do we store a posterior here?
+ * Can the context object itself store a probability?
  * 
  * 
  * From GATK:Pileup2 - notes
@@ -60,11 +65,28 @@ compile time?  Perhaps something more dynamic?
 public abstract class BisulfitePileup {
 
 	
+	
+	
 	// private variables
+	boolean useSupergroups = false;
 	Map<String,Set<String>> supergroups = null; 
 	
 	
-	// Supergroups
+	/***************************
+	/*** Constructors 
+	/***************************/
+
+	
+	public BisulfitePileup(boolean useSupergroups) {
+		super();
+		this.useSupergroups = useSupergroups;
+		this.supergroups = supergroups;
+	}
+
+	
+	/***************************
+	/*** Supergroups 
+	/***************************/
 
 	public void clearSupergroups()
 	{
@@ -79,6 +101,15 @@ public abstract class BisulfitePileup {
 	{
 	}
 	
+	
+	/***************************
+	/*** Contexts 
+	/***************************/
+	
+	public NmerWithRef getContext()
+	{
+		return null;
+	}
 	
 	// Methylation summaries
 

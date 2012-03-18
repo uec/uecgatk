@@ -34,4 +34,5 @@ public interface BisulfitePileupEngine {
 	 */
 	public BisulfitePileup gatkLocusToBisulfitePileup(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, GenomeAnalysisEngine toolkit);
 	
+	
 }

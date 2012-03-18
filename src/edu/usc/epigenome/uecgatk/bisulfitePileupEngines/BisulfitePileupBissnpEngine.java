@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import edu.usc.epigenome.uecgatk.pileup.BisulfitePileup;
+import edu.usc.epigenome.uecgatk.pileup.BisulfitePileupContextPosteriors;
 
 /**
  * @author benb
@@ -33,9 +34,12 @@ public class BisulfitePileupBissnpEngine implements BisulfitePileupEngine {
 	@Override
 	public BisulfitePileup gatkLocusToBisulfitePileup(
 			RefMetaDataTracker tracker, ReferenceContext ref,
-			AlignmentContext context, GenomeAnalysisEngine toolkit) {
-		// TODO Auto-generated method stub
-		return null;
+			AlignmentContext context, GenomeAnalysisEngine toolkit) 
+	{
+		BisulfitePileupContextPosteriors out = new BisulfitePileupContextPosteriors(true);
+
+		return out;
+	
 	}
 
 
