@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
+import edu.usc.epigenome.uecgatk.nmerContexts.NmerCollection;
 import edu.usc.epigenome.uecgatk.pileup.BisulfitePileup;
 import edu.usc.epigenome.uecgatk.pileup.BisulfitePileupContextPosteriors;
 
@@ -20,14 +21,21 @@ import edu.usc.epigenome.uecgatk.pileup.BisulfitePileupContextPosteriors;
 public class BisulfitePileupBissnpEngine implements BisulfitePileupEngine {
 
 	
-	// BAC
-	
+	/***************************
+	/*** Constructors 
+	/***************************/
+
+	public BisulfitePileupBissnpEngine(NmerCollection contexts) // Pass in priors, BAC, everything else BisSNP needs to run  
+	{
+	}
+
 	@Override
 	public Boolean supportsMultithreadedMode() {
 		return true;
 	}
 
 	
+
 	/* (non-Javadoc)
 	 * @see edu.usc.epigenome.uecgatk.bisulfitePileupEngines.BisulfitePileupEngine#gatkLocusToBisulfitePileup(org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker, org.broadinstitute.sting.gatk.contexts.ReferenceContext, org.broadinstitute.sting.gatk.contexts.AlignmentContext)
 	 */
