@@ -44,8 +44,13 @@ public class BisulfitePileupBissnpEngine implements BisulfitePileupEngine {
 			RefMetaDataTracker tracker, ReferenceContext ref,
 			AlignmentContext context, GenomeAnalysisEngine toolkit) 
 	{
+		// Determine posteriors for each read group
 		BisulfitePileupContextPosteriors out = new BisulfitePileupContextPosteriors(true);
 
+		
+		// Determine C/T pileups for each read group and add to pileup
+		//out.add(ReadGroupPileups);
+		
 		return out;
 	
 	}
