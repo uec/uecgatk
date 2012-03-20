@@ -11,35 +11,39 @@ import java.util.ResourceBundle;
 
 import net.sf.picard.filter.SamRecordFilter;
 
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.vcf.SortingVCFWriter;
-import org.broad.tribble.vcf.VCFWriter;
+
+import org.broadinstitute.sting.utils.codecs.vcf.SortingVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
+import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.RodBinding;
 
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteGenotyper;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.CytosineTypeStatus;
@@ -74,13 +78,14 @@ public class BisSNP extends CommandLineExecutable {
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "Bis-SNP-0.49";
+	private static String BisVersion = "Bis-SNP-0.50";
 
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
     // argument collection, the collection of command line args we accept. copy from GATK, since they are private class in GATK
     @ArgumentCollection
     private GATKArgumentCollection argCollection = new GATKArgumentCollection();
+    
     
     private static String argCommandline = "";
     
@@ -133,8 +138,6 @@ public class BisSNP extends CommandLineExecutable {
             System.exit(CommandLineProgram.result);      
         } catch (UserException e) {
             exitSystemWithUserError(e);
-        } catch (TribbleException e) {
-            exitSystemWithUserError(e);
         } catch (Exception e) {
             exitSystemWithError(e);
         }
@@ -159,10 +162,10 @@ public class BisSNP extends CommandLineExecutable {
 
 		List<String> header = new ArrayList<String>();
         header.add(String.format("The %s, Compiled %s", getBisSNPVersionNumber(), getBuildTime()));
-        header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.0.5336.tar.bz2)",getVersionNumber()));
+        header.add(String.format("Based on The Genome Analysis Toolkit (GATK) v%s (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2)",getVersionNumber()));
         header.add("Copyright (c) 2011 USC Epigenome Center");
         header.add("Please view our documentation at http://wiki.epigenome.usc.edu/twiki/bin/view");
-        header.add("For support, please send email to yapingli@usc.edu or benbfly@gmail.com");
+        header.add("For support, please send email to lyping1986@gmail.com or benbfly@gmail.com");
         return header;
     }
 
@@ -199,11 +202,15 @@ public class BisSNP extends CommandLineExecutable {
         		
                 loadArgumentsIntoObject(walker);
                 bisulfiteArgumentSources.add(walker);
-                Collection<SamRecordFilter> filters = engine.getFilters();
+                
+                
+                
+                Collection<ReadFilter> filters = engine.getFilters();
                 for (SamRecordFilter filter: filters) {
                     loadArgumentsIntoObject(filter);
                     bisulfiteArgumentSources.add(filter);
                 }
+                
                 
                 engine.execute();
                 
@@ -221,17 +228,37 @@ public class BisSNP extends CommandLineExecutable {
 	
         		engine.setArguments(getArgumentCollection());
  
-                engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
-                engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
+                engine.setSAMFileIDs(ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser));
+               // engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
 
                 engine.setWalker(walker);
                 walker.setToolkit(engine);
 
-                Collection<SamRecordFilter> filters = engine.createFilters();
+                Collection<ReadFilter> filters = engine.createFilters();
                 engine.setFilters(filters);
                 
                 loadArgumentsIntoObject(walker);
                 bisulfiteArgumentSources.add(walker);
+                
+                
+
+                Collection<RMDTriplet> rodBindings = ListFileUtils.unpackRODBindings(parser.getRodBindings(), parser);
+
+                // todo: remove me when the old style system is removed
+                if ( getArgumentCollection().RODBindings.size() > 0 ) {
+                    logger.warn("################################################################################");
+                    logger.warn("################################################################################");
+                    logger.warn("Deprecated -B rod binding syntax detected.  This syntax has been eliminated in GATK 1.2.");
+                    logger.warn("Please use arguments defined by each specific walker instead.");
+                    for ( String oldStyleRodBinding : getArgumentCollection().RODBindings ) {
+                        logger.warn("  -B rod binding with value " + oldStyleRodBinding + " tags: " + parser.getTags(oldStyleRodBinding).getPositionalTags());
+                    }
+                    logger.warn("################################################################################");
+                    logger.warn("################################################################################");
+                    System.exit(1);
+                }
+
+                engine.setReferenceMetaDataFiles(rodBindings);
 
                 for (SamRecordFilter filter: filters) {
                     loadArgumentsIntoObject(filter);
@@ -258,88 +285,6 @@ public class BisSNP extends CommandLineExecutable {
     }
 
     
-    //copy from GATK, since they are private class in GATK, or I could just limit the number of BAM used
-    /**
-     * Unpack the bam files to be processed, given a list of files.  That list of files can
-     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
-     *
-     * @param argCollection the command-line arguments from which to extract the BAM file list.
-     * @return a flattened list of the bam files provided
-     */
-    private List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
-        List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
-        for( String inputFileName: argCollection.samFiles ) {
-            Tags inputFileNameTags = parser.getTags(inputFileName);
-            inputFileName = expandFileName(inputFileName);
-            if (inputFileName.toLowerCase().endsWith(".list") ) {
-                try {
-                    for(String fileName : new XReadLines(new File(inputFileName)))
-                        unpackedReads.add(new SAMReaderID(fileName,parser.getTags(inputFileName)));
-                }
-                catch( FileNotFoundException ex ) {
-                    throw new UserException.CouldNotReadInputFile(new File(inputFileName), "Unable to find file while unpacking reads", ex);
-                }
-            }
-            else if(inputFileName.toLowerCase().endsWith(".bam")) {
-                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
-            }
-            else if(inputFileName.endsWith("stdin")) {
-                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
-            }
-            else {
-                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
-                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                        "of BAM files is in the correct format, update the extension, and try again.",inputFileName));
-            }
-        }
-        return unpackedReads;
-    }
-    
-  //copy from GATK, since they are private class in GATK
-    /**
-     * Convert command-line argument representation of ROD bindings to something more easily understandable by the engine.
-     * @param argCollection input arguments to the GATK.
-     * @return a list of expanded, bound RODs.
-     */
-    private Collection<RMDTriplet> unpackRODBindings(GATKArgumentCollection argCollection) {
-        Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
-
-        for (String fileName: argCollection.RODBindings) {
-            Tags tags = parser.getTags(fileName);
-            fileName = expandFileName(fileName);
-
-            List<String> positionalTags = tags.getPositionalTags();
-            if(positionalTags.size() != 2)
-                throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
-                        "Please use the following syntax when providing reference-ordered " +
-                        "data: -B:<name>,<type> <filename>.");
-            
-            String name = positionalTags.get(0);
-            String type = positionalTags.get(1);
-
-            RMDStorageType storageType = null;
-            if(tags.getValue("storage") != null)
-                storageType = Enum.valueOf(RMDStorageType.class,tags.getValue("storage"));
-            else if(fileName.toLowerCase().endsWith("stdin"))
-                storageType = RMDStorageType.STREAM;
-            else
-                storageType = RMDStorageType.FILE;
-
-            rodBindings.add(new RMDTriplet(name,type,fileName,storageType));
-        }
-
-        if (argCollection.DBSNPFile != null) {
-            if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
-                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
-
-            String fileName = expandFileName(argCollection.DBSNPFile);
-            RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
-
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType));
-        }
-
-        return rodBindings;
-    }
     
     //copy from GATK, since they are private class in GATK 
     private String expandFileName(String argument) {

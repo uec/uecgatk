@@ -1,7 +1,7 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broadinstitute.sting.gatk.walkers.genotyper.BiallelicGenotypeLikelihoods;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -21,30 +21,70 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.BiallelicGenotypeLikeliho
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-public class BisulfiteBiallelicGenotypeLikelihoods extends
-		BiallelicGenotypeLikelihoods {
+
+//Adapted form GATK old source code!!!
+
+public class BisulfiteBiallelicGenotypeLikelihoods{
 
 	private Integer[] CytosineStatus;
+	private String sample;
+    private double[] GLs;
+    private Allele A, B;
+    private int depth;
 	
-	public BisulfiteBiallelicGenotypeLikelihoods(String sample, Allele A,
-			Allele B, double log10aaLikelihoods, double log10abLikelihoods,
-			double log10bbLikelihoods, int depth) {
-		super(sample, A, B, log10aaLikelihoods, log10abLikelihoods,
-				log10bbLikelihoods, depth);
-		// TODO Auto-generated constructor stub
-	}
+//	public BisulfiteBiallelicGenotypeLikelihoods(String sample, Allele A,
+//			Allele B, double log10aaLikelihoods, double log10abLikelihoods,
+//			double log10bbLikelihoods, int depth) {
+		
+//		// TODO Auto-generated constructor stub
+//	}
 	
 	public BisulfiteBiallelicGenotypeLikelihoods(String sample, Allele A,
 			Allele B, double log10aaLikelihoods, double log10abLikelihoods,
 			double log10bbLikelihoods, int depth, Integer[] CytosineStatus) {
-		super(sample, A, B, log10aaLikelihoods, log10abLikelihoods,
-				log10bbLikelihoods, depth);
+		this.sample = sample;
+        this.A = A;
+        this.B = B;
+        this.GLs = new double[]{log10aaLikelihoods, log10abLikelihoods, log10bbLikelihoods};
+        this.depth = depth;
 		this.CytosineStatus = CytosineStatus;
 		// TODO Auto-generated constructor stub
 	}
 	
 	public Integer[] getCytosineStatus() {
         return this.CytosineStatus;
+    }
+	
+	public String getSample() {
+        return sample;
+    }
+
+    public double getAALikelihoods() {
+        return GLs[0];
+    }
+
+    public double getABLikelihoods() {
+        return GLs[1];
+    }
+
+    public double getBBLikelihoods() {
+        return GLs[2];
+    }
+
+    public double[] getLikelihoods() {
+        return GLs;
+    }
+
+    public Allele getAlleleA() {
+        return A;
+    }
+
+    public Allele getAlleleB() {
+        return B;
+    }
+
+    public int getDepth() {
+        return depth;
     }
 
 }

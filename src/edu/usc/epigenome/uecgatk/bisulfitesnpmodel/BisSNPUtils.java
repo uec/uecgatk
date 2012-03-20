@@ -19,24 +19,22 @@ import net.sf.samtools.util.StringUtil;
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRargumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteGenotyperEngine.BadBaseFilterBisulfite;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteGenotyperEngine.OUTPUT_MODE;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BadBaseFilterBisulfite;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -173,7 +171,7 @@ public class BisSNPUtils {
 			GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(contig, position + i );
 			if(i == 0)
 				continue;
-			List<SAMRecord> reads =  new ArrayList<SAMRecord>();;
+			List<GATKSAMRecord> reads =  new ArrayList<GATKSAMRecord>();;
 			List<Integer> elementOffsets = new ArrayList<Integer>();
 
 			for ( PileupElement p : pileup ) {
@@ -451,8 +449,8 @@ public class BisSNPUtils {
 	                    if ( !(read instanceof GATKSAMRecord) )
 	                        throw new ReviewedStingException("The BisulfiteGenotyper currently expects GATKSAMRecords, but instead saw a " + read.getClass());
 	                    GATKSAMRecord GATKrecord = (GATKSAMRecord)read;
-	                    GATKrecord.setGoodBases(badBaseFilter, true);
-	                    if ( GATKrecord.isGoodBase(p.getOffset()) )
+	                    GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage(GATKrecord, badBaseFilter);
+	                    if ( GATKrecordFilterStor.isGoodBase(p.getOffset()) )
 	                        pileupSize++;
 	                }
 	            }
@@ -473,63 +471,14 @@ public class BisSNPUtils {
 	        return true;
 	    }
 
-	 //copy from GATK, since it is not public class there
-	protected class BadBaseFilterBisulfite implements GATKSAMRecordFilter {
-        private ReferenceContext refContext;
-        private final BisulfiteArgumentCollection BAC;
-        private final int MISMATCH_WINDOW_SIZE = 20;
-
-        public BadBaseFilterBisulfite(ReferenceContext refContext, BisulfiteArgumentCollection BAC) {
-            this.refContext = refContext;
-            this.BAC = BAC;
-        }
-
-        @Override
-        public BitSet getGoodBases(final GATKSAMRecord record) {
-            BitSet bitset = new BitSet(record.getReadLength());
-
-            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue
-            if ( record.getMappingQuality() < BAC.MIN_MAPPING_QUALTY_SCORE ||
-                 (!BAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
-            	//System.out.println("bad mates");
-            	return bitset;
-            }
-            
-            byte[] quals = record.getBaseQualities();
-            for (int i = 0; i < quals.length; i++) {
-                if ( quals[i] >= BAC.MIN_BASE_QUALTY_SCORE )
-                    bitset.set(i);
-            }
-
-            // if a read is too long for the reference context, extend the context (being sure not to extend past the end of the chromosome)
-            if ( record.getAlignmentEnd() > refContext.getWindow().getStop() ) {
-                GenomeLoc window = refContext.getWindow();
-                byte[] bases = refContext.getBases();
-                StringUtil.toUpperCase(bases);
-                refContext = new ReferenceContext(refContext.getGenomeLocParser(),refContext.getLocus(), window, bases);
-            }            
-
-            BitSet mismatches;
-            boolean paired = record.getReadPairedFlag();
-            if(BAC.sequencingMode == MethylSNPModel.BM || BAC.sequencingMode == MethylSNPModel.GM){
-            	mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode, paired);
-            }
-            else{
-            	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
-            }
-            if ( mismatches != null )
-                bitset.and(mismatches);
-
-            return bitset;
-        }
-    }
 	
-	public static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
+	public boolean usableBase(PileupElement p, boolean ignoreBadBases, ReferenceContext ref) {
         // ignore deletions, Q0 bases, and filtered bases
+		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), ref, BAC);
         if ( p.isDeletion() ||
                 p.getQual() == 0 ||
                 (p.getRead() instanceof GATKSAMRecord &&
-                 !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
+                 !(GATKrecordFilterStor.isGoodBase(p.getOffset())) ))
             return false;
 
         return ( !ignoreBadBases || !badBase(p.getBase()) );
@@ -540,18 +489,18 @@ public class BisSNPUtils {
     }
 	
 	public static ReadBackedPileup getDownsampledPileup(ReadBackedPileup pileup, int desiredCov){
-		if ( pileup.size() <= desiredCov )
+		if ( pileup.depthOfCoverage() <= desiredCov )
             return pileup;
 
         // randomly choose numbers corresponding to positions in the reads list
         Random generator = new Random();
         TreeSet<Integer> positions = new TreeSet<Integer>();
         for ( int i = 0; i < desiredCov; /* no update */ ) {
-            if ( positions.add(generator.nextInt(pileup.size())) )
+            if ( positions.add(generator.nextInt(pileup.depthOfCoverage())) )
                 i++;
         }
 		GenomeLoc loc = pileup.getLocation();
-		List<SAMRecord> reads =  new ArrayList<SAMRecord>();;
+		List<GATKSAMRecord> reads =  new ArrayList<GATKSAMRecord>();;
 		List<Integer> elementOffsets = new ArrayList<Integer>();
 		int i = 0;
 		for ( PileupElement p : pileup ) {

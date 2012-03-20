@@ -1,22 +1,22 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
 
-import org.broad.tribble.Feature;
-import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import java.util.Collection;
+import java.util.List;
+
+
+
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.RodLocusView;
+
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -94,14 +94,30 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
     }
     
     //set prior for each locus
-    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygosity, double probOfTriStateGenotype, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc, double tiVsTv) {
+    public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteArgumentCollection bac, GenomeLoc loc) {
     	
-    	DBSNP_NOVAL_HETEROZYGOSITY = novelDbsnpHet;
-    	DBSNP_VALIDATE_HETEROZYGOSITY = validateDbsnpHet;
-    	TRANSITION_VS_TRANSVERSION = tiVsTv;
+    	DBSNP_NOVAL_HETEROZYGOSITY = bac.novelDbsnpHet;
+    	DBSNP_VALIDATE_HETEROZYGOSITY = bac.validateDbsnpHet;
+    	TRANSITION_VS_TRANSVERSION = bac.tiVsTv;
+    	double probOfTriStateGenotype = bac.referenceGenomeErr;
+    	double heterozygosity = bac.heterozygosity;
         byte refBase = ref.getBase();
         
-        Collection<VariantContext> contexts = tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, loc, true, false);
+        //Collection<VariantContext> contexts = tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, loc, true, false);
+        
+        int count = 0;
+        if(tracker.hasValues(bac.dbsnp)){
+        	for( final VariantContext vc_input : tracker.getValues(bac.dbsnp, ref.getLocus()) ) {
+                if ( vc_input != null && vc_input.isSNP() ) {   
+                	count++;
+                	priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+        			break;
+                }
+            }
+        }
+        
+
+        /*
         int count = 0;
         if(contexts != null){
         	for(VariantContext tmpVc : contexts){
@@ -113,6 +129,7 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
                 
             }
         }
+        */
         	if(count == 0)
         		priors = getReferencePolarizedPriors(refBase, heterozygosity, probOfTriStateGenotype);
 

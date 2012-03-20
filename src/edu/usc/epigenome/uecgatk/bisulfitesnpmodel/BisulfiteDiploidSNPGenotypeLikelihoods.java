@@ -3,9 +3,6 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMUtils;
@@ -13,15 +10,12 @@ import net.sf.samtools.SAMUtils;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypePriors;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidSNPGenotypeLikelihoods;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidSNPGenotypePriors;
-import org.broadinstitute.sting.gatk.walkers.genotyper.PerFragmentPileupElement;
+
+
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.exceptions.UserException.MalformedBam;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.exceptions.UserException.MalformedBAM;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -48,6 +42,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	protected BisulfiteDiploidSNPGenotypePriors priors = null;
 
 	protected BisulfiteArgumentCollection BAC;
+	protected ReferenceContext ref;
     protected double BISULFITE_CONVERSION_RATE;
     protected double OVER_CONVERSION_RATE;
     protected String DETERMINED_CYTOSINE_TYPE_POS = ""; //record cytosine pattern in positive strand which owns the maximum posterior probability
@@ -68,6 +63,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 			RefMetaDataTracker tracker, ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, BisulfiteArgumentCollection BAC, double[] cytosineMethyStatus) {
 		this.priors = priors;
 		this.BAC = BAC;
+		this.ref = ref;
 		this.BISULFITE_CONVERSION_RATE = BAC.bsRate;
 		this.OVER_CONVERSION_RATE = BAC.overRate;
 		this.PROB_OF_REFERENCE_ERROR = BAC.referenceGenomeErr;
@@ -80,7 +76,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
      * set prior calculated
      */
 	public void setPriors(RefMetaDataTracker tracker, ReferenceContext ref, double heterozygousity, double novelDbsnpHet, double validateDbsnpHet, GenomeLoc loc){
-		this.priors.setPriors(tracker, ref, heterozygousity, PROB_OF_REFERENCE_ERROR, novelDbsnpHet, validateDbsnpHet, loc, BAC.tiVsTv);
+		this.priors.setPriors(tracker, ref, BAC, loc);
         setToZeroBs();
 	}
 	
@@ -169,7 +165,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     	
         byte qual = p.getQual();
         if ( qual > SAMUtils.MAX_PHRED_SCORE )
-            throw new MalformedBam(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+            throw new MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
         if ( capBaseQualsAtMappingQual )
             qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
         
@@ -303,12 +299,13 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	/**
      * identify the base is able to use, copy from GATK since private method there
      */
-	protected static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
+	protected boolean usableBase(PileupElement p, boolean ignoreBadBases) {
         // ignore deletions, Q0 bases, and filtered bases
+		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), ref, BAC);
         if ( p.isDeletion() ||
                 p.getQual() == 0 ||
                 (p.getRead() instanceof GATKSAMRecord &&
-                 !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
+                 !(GATKrecordFilterStor.isGoodBase(p.getOffset())) ))
             return false;
 
         return ( !ignoreBadBases || !badBase(p.getBase()) );

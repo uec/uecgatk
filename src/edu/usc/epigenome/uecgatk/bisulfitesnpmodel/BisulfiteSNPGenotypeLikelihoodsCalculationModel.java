@@ -1,9 +1,6 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,26 +9,23 @@ import java.util.Map;
 import net.sf.samtools.SAMRecord;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypeLikelihoods;
 import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypePriors;
+
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext.StratifiedContextType;
+
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.BiallelicGenotypeLikelihoods;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
+
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE;
+
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -55,8 +49,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
-		NonRefDependSNPGenotypeLikelihoodsCalculationModel {
+public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 
 	private BisulfiteArgumentCollection BAC;
 	
@@ -67,7 +60,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 	protected int numTNegStrand = 0;
 	protected int numCPosStrand = 0;
 	protected int numTPosStrand = 0;
-	private CytosineTypeStatus cts = null;
+	private HashMap<String,CytosineTypeStatus> ctss = null;
 	
 	private boolean autoEstimateC = false;
     private boolean secondIteration = false;
@@ -76,17 +69,11 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 
 	
 	
-	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(
-			UnifiedArgumentCollection UAC, Logger logger) {
-		super(UAC, logger);	
-		// TODO Auto-generated constructor stub
-	}
+	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration) {
 	
-	@Override
-	public void initialize(CytosineTypeStatus cts, BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration){
-		
+		// TODO Auto-generated constructor stub
 		this.BAC = BAC;
-		this.cts = cts;
+		//this.cts = cts;
 		this.testLoc = BAC.testLocus;
 		this.autoEstimateC = autoEstimateC;
 		this.secondIteration = secondIteration;
@@ -94,19 +81,21 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		if(BAC.sequencingMode == MethylSNPModel.NM){
 			FALT_METHY_STATUS = 0.0;
 		}
-		
 	}
 	
+
 	
-	@Override
+	
+
 	public Allele getBsLikelihoods(RefMetaDataTracker tracker,
 			ReferenceContext ref,
-			Map<String, StratifiedAlignmentContext> contexts,
-			StratifiedContextType contextType,
+			Map<String, AlignmentContext> contexts,
+			AlignmentContextUtils.ReadOrientation contextType,
 			Map<String, BisulfiteBiallelicGenotypeLikelihoods> GLs,
-			Allele alternateAlleleToUse) {
+			Allele alternateAlleleToUse,
+			HashMap<String,CytosineTypeStatus> ctss) {
 		
-
+		this.ctss = ctss;
 		byte refBase = ref.getBase();
 		
 		
@@ -118,8 +107,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
         numTPosStrand = 0;
         
 
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            ReadBackedPileup pileup =AlignmentContextUtils.stratify(sample.getValue(),contextType).getBasePileup();
+            CytosineTypeStatus cts = ctss.get(sample.getKey());
+           // System.err.println(sample + "\t" + cts.toString());
             for ( PileupElement p : pileup ) {
             	SAMRecord samRecord = p.getRead();
             	if(samRecord.getDuplicateReadFlag()){ //get rid of duplicate reads
@@ -173,7 +164,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 				int	onRefCoord = (negStrand) ? samRecord.getUnclippedEnd() : alignmentS;
 				
 				//summary number of C,T in the positive and negative strand
-				if(((GATKSAMRecord)p.getRead()).isGoodBase(offset)){
+				//BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(ref, BAC);
+				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)samRecord, ref, BAC);
+                //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
+				if(GATKrecordFilterStor.isGoodBase(offset)){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
 							numCNegStrand++;
@@ -202,10 +196,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 									
 				if((pileup.getLocation().getStart()) == testLoc){
 					System.err.println("before filter:\t" + onRefCoord + "\t" + offset + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase());
-					System.err.println("refBase: " + refBase);
+					System.err.println("refBase: " + refBase + "\tGoodBase: " + GATKrecordFilterStor.isGoodBase(offset));
 					
 					if(paired)
-						System.err.println("isGoodBase: " + ((GATKSAMRecord)p.getRead()).isGoodBase(offset) + "\tsecondOfPair: " + "\tchanged: " + samRecord.getSecondOfPairFlag());
+						System.err.println("isGoodBase: " + GATKrecordFilterStor.isGoodBase(offset) + "\tsecondOfPair: " + "\tchanged: " + samRecord.getSecondOfPairFlag());
 		                     
 				}
             }
@@ -299,6 +293,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
             	System.err.println("ABGenotype " + likelihoods[ABGenotype.ordinal()] + "\t" + prio[ABGenotype.ordinal()] + "\t" + posterior[ABGenotype.ordinal()]);
             	System.err.println("BBGenotype " + likelihoods[BBGenotype.ordinal()] + "\t" + prio[BBGenotype.ordinal()] + "\t" + posterior[BBGenotype.ordinal()]);
             	System.err.println("Cytosine status: C-neg: " + numCNegStrand + "\tC-pos: " + numCPosStrand + "\tT-neg: " + numTNegStrand + "\tT-pos: " + numTPosStrand);
+            	
             }
             
             	GLs.put(sample.getKey(), new BisulfiteBiallelicGenotypeLikelihoods(sample.getKey(),
@@ -311,6 +306,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
                         cytosineStatus));
         }
 
+        
         return refAllele;
         
         
@@ -433,8 +429,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 		return value;
 	}
 	
-	protected CytosineTypeStatus getCytosineTypeStatus(){	
-		return this.cts;
+	protected HashMap<String,CytosineTypeStatus> getCytosineTypeStatus(){	
+		return this.ctss;
 	}
 	/*
 	//kind of ugly structure, but just for otimize in speed..
@@ -738,7 +734,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 			GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(contig, position + i );
 			if(i == 0)
 				continue;
-			List<SAMRecord> reads =  new ArrayList<SAMRecord>();;
+			List<GATKSAMRecord> reads =  new ArrayList<GATKSAMRecord>();;
 			List<Integer> elementOffsets = new ArrayList<Integer>();
 
 			for ( PileupElement p : pileup ) {
@@ -988,5 +984,22 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel extends
 			
 		}
 	}
+	
+	 protected int getFilteredDepth(ReadBackedPileup pileup) {
+	        int count = 0;
+	        for ( PileupElement p : pileup ) {
+	            if ( BaseUtils.isRegularBase( p.getBase() ) )
+	                count += p.getRepresentativeCount();
+	        }
+
+	        return count;
+	    }
+	 
+	
+	public enum MethylSNPModel {
+        BM,
+        GM,
+        NM
+    }
 
 }

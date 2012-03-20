@@ -6,13 +6,15 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import net.sf.samtools.SAMSequenceDictionary;
+
 import org.broad.tribble.TribbleException;
-import org.broad.tribble.vcf.StandardVCFWriter;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFFilterHeaderLine;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFHeaderVersion;
+import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFilterHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderVersion;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -39,29 +41,29 @@ public class TcgaVCFWriter extends StandardVCFWriter {
 	//store reference file path and name
 	protected String ref = null;
 	
-	public TcgaVCFWriter(File location) {
-		super(location);
+	public TcgaVCFWriter(File location,SAMSequenceDictionary refDict) {
+		super(location, refDict);
 		// TODO Auto-generated constructor stub
 	}
 
-	public TcgaVCFWriter(File location, boolean enableOnTheFlyIndexing) {
-		super(location, enableOnTheFlyIndexing);
+	public TcgaVCFWriter(File location,SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing) {
+		super(location,refDict, enableOnTheFlyIndexing);
 		// TODO Auto-generated constructor stub
 	}
 
-	public TcgaVCFWriter(OutputStream output) {
-		super(output);
+	public TcgaVCFWriter(OutputStream output,SAMSequenceDictionary refDict) {
+		super(output,refDict,false);
 		// TODO Auto-generated constructor stub
 	}
 
-	public TcgaVCFWriter(OutputStream output, boolean doNotWriteGenotypes) {
-		super(output, doNotWriteGenotypes);
+	public TcgaVCFWriter(OutputStream output,SAMSequenceDictionary refDict, boolean doNotWriteGenotypes) {
+		super(output,refDict, doNotWriteGenotypes);
 		// TODO Auto-generated constructor stub
 	}
 
-	public TcgaVCFWriter(File location, OutputStream output,
+	public TcgaVCFWriter(File location, OutputStream output,SAMSequenceDictionary refDict,
 			boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
-		super(location, output, enableOnTheFlyIndexing, doNotWriteGenotypes);
+		super(location, output,refDict, enableOnTheFlyIndexing, doNotWriteGenotypes);
 		// TODO Auto-generated constructor stub
 	}
 

@@ -1,6 +1,8 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
+import java.util.HashMap;
+
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
@@ -28,34 +30,34 @@ public class BisulfiteVariantCallContext{
 
 	public VariantContext vc = null;
     public ReferenceContext refBase;
-    public CytosineTypeStatus cts = null;
+    public HashMap<String,CytosineTypeStatus> cts = null;
     public AlignmentContext rawContext = null;
 
     // Was the site called confidently, either reference or variant?
     public boolean confidentlyCalled = false;
     public boolean emited = false;
 
-    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, boolean confidentlyCalledP, CytosineTypeStatus cts, boolean emited) {
+    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, boolean confidentlyCalledP, boolean emited) {
         this.vc = vc;
         this.rawContext = rawContext;
         this.confidentlyCalled = confidentlyCalledP;
-        this.cts = cts;
+       // this.cts = cts;
         this.emited = emited;
     }
 
-    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, ReferenceContext ref, boolean confidentlyCalledP, CytosineTypeStatus cts, boolean emited) {
+    public BisulfiteVariantCallContext(VariantContext vc, AlignmentContext rawContext, ReferenceContext ref, boolean confidentlyCalledP, boolean emited) {
         this.vc = vc;
         this.rawContext = rawContext;
         this.refBase = ref;
         this.confidentlyCalled = confidentlyCalledP;
-        this.cts = cts;
+       // this.cts = cts;
         this.emited = emited;
     }
 
     // blank variant context => we're a ref site
-    public BisulfiteVariantCallContext(boolean confidentlyCalledP, CytosineTypeStatus cts, boolean emited) {
+    public BisulfiteVariantCallContext(boolean confidentlyCalledP, boolean emited) {
         this.confidentlyCalled = confidentlyCalledP;
-        this.cts = cts;
+       // this.cts = cts;
         this.emited = emited;
     }
 
@@ -76,6 +78,16 @@ public class BisulfiteVariantCallContext{
          	return (this.vc.getGenotype(0).isHet()) && this.emited;
          }
          return false;
+    }
+    
+    public void addCytosineTypeStatus(String sample, CytosineTypeStatus cts){
+    	if(this.cts == null){
+    		this.cts = new HashMap<String,CytosineTypeStatus>();
+    	}
+    	this.cts.put(sample, cts);
+    }
+    public void setVariantContext(VariantContext vc) {
+        this.vc = vc;
     }
     
 }

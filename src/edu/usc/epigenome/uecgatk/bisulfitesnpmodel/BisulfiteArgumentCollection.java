@@ -3,9 +3,12 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 import java.lang.reflect.Field;
 
 import org.broadinstitute.sting.commandline.Argument;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.RodBinding;
+
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -26,11 +29,17 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 */
 
 public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
+	
+	 @Input(fullName="dbsnp", shortName = "D", doc="dbSNP file", required=false)
+	 public RodBinding<VariantContext> dbsnp;
+	
 	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM, Normal sequencing mode: NM", required = false)
-    public NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel sequencingMode = NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel.BM;
+    public BisulfiteSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel sequencingMode = BisulfiteSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel.BM;
 	
 //	@Argument(fullName = "paired_end_mode", shortName = "pem", doc = "work in paired end mode", required = false)
   //  public boolean pairedEndMode = false;
+	
+	
 	
 	@Argument(fullName = "bisulfite_conversion_only_on_one_strand", shortName = "bcm", doc = "true: Illumina protocol which is often used, only bisulfite conversion strand is kept (Lister protocol, sequence 2 forward strands only); false: Cokus protocol, sequence all 4 bisulfite converted strands", required = false)
     public boolean bisulfiteConversionModeOnestrand = true;
@@ -70,10 +79,10 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	public String autoEstimateOtherCytosine = "";
 	
 	@Argument(fullName = "force_cpg_methylation", shortName = "fcpg", doc = "force the cpg methylation status", required = false)
-    public double forceCpg = 0.50;
+    public double forceCpg = 0.80;
 	
 	@Argument(fullName = "force_cph_methylation", shortName = "fcph", doc = "force the cph methylation status", required = false)
-    public double forceCph = 0.50;
+    public double forceCph = 0.01;
 	
 	@Argument(fullName = "force_chg_methylation", shortName = "fchg", doc = "force the chg methylation status", required = false)
     public double forceChg = 0.50;
@@ -103,6 +112,17 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     //example String forceOtherCytosine = "GCAA-2:0.75;GGGCA-4:0.33";
 	public String forceOtherCytosine = "";
 	
+	@Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum mapping quality required to consider a base for calling", required = false)
+    public int MIN_MAPPING_QUALTY_SCORE = 30;
+	
+	@Argument(fullName = "use_badly_mated_reads", shortName = "badMate", doc = "use badly mated reads for calling", required = false)
+    public boolean USE_BADLY_MATED_READS = false;
+	
+	@Argument(fullName = "assume_single_sample", shortName = "single_sample", doc = "only single sample", required = false)
+    public String ASSUME_SINGLE_SAMPLE = null;
+	
+	 @Argument(fullName = "max_mismatches", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
+	 public int MAX_MISMATCHES = 3;
 
 	@Argument(fullName = "log_likelihood_ratio_for_cytosine_type", shortName = "cTypeThreshold", doc = "phred scale likelihood ratio of to be this cytosine pattern but not other cytosines in the first iteration for two-iteration mode (the real criteria is cTypeThreshold + stand_call_conf), default is 20, if stand_call_conf is 0, means 10^((20+0)/10) = 100 times more likihood than the other type of cytosine, only used in the first iteration", required = false)
     public double cTypeThreshold = 20;
@@ -175,12 +195,13 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	public BisulfiteArgumentCollection clone() {
 		BisulfiteArgumentCollection bac = new BisulfiteArgumentCollection();
+		
 		bac.GLmodel = GLmodel;
         bac.PCR_error = PCR_error;
         bac.GenotypingMode = GenotypingMode;
         bac.OutputMode = OutputMode;
         bac.NO_SLOD = NO_SLOD;
-        bac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
+        //bac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         bac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         bac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         bac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
@@ -190,9 +211,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         bac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         bac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
-        bac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;
-        bac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
-        bac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
+        
+        bac.dbsnp = dbsnp;
         bac.sequencingMode = sequencingMode;
  //       bac.pairedEndMode = pairedEndMode;
         bac.bisulfiteConversionModeOnestrand = bisulfiteConversionModeOnestrand;

@@ -7,8 +7,9 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 

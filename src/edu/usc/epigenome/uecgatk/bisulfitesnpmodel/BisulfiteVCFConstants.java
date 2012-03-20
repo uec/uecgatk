@@ -1,6 +1,5 @@
 package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
-import org.broad.tribble.vcf.VCFHeaderVersion;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -25,9 +24,9 @@ public class BisulfiteVCFConstants{
 
 	    // INFO/FORMAT field keys for Bis-SNP VCF 
 		public static final String GENOTYPE_TYPE = "HOM_REF,HET,HOM_VAR";
-	    public static final String NUMBER_OF_C_KEY = "NumC";
-	    public static final String NUMBER_OF_T_KEY = "NumT";
-	    public static final String C_IN_NEG_STRAND_KEY = "NegC";
+	    public static final String NUMBER_OF_C_KEY = "Cm";
+	    public static final String NUMBER_OF_T_KEY = "Cu";
+	    public static final String C_STRAND_KEY = "Strand";
 	    public static final String CYTOSINE_TYPE = "CType";
 	    public static final String CYTOSINE_METHY_VALUE = "methy";
 	    public static final String VCF_HEADER_VERSION_FORMAT = "fileformat";
@@ -41,6 +40,7 @@ public class BisulfiteVCFConstants{
 	    public static final String VCF_HEADER_VERSION_GAF = "geneAnno";
 	    public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";
 	    public static final String PROGRAM_ARGS = "BisSNP Program Args";
+	    public static final String ID_KEY = "ID";
 
 }
 

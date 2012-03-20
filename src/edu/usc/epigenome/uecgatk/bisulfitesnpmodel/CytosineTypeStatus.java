@@ -2,7 +2,8 @@ package edu.usc.epigenome.uecgatk.bisulfitesnpmodel;
 
 import java.util.HashMap;
 
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.NonRefDependSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
+import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteSNPGenotypeLikelihoodsCalculationModel.MethylSNPModel;
+
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -45,6 +46,11 @@ public class CytosineTypeStatus {
 	double gcgMethyLevel = 0;
 	double ccgMethyLevel = 0;
 	double wcgMethyLevel = 0;
+	
+	int numC = 0;
+	int numT = 0;
+	int numOthers = 0;
+	char strandOfC = '+';
 	
 	BisulfiteArgumentCollection BAC = null;
 	
