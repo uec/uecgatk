@@ -127,10 +127,18 @@ public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 		int featS = rec.getStart();
 		int featE = rec.getEnd();
 		
+		/**
+		** THIS IS IMPORTANT, DETERMINES WHETHER ALIGNMENT IS TO CENTER OR EDGE.
+		** ALSO DETERMINES WHETHER TO SKIP UNORIENTED.
+		**/
 		boolean skipUnoriented = true;
 		boolean alignToStart = true;
 		boolean alignToEnd = false;
 		boolean censor = false;
+		/**
+		**/
+		
+		
 		int extendRead = 0;
 		if (skipUnoriented)
 		{
