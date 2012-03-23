@@ -259,7 +259,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 							likelihood += observedBase == g.base1 ? pOfBase1 * (1.0-error) : pOfBase1 * (error/3.0);
 							likelihood += observedBase == g.base2 ? pOfBase2 * (1.0-error) : pOfBase2 * (error/3.0);
 							if ( VERBOSE ) {
-								//System.out.println("flag9: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood));
+							//	System.out.println("flag9: observedBase-" + observedBase + "\t" + "g.base1-" + g.base1 + "\t" + "g.base2-" + g.base2 + "\t" + "likelihood-" + log10(likelihood) + "\t" + qualityScore + "\t" + error);
 							}
 						}
 				}
@@ -301,11 +301,11 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
      */
 	protected boolean usableBase(PileupElement p, boolean ignoreBadBases) {
         // ignore deletions, Q0 bases, and filtered bases
-		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), ref, BAC);
+		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
         if ( p.isDeletion() ||
                 p.getQual() == 0 ||
                 (p.getRead() instanceof GATKSAMRecord &&
-                 !(GATKrecordFilterStor.isGoodBase(p.getOffset())) ))
+                 !(GATKrecordFilterStor.isGoodBase()) ))
             return false;
 
         return ( !ignoreBadBases || !badBase(p.getBase()) );

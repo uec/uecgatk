@@ -14,6 +14,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /**
  * @author yaping
@@ -24,22 +25,25 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 public class BisulfiteVariantCallContext {
 
 	private HashMap<String, BisulfiteContextsGenotypeLikelihoods> BCGLs;
-	private VariantCallContext vcc;
+	private VariantContext vc;
 	private summaryAcrossReadsGroup summary;
 	
 	public boolean isC = false;
 	public boolean isCpg = false;
 	public AlignmentContext rawContext = null;
 	public ReferenceContext ref = null;
+    public boolean confidentlyCalled = false;
+    // Should this site be emitted?
+    public boolean shouldEmit = true;
 	/**
 	 * 
 	 */
-	public BisulfiteVariantCallContext(HashMap<String, BisulfiteContextsGenotypeLikelihoods> BCGLs, VariantCallContext vcc, AlignmentContext rawContext, ReferenceContext ref) {
+	public BisulfiteVariantCallContext(HashMap<String, BisulfiteContextsGenotypeLikelihoods> BCGLs, VariantContext vc, AlignmentContext rawContext, ReferenceContext ref) {
 		// TODO Auto-generated constructor stub
 		this.rawContext = rawContext;
 		this.ref = ref;
 		this.BCGLs = BCGLs;
-		this.vcc = vcc;
+		this.vc = vc;
 		setSummaryAcrossReadsGroup();
 		
 	}
@@ -48,8 +52,8 @@ public class BisulfiteVariantCallContext {
 		return BCGLs;
 	}
 	
-	public VariantCallContext getVariantCallContext(){
-		return vcc;
+	public VariantContext getVariantContext(){
+		return vc;
 	}
 	
 	public summaryAcrossReadsGroup getSummaryAcrossRG(){
@@ -57,8 +61,8 @@ public class BisulfiteVariantCallContext {
 	}
 	
 	public boolean isHetSnp() {
-   	 if(this.vcc.hasGenotypes()){
-   		Iterator<Genotype> it = vcc.getGenotypes().iterator();
+   	 if(this.vc.hasGenotypes()){
+   		Iterator<Genotype> it = vc.getGenotypes().iterator();
    		 while(it.hasNext()){
    			 if(it.next().isHet())
    				 return true;
@@ -82,6 +86,7 @@ public class BisulfiteVariantCallContext {
 					if(BCGL.getCytosineParameters().get(cytosinePattern).isCytosinePattern){
 						summary.cytosinePatternStrand = BCGL.getCytosineParameters().get(cytosinePattern).cytosineStrand;
 						
+			            	
 						summary.cytosinePatternConfirmedSet.add(cytosinePattern);
 						isC = true;
 						if(cytosinePattern.equalsIgnoreCase("CG"))

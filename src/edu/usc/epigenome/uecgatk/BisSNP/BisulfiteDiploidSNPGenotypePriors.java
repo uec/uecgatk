@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -106,15 +107,27 @@ public class BisulfiteDiploidSNPGenotypePriors implements GenotypePriors {
         //Collection<VariantContext> contexts = tracker.getVariantContexts(ref, DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, null, loc, true, false);
         
         int count = 0;
-        if(tracker.hasValues(bac.dbsnp)){
-        	for( final VariantContext vc_input : tracker.getValues(bac.dbsnp, ref.getLocus()) ) {
-                if ( vc_input != null && vc_input.isSNP() ) {   
-                	count++;
-                	priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
-        			break;
-                }
-            }
-        }
+        for( RODRecordList  rods: tracker.getBoundRodTracks() ) {
+            //  if ( vc_input != null && vc_input.isSNP() ) {               
+          	//if ( vc_input != null ) {    	
+          	for(GATKFeature vc_input : rods){
+          		if ( vc_input != null && vc_input.getUnderlyingObject() instanceof VariantContext) {
+          			VariantContext dbsnp = (VariantContext) vc_input.getUnderlyingObject();
+          			if(dbsnp.isSNP()){
+          				count++;
+          				if(dbsnp.getAttribute("VLD") != null){
+          					priors = getReferencePolarizedPriors(refBase, DBSNP_VALIDATE_HETEROZYGOSITY, probOfTriStateGenotype);
+          				}
+          				else{
+          					priors = getReferencePolarizedPriors(refBase, DBSNP_NOVAL_HETEROZYGOSITY, probOfTriStateGenotype);
+          				}
+                    	
+            			break;
+          			}
+          			
+          		}
+          	}
+          }
         
 
         /*

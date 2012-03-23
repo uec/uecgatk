@@ -14,11 +14,11 @@ public class CytosineParameters {
 	/**
 	 * 
 	 */
-	int cytosinePosition;
-	double cytosineMethylation;
-	char cytosineStrand;
-	boolean methylationAutoestimated;
-	boolean isCytosinePattern;
+	public int cytosinePosition;
+	public double cytosineMethylation;
+	public char cytosineStrand;
+	public boolean methylationAutoestimated;
+	public boolean isCytosinePattern = false;
 	
 	public CytosineParameters() {
 		// TODO Auto-generated constructor stub

@@ -6,6 +6,7 @@ package edu.usc.epigenome.uecgatk.BisSNP;
 import java.util.BitSet;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import edu.usc.epigenome.uecgatk.BisSNP.BadBaseFilterBisulfite;
 
@@ -20,29 +21,34 @@ public class GATKSAMRecordFilterStorage {
 	/**
 	 * 
 	 */
-	private BitSet mBitSet = null;
+
 	private GATKSAMRecord GATKrecord = null;
+	private boolean goodBase = false;
+	private BisulfiteArgumentCollection BAC;
 	
-	public GATKSAMRecordFilterStorage(GATKSAMRecord GATKrecord, ReferenceContext ref, BisulfiteArgumentCollection BAC) {
+	public GATKSAMRecordFilterStorage(GATKSAMRecord GATKrecord, BisulfiteArgumentCollection BAC, int offset) {
 		// TODO Auto-generated constructor stub
 		this.GATKrecord = GATKrecord;
-		BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(ref, BAC);
-		this.setGoodBases(badReadPileupFilter, true);
-	}
-	
-	public GATKSAMRecordFilterStorage(GATKSAMRecord GATKrecord, BadBaseFilterBisulfite badReadPileupFilter) {
-		// TODO Auto-generated constructor stub
-		this.GATKrecord = GATKrecord;
-		this.setGoodBases(badReadPileupFilter, true);
+		this.BAC = BAC;
+		setGoodBases(offset);
 	}
 
-	public void setGoodBases(BadBaseFilterBisulfite filter, boolean abortIfAlreadySet) {
-        if ( mBitSet == null || !abortIfAlreadySet )
-            mBitSet = filter.getGoodBases(GATKrecord);
+
+    public boolean isGoodBase() {
+        return goodBase;
+    }
+    
+	private void setGoodBases(int offset) {
+		byte[] quals = GATKrecord.getBaseQualities();
+		
+		if ( GATKrecord.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE && quals[offset] >= BAC.MIN_BASE_QUALTY_SCORE &&
+	             (BAC.USE_BADLY_MATED_READS || (!BadMateFilter.hasBadMate(GATKrecord)) && !GATKrecord.getNotPrimaryAlignmentFlag()) ) {
+	        	//System.out.println("bad mates");
+				//if((GATKrecord.getReadPairedFlag() && GATKrecord.getProperPairFlag()))
+				goodBase = true;
+	     }
+
     }
 
-    public boolean isGoodBase(int index) {
-        return ( mBitSet == null || mBitSet.size() <= index ? true : mBitSet.get(index));
-    }
 	
 }

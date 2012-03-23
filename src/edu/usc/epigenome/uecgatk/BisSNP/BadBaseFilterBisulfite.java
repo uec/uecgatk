@@ -68,8 +68,8 @@ public class BadBaseFilterBisulfite{
         else{
         	mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
         }
-        if ( mismatches != null )
-            bitset.and(mismatches);
+      //  if ( mismatches != null )
+      //      bitset.and(mismatches);
 
         return bitset;
     }

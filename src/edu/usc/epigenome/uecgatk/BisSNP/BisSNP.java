@@ -77,7 +77,7 @@ public class BisSNP extends CommandLineExecutable {
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "Bis-SNP-0.51";
+	private static String BisVersion = "Bis-SNP-0.52";
 
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
@@ -93,6 +93,8 @@ public class BisSNP extends CommandLineExecutable {
 	
 	//to record cytosine pattern methylation status estimated in the first iteration
 	private static CytosinePatternsUserDefined cytosineDefinedMemorizedForSecondRun = null;
+	
+	//private RodBinding<VariantContext> dbsnp = null;
 	
 	public Walker<?,?> walker = null;
 	
@@ -193,6 +195,7 @@ public class BisSNP extends CommandLineExecutable {
         		
                  walker = (BisulfiteGenotyper) engine.getWalkerByName(getAnalysisName());
         		((BisulfiteGenotyper) walker).setAutoParameters(autoEstimateC, secondIteration, argCommandline);
+        	//	((BisulfiteGenotyper) walker).setBoundDbSNP(dbsnp);
         		setupInfo();
         		engine.setWalker(walker);
                 walker.setToolkit(engine);
@@ -272,6 +275,7 @@ public class BisSNP extends CommandLineExecutable {
                 engine.execute();
                 if(walker instanceof BisulfiteGenotyper){
                 	cytosineDefinedMemorizedForSecondRun = ((BisulfiteGenotyper) walker).getCytosineMethyStatus(); //receive cytosine pattern methylation status estimated in the first iteration
+             //   	dbsnp = ((BisulfiteGenotyper) walker).getBoundDbSNP();
         		}
                 
                 

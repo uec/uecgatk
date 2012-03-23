@@ -51,75 +51,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	@Argument(fullName = "cytosine_contexts_acquired", shortName = "c", doc = "Specify the cytosine contexts to check", required = false)
     public List<String> cytosineContextsAcquired = new ArrayList<String>();
-	
-	@Argument(fullName = "auto_estimate_cpg_methylation", shortName = "aecpg", doc = "the first run would be to run auto_estimate_cpg methylation status", required = false)
-    public boolean autoEstimateCpg = true;
-	
-	@Argument(fullName = "auto_estimate_cph_methylation", shortName = "aecph", doc = "the first run would be to run auto_estimate_cph methylation status", required = false)
-    public boolean autoEstimateCph = true;
-	
-	@Argument(fullName = "auto_estimate_chg_methylation", shortName = "aechg", doc = "the first run would be to run auto_estimate_chg methylation status", required = false)
-    public boolean autoEstimateChg = true;
-	
-	@Argument(fullName = "auto_estimate_chh_methylation", shortName = "aechh", doc = "the first run would be to run auto_estimate_chh methylation status", required = false)
-    public boolean autoEstimateChh = true;
-	
-	@Argument(fullName = "auto_estimate_gch_methylation", shortName = "aegch", doc = "the first run would be to run auto_estimate_gch methylation status", required = false)
-    public boolean autoEstimateGch = true;
-	
-	@Argument(fullName = "auto_estimate_cch_methylation", shortName = "aecch", doc = "the first run would be to run auto_estimate_cch methylation status", required = false)
-    public boolean autoEstimateCch = true;
-	
-	@Argument(fullName = "auto_estimate_wch_methylation", shortName = "aewch", doc = "the first run would be to run auto_estimate_wch methylation status", required = false)
-    public boolean autoEstimateWch = true;
-	
-	@Argument(fullName = "auto_estimate_gcg_methylation", shortName = "aegcg", doc = "the first run would be to run auto_estimate_gcg methylation status", required = false)
-    public boolean autoEstimateGcg = true;
-	
-	@Argument(fullName = "auto_estimate_ccg_methylation", shortName = "aeccg", doc = "the first run would be to run auto_estimate_ccg methylation status", required = false)
-    public boolean autoEstimateCcg = true;
-	
-	@Argument(fullName = "auto_estimate_wcg_methylation", shortName = "aewcg", doc = "the first run would be to run auto_estimate_wcg methylation status", required = false)
-    public boolean autoEstimateWcg = true;
-	
-	@Argument(fullName = "auto_estimate_other_cytosine_methylation", shortName = "aeoc", doc = "the first run would be to run auto_estimate_other_cytosine_methylation status, you need to provide cytosine type by such format: -aoec GCAA-2:0.5;GGGCA-4:0.5 ((GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.5 means intial methylation status))", required = false)
-    //example: "GCAA-2:0.5;GGGCA-4:0.5";
-	public String autoEstimateOtherCytosine = "";
-	
-	@Argument(fullName = "force_cpg_methylation", shortName = "fcpg", doc = "force the cpg methylation status", required = false)
-    public double forceCpg = 0.80;
-	
-	@Argument(fullName = "force_cph_methylation", shortName = "fcph", doc = "force the cph methylation status", required = false)
-    public double forceCph = 0.01;
-	
-	@Argument(fullName = "force_chg_methylation", shortName = "fchg", doc = "force the chg methylation status", required = false)
-    public double forceChg = 0.50;
-	
-	@Argument(fullName = "force_chh_methylation", shortName = "fchh", doc = "force the chh methylation status", required = false)
-    public double forceChh = 0.50;
-	
-	@Argument(fullName = "force_gch_methylation", shortName = "fgch", doc = "force the gch methylation status", required = false)
-    public double forceGch = 0.50;
-	
-	@Argument(fullName = "force_cch_methylation", shortName = "fcch", doc = "force the cch methylation status", required = false)
-    public double forceCch = 0.50;
-	
-	@Argument(fullName = "force_wch_methylation", shortName = "fwch", doc = "force the wch methylation status", required = false)
-    public double forceWch = 0.50;
-	
-	@Argument(fullName = "force_gcg_methylation", shortName = "fgcg", doc = "force the gcg methylation status", required = false)
-    public double forceGcg = 0.50;
-	
-	@Argument(fullName = "force_ccg_methylation", shortName = "fccg", doc = "force the ccg methylation status", required = false)
-    public double forceCcg = 0.50;
-	
-	@Argument(fullName = "force_wcg_methylation", shortName = "fwcg", doc = "force the wcg methylation status", required = false)
-    public double forceWcg = 0.50;
-	
-	@Argument(fullName = "force_other_cytosine_methylation", shortName = "foc", doc = "force the other_cytosine_methylation status, you need to provide cytosine type by such format: -aoec GCAA-2:0.75;GGGCA-3:0.33 (GCAA is ctosine type, 2 means cytosine is in 2nd base, 0.75 means methylation level)", required = false)
-    //example String forceOtherCytosine = "GCAA-2:0.75;GGGCA-4:0.33";
-	public String forceOtherCytosine = "";
-	
+
 	@Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum mapping quality required to consider a base for calling", required = false)
     public int MIN_MAPPING_QUALTY_SCORE = 30;
 	
@@ -234,29 +166,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.bisulfiteConversionModeOnestrand = bisulfiteConversionModeOnestrand;
         bac.cytosineContextsAcquired = cytosineContextsAcquired;
         bac.cytosineDefined = cytosineDefined;
-        bac.autoEstimateChg = autoEstimateChg;
-        bac.autoEstimateChh = autoEstimateChh;
-        bac.autoEstimateCpg = autoEstimateCpg;
-        bac.autoEstimateCph = autoEstimateCph;
-        bac.autoEstimateGch = autoEstimateGch;
-        bac.autoEstimateGcg = autoEstimateGcg;
-        bac.autoEstimateCcg = autoEstimateCcg;
-        bac.autoEstimateCch = autoEstimateCch;
-        bac.autoEstimateWcg = autoEstimateWcg;
-        bac.autoEstimateWch = autoEstimateWch;
-        bac.forceChg = forceChg;
-        bac.forceCpg = forceCpg;
-        bac.forceCph = forceCph;
-        bac.forceChh = forceChh;
-        bac.forceGch = forceGch;
-        bac.forceGcg = forceGcg;
-        bac.forceCcg = forceCcg;
-        bac.forceCch = forceCch;
-        bac.forceWcg = forceWcg;
-        bac.forceWch = forceWch;
-        bac.autoEstimateOtherCytosine = autoEstimateOtherCytosine;
-        bac.forceOtherCytosine = forceOtherCytosine;
-        
+
         bac.cTypeThreshold = cTypeThreshold;
         bac.testLocus = testLocus;
         bac.minConv = minConv;
