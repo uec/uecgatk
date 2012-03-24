@@ -377,117 +377,6 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
         
 	}
 	
-	//normalize of posterior
-	/*
-	public double[] normalization(double[] logPosterior){
-		double sum = 0;
-		double[] returnLikelyhood = logPosterior.clone();
-		for(int i = 0; i < logPosterior.length; i++){
-			sum += Math.pow(10,logPosterior[i]);
-		}
-		sum = Math.log10(sum);
-		for(int j = 0; j < logPosterior.length; j++){
-			returnLikelyhood[j] = returnLikelyhood[j] - sum;
-		}
-		return returnLikelyhood;
-	}
-*/
-	protected void initializeBestAndAlternateAlleleFromPosterior(double[] posterior, int location){
-		double maxCount = Double.NEGATIVE_INFINITY;
-        double secondMaxCount = Double.NEGATIVE_INFINITY;
-        DiploidGenotype bestGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
-        DiploidGenotype secondGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
-        bestAllele = null;
-        alternateAllele = null;
-        
-        for ( DiploidGenotype g : DiploidGenotype.values() ){
-			if(posterior[g.ordinal()] > maxCount){
-				secondMaxCount = maxCount;
-				maxCount = posterior[g.ordinal()];
-				if(bestGenotype.base1 != secondGenotype.base1){
-            		secondGenotype = bestGenotype;
-            	}
-				bestGenotype = g;
-			}
-			else if (posterior[g.ordinal()] > secondMaxCount && posterior[g.ordinal()] <= maxCount){
-	            	secondMaxCount = posterior[g.ordinal()];
-	            	secondGenotype = g;
-	        }
-		}
-        if(bestGenotype.isHom()){
-        	bestAllele = bestGenotype.base1;
-        	if(secondGenotype.isHom()){
-        		alternateAllele = secondGenotype.base1;
-        	}	
-        	else{
-        		if(secondGenotype.base1 == bestAllele){
-        			alternateAllele = secondGenotype.base2;
-        		}
-        		else{
-        			alternateAllele = secondGenotype.base1;
-        		}
-        	}
-        		
-        }
-        else{
-        	DiploidGenotype temp1 = DiploidGenotype.createHomGenotype(bestGenotype.base1);
-        	DiploidGenotype temp2 = DiploidGenotype.createHomGenotype(bestGenotype.base2);
-        	if(posterior[temp1.ordinal()] > posterior[temp2.ordinal()]){
-        		bestAllele = bestGenotype.base1;
-        		alternateAllele = bestGenotype.base2;
-        	}
-        	else{
-        		bestAllele = bestGenotype.base2;
-        		alternateAllele = bestGenotype.base1;
-        	}
-        }
-        
-		
-        if(location == testLoc){
-        	for ( DiploidGenotype g : DiploidGenotype.values() ){
-        		System.err.println(g.base1 + "-" + g.base2 + ": " + posterior[g.ordinal()]);
-        	}
-        	System.err.println("bestAllele: " + bestAllele + "\t" + maxCount);
-        	if(alternateAllele != null){
-        		System.err.println("AlternateAllele: " + "\t" + alternateAllele + "\t" + secondMaxCount);
-        	}
-        }
-	}
-
-	protected void getBestGenotypeFromPosterior(double[] posterior,HashMap<Integer,methyStatus> cytosineAdjacent, int key, int location){
-		double maxCount = Double.NEGATIVE_INFINITY;
-        double secondMaxCount = Double.NEGATIVE_INFINITY;
-        methyStatus tmpMethyStatus = new methyStatus();
-        tmpMethyStatus.genotype = null;
-        tmpMethyStatus.ratio = 0.0;
-        DiploidGenotype bestGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
- 
-        for ( DiploidGenotype g : DiploidGenotype.values() ){
-			if(posterior[g.ordinal()] > maxCount){
-				secondMaxCount = maxCount;
-				maxCount = posterior[g.ordinal()];
-				
-				bestGenotype = g;
-			}
-			else if (posterior[g.ordinal()] > secondMaxCount && posterior[g.ordinal()] <= maxCount){
-	            	secondMaxCount = posterior[g.ordinal()];
-	        }
-		}
-        tmpMethyStatus.ratio = 10 * (maxCount - secondMaxCount);
-        if(location == BAC.testLocus){
-        	System.err.println("maxCount: " + maxCount + "\tsecondMaxCount: " + secondMaxCount + "\tratio: " + tmpMethyStatus.ratio + "\tgenotype: " + bestGenotype);
-        	for(double poster : posterior){
-        		System.err.println(poster);
-        	}
-        }
-        tmpMethyStatus.genotype = bestGenotype;
-        cytosineAdjacent.put(key, tmpMethyStatus);
-        
-      
-	}
-
-
-	
 	public String checkCytosineStatus(ReadBackedPileup pileup, BisulfiteArgumentCollection BAC, RefMetaDataTracker tracker,ReferenceContext ref, BisulfiteDiploidSNPGenotypePriors priors, 
 			HashMap<Integer,double[]> GPsBeforeCytosineTenGenotypes, HashMap<Integer,double[]> GPsAfterCytosineTenGenotypes, HashMap<String, Double[]> GPsAtCytosineTenGenotypes, 
 			HashMap<String,CytosineParameters> cytosineParametersStatus){
@@ -584,8 +473,11 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	                 	}
 	                 }
 	            	 
-	            	 if(tmpMethyStatus.genotype.isHet()){ //this is wrong, since GCH, if het H, like A/T heterozygouse SNP is still H?
-	 	            	break;
+	            	 if(tmpMethyStatus.genotype.isHet()){ //it is correct now, for GCH, if het H, like A/T heterozygouse SNP is still H
+	            		 if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base1) && BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base2)){
+		 	            		countMatchedOnFwd++;
+		 	            		adjacentCytosineSeqLikelihood += tmpMethyStatus.ratio;
+		 	            }
 	 	             }	
 	 	             else{
 	 	            	 
@@ -628,7 +520,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	                 }
 	            	 
 	            	 if(tmpMethyStatus.genotype.isHet()){
-	 	            	break;
+	            		 if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base1) && BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base2)){
+	            			 countMatchedOnRvd++;
+	            			 adjacentCytosineSeqLikelihoodReverseStrand += tmpMethyStatus.ratio;
+		 	            }
 	 	             }	
 	 	             else{
 	 	            	 
@@ -648,6 +543,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             if((countMatchedOnFwd < cytosineType.length() - 1) && (countMatchedOnRvd < cytosineType.length() - 1))
             	continue;
             
+            
+            //check at cytosine position now
             if(autoEstimateC && !secondIteration && !firstSeen){
             	
             }
@@ -676,7 +573,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
         	else if(tmpMethyStatus.genotype == null){
         		continue;
             }
-            else if(tmpMethyStatus.genotype.isHet()){
+            else if(tmpMethyStatus.genotype.isHet()){ //for GCH, if het C, it is not meaningful to take into account..
             	
             		continue;
             	
@@ -763,6 +660,119 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		//return maxGL;	
 	}
 	
+	//normalize of posterior
+	/*
+	public double[] normalization(double[] logPosterior){
+		double sum = 0;
+		double[] returnLikelyhood = logPosterior.clone();
+		for(int i = 0; i < logPosterior.length; i++){
+			sum += Math.pow(10,logPosterior[i]);
+		}
+		sum = Math.log10(sum);
+		for(int j = 0; j < logPosterior.length; j++){
+			returnLikelyhood[j] = returnLikelyhood[j] - sum;
+		}
+		return returnLikelyhood;
+	}
+*/
+	private void initializeBestAndAlternateAlleleFromPosterior(double[] posterior, int location){
+		double maxCount = Double.NEGATIVE_INFINITY;
+        double secondMaxCount = Double.NEGATIVE_INFINITY;
+        DiploidGenotype bestGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
+        DiploidGenotype secondGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
+        bestAllele = null;
+        alternateAllele = null;
+        
+        for ( DiploidGenotype g : DiploidGenotype.values() ){
+			if(posterior[g.ordinal()] > maxCount){
+				secondMaxCount = maxCount;
+				maxCount = posterior[g.ordinal()];
+				if(bestGenotype.base1 != secondGenotype.base1){
+            		secondGenotype = bestGenotype;
+            	}
+				bestGenotype = g;
+			}
+			else if (posterior[g.ordinal()] > secondMaxCount && posterior[g.ordinal()] <= maxCount){
+	            	secondMaxCount = posterior[g.ordinal()];
+	            	secondGenotype = g;
+	        }
+		}
+        if(bestGenotype.isHom()){
+        	bestAllele = bestGenotype.base1;
+        	if(secondGenotype.isHom()){
+        		alternateAllele = secondGenotype.base1;
+        	}	
+        	else{
+        		if(secondGenotype.base1 == bestAllele){
+        			alternateAllele = secondGenotype.base2;
+        		}
+        		else{
+        			alternateAllele = secondGenotype.base1;
+        		}
+        	}
+        		
+        }
+        else{
+        	DiploidGenotype temp1 = DiploidGenotype.createHomGenotype(bestGenotype.base1);
+        	DiploidGenotype temp2 = DiploidGenotype.createHomGenotype(bestGenotype.base2);
+        	if(posterior[temp1.ordinal()] > posterior[temp2.ordinal()]){
+        		bestAllele = bestGenotype.base1;
+        		alternateAllele = bestGenotype.base2;
+        	}
+        	else{
+        		bestAllele = bestGenotype.base2;
+        		alternateAllele = bestGenotype.base1;
+        	}
+        }
+        
+		
+        if(location == testLoc){
+        	for ( DiploidGenotype g : DiploidGenotype.values() ){
+        		System.err.println(g.base1 + "-" + g.base2 + ": " + posterior[g.ordinal()]);
+        	}
+        	System.err.println("bestAllele: " + bestAllele + "\t" + maxCount);
+        	if(alternateAllele != null){
+        		System.err.println("AlternateAllele: " + "\t" + alternateAllele + "\t" + secondMaxCount);
+        	}
+        }
+	}
+
+	private void getBestGenotypeFromPosterior(double[] posterior,HashMap<Integer,methyStatus> cytosineAdjacent, int key, int location){
+		double maxCount = Double.NEGATIVE_INFINITY;
+        double secondMaxCount = Double.NEGATIVE_INFINITY;
+        methyStatus tmpMethyStatus = new methyStatus();
+        tmpMethyStatus.genotype = null;
+        tmpMethyStatus.ratio = 0.0;
+        DiploidGenotype bestGenotype = DiploidGenotype.createHomGenotype(BaseUtils.A);
+ 
+        for ( DiploidGenotype g : DiploidGenotype.values() ){
+			if(posterior[g.ordinal()] > maxCount){
+				secondMaxCount = maxCount;
+				maxCount = posterior[g.ordinal()];
+				
+				bestGenotype = g;
+			}
+			else if (posterior[g.ordinal()] > secondMaxCount && posterior[g.ordinal()] <= maxCount){
+	            	secondMaxCount = posterior[g.ordinal()];
+	        }
+		}
+        tmpMethyStatus.ratio = 10 * (maxCount - secondMaxCount);
+        if(location == BAC.testLocus){
+        	System.err.println("maxCount: " + maxCount + "\tsecondMaxCount: " + secondMaxCount + "\tratio: " + tmpMethyStatus.ratio + "\tgenotype: " + bestGenotype);
+        	for(double poster : posterior){
+        		System.err.println(poster);
+        	}
+        }
+        tmpMethyStatus.genotype = bestGenotype;
+        cytosineAdjacent.put(key, tmpMethyStatus);
+        
+      
+	}
+
+
+	
+
+	
 	//inner class to record genotype and posterior ratio of best and second best genotype
 	private class methyStatus{
 		DiploidGenotype genotype;
@@ -772,7 +782,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		}
 	}
 	
-	 protected int getFilteredDepth(ReadBackedPileup pileup) {
+	 private int getFilteredDepth(ReadBackedPileup pileup) {
 	        int count = 0;
 	        for ( PileupElement p : pileup ) {
 	            if ( BaseUtils.isRegularBase( p.getBase() ) )
