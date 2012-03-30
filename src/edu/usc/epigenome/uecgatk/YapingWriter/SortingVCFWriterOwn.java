@@ -1,7 +1,7 @@
 package edu.usc.epigenome.uecgatk.YapingWriter;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 
 public class SortingVCFWriterOwn extends SortingVCFWriterOwnBase {
 
@@ -35,5 +35,6 @@ public class SortingVCFWriterOwn extends SortingVCFWriterOwnBase {
     public void enableDiscreteLoci(boolean enableDiscreteLoci) {
     	this.enableDiscreteLoci = enableDiscreteLoci;
     }
+
 
 }

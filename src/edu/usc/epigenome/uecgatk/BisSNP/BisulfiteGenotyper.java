@@ -110,7 +110,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     
     private static Set<String> samples = null;
     
-    private static int MAXIMUM_CACHE_FOR_OUTPUT_VCF = 300000;
+    private static int MAXIMUM_CACHE_FOR_OUTPUT_VCF = 3000000;
     
     private static long COUNT_CACHE_FOR_OUTPUT_VCF = 1;
     
@@ -120,11 +120,11 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     
     protected TcgaVCFWriter writer = null;
     
-    protected MannualSortingTcgaVCFWriter multiThreadWriter = null;
+    protected SortingTcgaVCFWriter multiThreadWriter = null;
     
     protected TcgaVCFWriter additionalWriterForDefaultTcgaMode = null;
     
-    protected MannualSortingTcgaVCFWriter multiAdditionalWriterForDefaultTcgaMode = null;
+    protected SortingTcgaVCFWriter multiAdditionalWriterForDefaultTcgaMode = null;
     
     protected FormatWriterBase readsWriter = null; //only works with single core right now
     
@@ -584,13 +584,13 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     
     private void initiateVCFInDifferentOutmode(SAMSequenceDictionary refDict){
     	File outputVcfFile = new File(BAC.vfn1);
-		writer = new TcgaVCFWriter(outputVcfFile,refDict, false);
+		writer = new TcgaVCFWriter(outputVcfFile,refDict, true);
 		writer.setRefSource(getToolkit().getArguments().referenceFile.toString());
 		
 		writer.writeHeader(new VCFHeader(getHeaderInfo(), samples));
 		
 		if(getToolkit().getArguments().numberOfThreads > 1){
-			multiThreadWriter = new MannualSortingTcgaVCFWriter(writer);
+			multiThreadWriter = new SortingTcgaVCFWriter(writer, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
 		//	multiThreadWriter.enableDiscreteLoci(BAC.lnc);
 			if(BAC.ovd){
 				File outputVerboseFile = new File(BAC.fnovd);
@@ -602,11 +602,11 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		
 		if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
 			File outputAdditionalVcfFile = new File(BAC.vfn2);
-			additionalWriterForDefaultTcgaMode = new TcgaVCFWriter(outputAdditionalVcfFile,refDict, false);
+			additionalWriterForDefaultTcgaMode = new TcgaVCFWriter(outputAdditionalVcfFile,refDict, true);
 			
 			additionalWriterForDefaultTcgaMode.writeHeader(new VCFHeader(getHeaderInfo(), samples));
 			if(getToolkit().getArguments().numberOfThreads > 1){
-				multiAdditionalWriterForDefaultTcgaMode = new MannualSortingTcgaVCFWriter(additionalWriterForDefaultTcgaMode);
+				multiAdditionalWriterForDefaultTcgaMode = new SortingTcgaVCFWriter(additionalWriterForDefaultTcgaMode, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
 			//	multiAdditionalWriterForDefaultTcgaMode.enableDiscreteLoci(BAC.lnc);
 			}
 			

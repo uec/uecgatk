@@ -149,4 +149,8 @@ public abstract class SortingFormatWriterBase {
 	        
 	    }
 	*/
+	    
+	    public void writerFlush(){
+			this.innerWriter.writerFlush();
+		}
 }

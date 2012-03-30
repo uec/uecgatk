@@ -1,64 +1,31 @@
 package edu.usc.epigenome.uecgatk.BisSNP;
 
-import java.io.FileNotFoundException;
-
 import java.util.ArrayList;
-import java.util.BitSet;
-
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.StringUtil;
-
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext.Validation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import edu.usc.epigenome.uecgatk.BisSNP.BadBaseFilterBisulfite;
-
-import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteAlignmentUtils;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.OUTPUT_MODE;
-import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteSNPGenotypeLikelihoodsCalculationModel;
-import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 

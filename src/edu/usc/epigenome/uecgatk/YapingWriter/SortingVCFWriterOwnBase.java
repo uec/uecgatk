@@ -6,9 +6,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 
 
 
@@ -43,7 +43,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
      */
     public SortingVCFWriterOwnBase(VCFWriter innerWriter, boolean takeOwnershipOfInner) {
         this.innerWriter = innerWriter;
-        this.queue = new PriorityBlockingQueue<VCFRecord>(1000, new VariantContextComparator());
+        this.queue = new PriorityBlockingQueue<VCFRecord>(100, new VariantContextComparator());
         this.mostUpstreamWritableLoc = BEFORE_MOST_UPSTREAM_LOC;
         this.finishedChromosomes = new TreeSet<String>();
         this.takeOwnershipOfInner = takeOwnershipOfInner;
@@ -88,7 +88,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
      * @param vc      the Variant Context object
      * @param refBase the ref base
      */
-    public synchronized void add(VariantContext vc, byte refBase) {
+    public synchronized void add(VariantContext vc) {
         /* Note that the code below does not prevent the successive add()-ing of: (chr1, 10), (chr20, 200), (chr15, 100)
            since there is no implicit ordering of chromosomes:
          */
@@ -107,9 +107,11 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
 
         noteCurrentRecord(vc); // possibly overwritten
 
-        queue.add(new VCFRecord(vc, refBase));
+        queue.add(new VCFRecord(vc));
         emitSafeRecords();
     }
+    
+    
 
     private void emitRecords(boolean emitUnsafe) {
         while (!queue.isEmpty()) {
@@ -118,7 +120,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
             // No need to wait, waiting for nothing, or before what we're waiting for:
             if (emitUnsafe || mostUpstreamWritableLoc == null || firstRec.vc.getStart() <= mostUpstreamWritableLoc || !cachedCurrentChr.equalsIgnoreCase(firstRec.vc.getChr()) || enableDiscreteLoci) {
                 queue.poll();
-                innerWriter.add(firstRec.vc, firstRec.refBase);
+                innerWriter.add(firstRec.vc);
             }
             else {
                 break;
@@ -137,19 +139,19 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
 
     private static class VariantContextComparator implements Comparator<VCFRecord> {
         public int compare(VCFRecord r1, VCFRecord r2) {
-            if(r1.vc.getChr().equalsIgnoreCase(r2.vc.getChr()))
-            	return 0;
+            if(!r1.vc.getChr().equalsIgnoreCase(r2.vc.getChr()))
+            	return -1;
         	return r1.vc.getStart() - r2.vc.getStart();
         }
     }
 
     private static class VCFRecord {
         public VariantContext vc;
-        public byte refBase;
+       // public byte refBase;
 
-        public VCFRecord(VariantContext vc, byte refBase) {
+        public VCFRecord(VariantContext vc) {
             this.vc = vc;
-            this.refBase = refBase;
+          //  this.refBase = refBase;
         }
     }
 

@@ -72,4 +72,13 @@ public abstract class FormatWriterBase {
     
     public abstract void addHeader(Object o);
     
+    public void writerFlush(){
+		try {
+			mWriter.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+    
 }
