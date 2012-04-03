@@ -71,6 +71,18 @@ public class BisulfiteVariantCallContext {
         return false;
    }
 	
+	public boolean isVariant() {
+	   	 if(this.vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			 if(tmp.isHet() || tmp.isHomVar())
+	   				 return true;
+	   		 }
+	     }
+	        return false;
+	   }
+	
 	private void setSummaryAcrossReadsGroup(){
 		summary = new summaryAcrossReadsGroup();
 //		boolean first = true;

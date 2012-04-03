@@ -287,9 +287,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.BEST_C_PATTERN, 1, VCFHeaderLineType.String, "Best Cytosine Context"));
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_POSTERIORS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled posteriors for genotypes as defined in the VCF specification"));
-        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.G, VCFHeaderLineType.String, "Cytosine reads status: number of C in Bisulfite-conversion strand, number of T in Bisulfite-conversion strand, number of Others in Bisulfite-conversion strand," +
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Cytosine reads status: number of C in Bisulfite-conversion strand, number of T in Bisulfite-conversion strand, number of Others in Bisulfite-conversion strand," +
         		" number of G in Genotype strand, number of A in Genotype strand, number of Others in Genotype strand. If not a Cytosine position, Bisulfite-conversion strand will represent Forward strand, Genotype strand will represent Reverse strand"));
-        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Methylation rate. 0-100%, 100% indicates fully methylated"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, 1, VCFHeaderLineType.Float, "Methylation rate. 0-100%, 100% indicates fully methylated"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this Cytosine position"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this Cytosine position"));
         
@@ -612,7 +612,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     
     private void initiateVCFInDifferentOutmode(SAMSequenceDictionary refDict){
     	File outputVcfFile = new File(BAC.vfn1);
-		writer = new TcgaVCFWriter(outputVcfFile,refDict, true);
+		writer = new TcgaVCFWriter(outputVcfFile,refDict, false);
 		writer.setRefSource(getToolkit().getArguments().referenceFile.toString());
 		
 		writer.writeHeader(new VCFHeader(getHeaderInfo(), samples));
@@ -630,8 +630,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		
 		if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
 			File outputAdditionalVcfFile = new File(BAC.vfn2);
-			additionalWriterForDefaultTcgaMode = new TcgaVCFWriter(outputAdditionalVcfFile,refDict, true);
-			
+			additionalWriterForDefaultTcgaMode = new TcgaVCFWriter(outputAdditionalVcfFile,refDict, false);
+			additionalWriterForDefaultTcgaMode.setRefSource(getToolkit().getArguments().referenceFile.toString());
 			additionalWriterForDefaultTcgaMode.writeHeader(new VCFHeader(getHeaderInfo(), samples));
 			if(getToolkit().getArguments().numberOfThreads > 1){
 				multiAdditionalWriterForDefaultTcgaMode = new SortingTcgaVCFWriter(additionalWriterForDefaultTcgaMode, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
@@ -721,7 +721,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 				
 		}
 		else if(BAC.OutputMode == OUTPUT_MODE.EMIT_VARIANTS_ONLY){ // only output variants
-			if(value.getVariantContext().isVariant()){
+			if(value.isVariant()){
 				if(getToolkit().getArguments().numberOfThreads > 1){
     				multiThreadWriter.add(value.getVariantContext());
     				COUNT_CACHE_FOR_OUTPUT_VCF++;
@@ -782,7 +782,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     				writer.add(value.getVariantContext());
     			}
 			}
-			if(value.getVariantContext().isVariant()){
+			if(value.isVariant()){
 				if(getToolkit().getArguments().numberOfThreads > 1){
     				multiAdditionalWriterForDefaultTcgaMode.add(value.getVariantContext());
     				COUNT_CACHE_FOR_OUTPUT_VCF++;

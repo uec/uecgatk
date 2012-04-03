@@ -71,6 +71,7 @@ public class TcgaVCFWriter extends StandardVCFWriter {
 	public void writeHeader(VCFHeader header) {
         mHeader = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
         String refGenomeversion = null;
+        //System.err.println(ref);
         if(ref.contains("assembly18")){
         	refGenomeversion = "hg18";
         }
