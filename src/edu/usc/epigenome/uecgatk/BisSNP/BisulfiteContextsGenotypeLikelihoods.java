@@ -127,6 +127,12 @@ public class BisulfiteContextsGenotypeLikelihoods {
     	return numOfOtherReadsInGenotypeGStrand;
     }
     
+    public String getBaseCountStatusAsString(){
+    	
+    	String cStatus = numOfCReadsInBisulfiteCStrand + "," + numOfTReadsInBisulfiteCStrand + "," + numOfOtherReadsInBisulfiteCStrand + "," + numOfGReadsInGenotypeGStrand + "," + numOfAReadsInGenotypeGStrand + "," + numOfOtherReadsInGenotypeGStrand;
+    	return cStatus;
+    }
+    
     public String getBestMatchedCytosinePattern(){
     	return bestMatchedCytosinePattern;
     }

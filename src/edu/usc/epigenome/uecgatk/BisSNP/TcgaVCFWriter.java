@@ -70,15 +70,27 @@ public class TcgaVCFWriter extends StandardVCFWriter {
 	@Override
 	public void writeHeader(VCFHeader header) {
         mHeader = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
-        
+        String refGenomeversion = null;
+        if(ref.contains("assembly18")){
+        	refGenomeversion = "hg18";
+        }
+        else if(ref.contains("hg18")){
+        	refGenomeversion = "hg18";
+        }
+        else if(ref.contains("hg19")){
+        	refGenomeversion = "hg19";
+        }
+        else{
+        	refGenomeversion = BisSNPUtils.getRefGenomeVersion();
+        }
         try {
             // the file format field needs to be written first, specially for TCGA VCF header
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_FORMAT,"VCFv4.1").toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_DATE,now("yyyyMMdd")).toString() + "\n");
-            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_TCGA_VERSION,"1.0").toString() + "\n");
-            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_LOG, "<InputVCF=<>, InputVCFSource=<" + BisSNP.getBisSNPVersionNumber() + ">, InputVCFVer=<1.0>, InputVCFParam=<> InputVCFgeneAnno=<>>").toString() + "\n");
-            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_REF,"<ID=" + BisSNPUtils.getRefGenomeVersion() +",Source=" + ref + ">").toString() + "\n");
-            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_ASSEMBLY,BisSNPUtils.getRefGenomeVersion()).toString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_TCGA_VERSION,"1.1").toString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_LOG, "<InputVCF=<>, InputVCFSource=<" + refGenomeversion + ">, InputVCFVer=<1.0>, InputVCFParam=<> InputVCFgeneAnno=<>>").toString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_REF,"<ID=" + refGenomeversion +",Source=" + ref + ">").toString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_ASSEMBLY,refGenomeversion).toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_CENTER,"USC Epigenome Center").toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_PHASE,"none").toString() + "\n");
             mWriter.write(VCFHeader.METADATA_INDICATOR + new VCFHeaderLine(BisulfiteVCFConstants.VCF_HEADER_VERSION_GAF,"none").toString() + "\n");

@@ -26,9 +26,10 @@ public class BisulfiteVCFConstants{
 		public static final String GENOTYPE_TYPE = "HOM_REF,HET,HOM_VAR";
 	    public static final String NUMBER_OF_C_KEY = "Cm";
 	    public static final String NUMBER_OF_T_KEY = "Cu";
+	    public static final String C_STATUS = "CS"; //to record number of C, T, other_reads in bisulfite_conversion strand, number of A,G, other_reads in genotype strand
 	    public static final String C_STRAND_KEY = "Strand";
-	    public static final String CYTOSINE_TYPE = "CType";
-	    public static final String CYTOSINE_METHY_VALUE = "methy";
+	    public static final String CYTOSINE_TYPE = "Context";
+	    public static final String CYTOSINE_METHY_VALUE = "MR"; // in 0-100% scale
 	    public static final String VCF_HEADER_VERSION_FORMAT = "fileformat";
 	    public static final String VCF_HEADER_VERSION_DATE = "fileDate";
 	    public static final String VCF_HEADER_VERSION_TCGA_VERSION = "tcgaversion";
@@ -42,6 +43,8 @@ public class BisulfiteVCFConstants{
 	    public static final String PROGRAM_ARGS = "BisSNP Program Args";
 	    public static final String ID_KEY = "ID";
 	    public static final String BEST_C_PATTERN = "CP";
-
+	    public static final String NUM_OF_SAMPLES = "NS";
+	    public static final String QUALITY_BELOW_10 = "q10";
+	    public static final String LESS_THAN_HALF_SAMPLES_HAVE_DATE = "s50";
 }
 

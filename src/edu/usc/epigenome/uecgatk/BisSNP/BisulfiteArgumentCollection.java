@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
@@ -44,12 +45,11 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 //	@Argument(fullName = "paired_end_mode", shortName = "pem", doc = "work in paired end mode", required = false)
   //  public boolean pairedEndMode = false;
 	
-	
-	
 	@Argument(fullName = "bisulfite_conversion_only_on_one_strand", shortName = "bcm", doc = "true: Illumina protocol which is often used, only bisulfite conversion strand is kept (Lister protocol, sequence 2 forward strands only); false: Cokus protocol, sequence all 4 bisulfite converted strands", required = false)
     public boolean bisulfiteConversionModeOnestrand = true;
 	
-	@Argument(fullName = "cytosine_contexts_acquired", shortName = "c", doc = "Specify the cytosine contexts to check", required = false)
+	@Advanced
+	@Argument(fullName = "cytosine_contexts_acquired", shortName = "C", doc = "Specify the cytosine contexts to check (e.g. -C CG,1,0.7  CG is the methylation pattern to check, 1 is the C's position in CG pattern, 0.7 is the forced cytosine pattern methylation pattern. You could specify '-C' multiple times for different cytosine pattern)", required = false)
     public List<String> cytosineContextsAcquired = new ArrayList<String>();
 
 	@Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum mapping quality required to consider a base for calling", required = false)
@@ -133,13 +133,20 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     @Argument(fullName = "bissnp_methy_summary_file", shortName = "bmsf", doc = "input the methylation summary estimate from BisSNP, for BisSNPUtils right now only", required = false)
 	public String bmsf = null;
     
-    CytosinePatternsUserDefined cytosineDefined;
+    public CytosinePatternsUserDefined cytosineDefined = null;
     
-    public BisulfiteArgumentCollection(){
+   // public BisulfiteArgumentCollection(){
+    	//System.err.println(cytosineContextsAcquired.toString() + "\t" + cytosineContextsAcquired.isEmpty());
+    	//System.err.println(coverageThresholds[0] + coverageThresholds[1] );
+    	//cytosineDefined = new CytosinePatternsUserDefined(cytosineContextsAcquired);
+    //	makeCytosine();
+    	
+   // }
+    
+    public void makeCytosine(){
     	cytosineDefined = new CytosinePatternsUserDefined(cytosineContextsAcquired);
+  //  	System.err.println(cytosineContextsAcquired.toString() + "\t" + cytosineDefined.getContextDefined().keySet().toString());
     }
-    
-    
 	
 	public BisulfiteArgumentCollection clone() {
 		BisulfiteArgumentCollection bac = new BisulfiteArgumentCollection();
@@ -165,8 +172,10 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
  //       bac.pairedEndMode = pairedEndMode;
         bac.bisulfiteConversionModeOnestrand = bisulfiteConversionModeOnestrand;
         bac.cytosineContextsAcquired = cytosineContextsAcquired;
-        bac.cytosineDefined = cytosineDefined;
-
+        //bac.cytosineDefined = cytosineDefined;
+        bac.makeCytosine();
+        //bac.cytosineDefined = cytosineDefined;
+        
         bac.cTypeThreshold = cTypeThreshold;
         bac.testLocus = testLocus;
         bac.minConv = minConv;

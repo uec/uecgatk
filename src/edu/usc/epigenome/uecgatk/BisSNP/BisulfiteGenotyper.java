@@ -23,8 +23,10 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.SortingVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFilterHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
@@ -104,7 +106,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
 
     @ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
- 
+    
     private static boolean autoEstimateC = false;
     private static boolean secondIteration = false;
     
@@ -174,6 +176,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         HashMap<String, Pair<Integer, Double>> cytosineMethySummary = new HashMap<String, Pair<Integer, Double>>();//Integer: number of cytosine; Double: sumMethyLevel;
         
         void makeCytosineMap(){
+        	BAC.makeCytosine();
 				for(String cytosineKey : BAC.cytosineDefined.getContextDefined().keySet()){
 					Pair<Integer, Double> methySummary = new Pair<Integer, Double>(0, 0.0);
 					cytosineMethySummary.put(cytosineKey,methySummary);
@@ -220,7 +223,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	}
         }
             
-        
+        BAC.makeCytosine();
         //initiate BisulfiteGenotyperEngine
         
         SAMSequenceDictionary refDict = getToolkit().getMasterSequenceDictionary();
@@ -252,27 +255,51 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         if ( !BAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
         
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, -1, VCFHeaderLineType.String, "Cytosine Type"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.GENOTYPE_TYPE, 1, VCFHeaderLineType.String, "Genotype Type"));
+        //Bisulfite-seq own INFO column
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, 1, VCFHeaderLineType.String, "Cytosine Context"));
+        //headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.GENOTYPE_TYPE, 1, VCFHeaderLineType.String, "Genotype Type"));
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.C_STRAND_KEY, 1, VCFHeaderLineType.String, "Cytosine in negative strand"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "number of C in this Cytosine position"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "number of T in this Cytosine position"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, 1, VCFHeaderLineType.Float, "Methylation value in this Cytosine position"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this position"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this position"));
+        //headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Methylation value in this position"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUM_OF_SAMPLES, 1, VCFHeaderLineType.Integer, "Number of Samples With Data"));
+        
+        //General VCF INFO column
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total Depth"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, 1, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, 1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
+        //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ANCESTRAL_ALLELE_KEY, 1, VCFHeaderLineType.String, "Ancestral Allele"));
+        //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.HAPMAP2_KEY, 0, VCFHeaderLineType.Flag, "HapMap2 membership"));
+        
         
         //check in dbSNP or not
         if ( BAC.dbsnp.isBound() )
-            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership")); //need to change to automately get dbSNP version number
         
         
 
-        // FORMAT and INFO fields
+        // FORMAT fields
        // headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.GENOTYPE_POSTERIORS_KEY));
-   
 
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.BEST_C_PATTERN, 1, VCFHeaderLineType.String, "Best Cytosine Context"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_POSTERIORS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled posteriors for genotypes as defined in the VCF specification"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.G, VCFHeaderLineType.String, "Cytosine reads status: number of C in Bisulfite-conversion strand, number of T in Bisulfite-conversion strand, number of Others in Bisulfite-conversion strand," +
+        		" number of G in Genotype strand, number of A in Genotype strand, number of Others in Genotype strand. If not a Cytosine position, Bisulfite-conversion strand will represent Forward strand, Genotype strand will represent Reverse strand"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Methylation rate. 0-100%, 100% indicates fully methylated"));
+        //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this Cytosine position"));
+        //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this Cytosine position"));
+        
         // FILTER fields
         if ( BAC.STANDARD_CONFIDENCE_FOR_EMITTING < BAC.STANDARD_CONFIDENCE_FOR_CALLING )
             headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
-     
+
+           // headerInfo.add(new VCFFilterHeaderLine(BisulfiteVCFConstants.QUALITY_BELOW_10, "Quality below 10"));
+           // headerInfo.add(new VCFFilterHeaderLine(BisulfiteVCFConstants.LESS_THAN_HALF_SAMPLES_HAVE_DATE, "Less than 50% of samples have data"));
+        
      // Program commandLine fields
         headerInfo.add(new VCFHeaderLine(BisulfiteVCFConstants.PROGRAM_ARGS, argCommandline));
         
@@ -511,6 +538,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	for(String cytosineKey : cytosineDefinedMemorizedForSecondRun.getContextDefined().keySet()){
             	CytosineParameters cytosineParameters = cytosineDefinedMemorizedForSecondRun.getContextDefined().get(cytosineKey);
             	Pair<Integer,Double> methyValue = sum.cytosineMethySummary.get(cytosineKey);
+            	
             	cytosineParameters.cytosineMethylation = methyValue.getSecond()/(methyValue.getFirst() * samples.size());
             	cytosineDefinedMemorizedForSecondRun.getContextDefined().put(cytosineKey, cytosineParameters);
             }

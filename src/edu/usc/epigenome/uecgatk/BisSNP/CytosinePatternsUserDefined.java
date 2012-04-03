@@ -29,6 +29,7 @@ public class CytosinePatternsUserDefined {
 		contexts = new HashMap<String,CytosineParameters>();
 		setContextsDefinedByUsers();
 		setMaxCytosinePatternLen();
+		
 	}
 	
 	/**
@@ -60,10 +61,11 @@ public class CytosinePatternsUserDefined {
 	
 
 	private void setContextsDefinedByUsers(){
-		
+		//System.err.println(cytosineContextsAcquired.isEmpty() + "\t" + contexts.keySet().toString());
 		if(cytosineContextsAcquired.isEmpty()){
 			setContextsDefinedByDefault();
 		}
+		
 		for(String content : cytosineContextsAcquired){
 			
 			String[] contentsArray = content.split(",");  //-c CH,1,0.01

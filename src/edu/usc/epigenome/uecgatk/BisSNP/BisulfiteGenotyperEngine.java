@@ -194,8 +194,11 @@ public class BisulfiteGenotyperEngine{
         }
         
         HashMap<String, Object> attributes = new HashMap<String, Object>();
+        int totalDepth = 0;
+        int[] alleleCount = new int[2];
+        alleleCount[1] = -1;
+       Allele bestAlternateAlelle = Allele.NO_CALL;
         
-       
         double logRatio = Double.NEGATIVE_INFINITY;
         int bestAF = 0;
         int numOfC = 0;
@@ -205,6 +208,9 @@ public class BisulfiteGenotyperEngine{
         HashSet<String> cytosineConfirmed = new HashSet<String>();
         for ( String sample : BCGLs.keySet() ) {
         	BisulfiteContextsGenotypeLikelihoods GL = BCGLs.get(sample);
+        	
+        	totalDepth += GL.getDepth();
+        	
         	 double[] log10AlleleFrequencyPosteriors = new double[3];
         	assignAFPosteriors(GL.getLikelihoods(),log10AlleleFrequencyPosteriors);
         	int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors);
@@ -218,9 +224,24 @@ public class BisulfiteGenotyperEngine{
             }
            // double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors, true, false);
             double[] normalizedPosteriors = log10AlleleFrequencyPosteriors;
-            if(bestAFguess!=0)
+            if(bestAFguess!=0){
             	bestAF = bestAFguess;
-         
+            	if(bestAlternateAlelle.isNoCall()){
+            		bestAlternateAlelle = GL.getAlleleB();
+            		alleleCount[0]+= bestAFguess==1?1:2;
+            	}
+            	else{
+            		if(GL.getAlleleB().basesMatch(bestAlternateAlelle)){
+            			alleleCount[0]+= bestAFguess==1?1:2;
+            		}
+            		else{
+            			alleleCount[1]+= bestAFguess==1?1:2;
+            		}
+            	}
+            	
+            }
+            	
+            
             double logRatioTmp = 10 * (normalizedPosteriors[bestAFguess] - normalizedPosteriors[secondAFguess]);
            // double logRatioTmp = 10 * (normalizedPosteriors[bestAFguess]-Math.log10(1- Math.pow(10, normalizedPosteriors[bestAFguess]) ));
             if(logRatioTmp > logRatio)
@@ -244,8 +265,8 @@ public class BisulfiteGenotyperEngine{
             	}
             }
             
-            if ( bestAFguess != 0 ) {
-                	if(!passesCallThreshold(logRatioTmp)){ //only calculate SB score for Heterozygous SNP and Homozygous loci not pass threshold.. 
+            if ( !BAC.NO_SLOD && bestAF != 0 ) {
+                	//if(!passesCallThreshold(logRatioTmp)){ //only calculate SB score for Heterozygous SNP and Homozygous loci not pass threshold.. why?
                 		// the overall lod
                         //double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
                         double overallLog10PofF = MathUtils.log10sumLog10(log10AlleleFrequencyPosteriors, 1);
@@ -295,9 +316,10 @@ public class BisulfiteGenotyperEngine{
                         //logger.debug(String.format("SLOD=%f", strandScore));
 
                         attributes.put("SB", Double.valueOf(strandScore));
-                	}
+                //	}
             }
-        }     
+        }  
+        
             GenotypesContext genotypes = GenotypesContext.create();
             
 
@@ -336,8 +358,39 @@ public class BisulfiteGenotyperEngine{
 
             int endLoc = calculateEndPos(vc.getAlleles(), vc.getReference(), loc);
             //System.err.println(logRatio);
+            
+            
+            int alleleNumber =  vc.getNAlleles();
+            double[] alleleFrequency = new double[2];
+            
+            
             assignGenotypes(vc,bestAF, genotypes, -logRatio/10.0, BCGLs, BCGLs.keySet());
-
+            
+            attributes.put(BisulfiteVCFConstants.NUM_OF_SAMPLES, BCGLs.keySet().size());
+            attributes.put(VCFConstants.DEPTH_KEY, totalDepth);
+            if(bestAF != 0){
+            	alleleFrequency[0] = (double)alleleCount[0]/(double)alleleNumber;
+                if(alleleCount[1] == -1){
+                	alleleFrequency[1] = (double)alleleCount[1]/(double)alleleNumber;
+                    String alleleCountStr = String.format("%d",alleleCount[0]);
+                    String alleleFreqStr = String.format("%.2f",alleleFrequency[0]);
+                    attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCountStr);
+                    attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqStr);
+                    attributes.put(VCFConstants.ALLELE_NUMBER_KEY, alleleNumber);
+                }
+                else{
+                	alleleFrequency[1] = (double)alleleCount[1]/(double)alleleNumber;
+                    String alleleCountStr = alleleCount[0] + "," + alleleCount[1];
+                    String alleleFreqStr = String.format("%.2f",alleleFrequency[0]) + "," + String.format("%.2f", alleleFrequency[1]);
+                    attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCountStr);
+                    attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqStr);
+                    attributes.put(VCFConstants.ALLELE_NUMBER_KEY, alleleNumber);
+                }
+            	
+            	
+            }
+            
+            
             //add INFO colum about methylation summary across Read Group
             if(passesCallThreshold(logRatio) & !cytosineConfirmed.isEmpty()){
             	for(String c : cytosineConfirmed){
@@ -480,9 +533,18 @@ public class BisulfiteGenotyperEngine{
                 GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(BCGL.getLikelihoods());
                 attributes.put(VCFConstants.DEPTH_KEY, BCGL.getDepth());
                 attributes.put(VCFConstants.GENOTYPE_POSTERIORS_KEY, likelihoods.getAsString());
-                attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, BCGL.getNumOfCReadsInBisulfiteCStrand());
-                attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand()); //need to fix it to judge strand
+                //attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, BCGL.getNumOfCReadsInBisulfiteCStrand());
+                //attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand()); //need to fix it to judge strand
                 attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BCGL.getBestMatchedCytosinePattern());
+                
+                attributes.put(BisulfiteVCFConstants.C_STATUS, BCGL.getBaseCountStatusAsString());
+                if(BCGL.getBestMatchedCytosinePattern() != null){
+                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, String.format("%.2f", 100*BCGL.getMethylationLevel()));
+                }
+                else{
+                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, Double.NaN);
+                }
+                
                 genotypes.add(new Genotype(BCGL.getSample(), alleles, Genotype.NO_LOG10_PERROR, null, attributes, false));
 
         }
