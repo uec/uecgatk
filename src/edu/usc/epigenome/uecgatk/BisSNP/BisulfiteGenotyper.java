@@ -548,16 +548,21 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         if(BAC.orad){
         	samWriter.close();
         }
-        if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
-        	//additionalWriterForDefaultTcgaMode.close();
-        }
-        if(getToolkit().getArguments().numberOfThreads > 1 && ((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
-        	 multiThreadWriter.close();
-        	 //verboseWriter.close();
-        	 if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
-     			multiAdditionalWriterForDefaultTcgaMode.close();
-     		 }
- 			
+        
+        if(((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
+        	if(getToolkit().getArguments().numberOfThreads > 1){
+        		multiThreadWriter.close();
+           	 //verboseWriter.close();
+           	 	if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
+        			multiAdditionalWriterForDefaultTcgaMode.close();
+        		 }
+        	}
+        	if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
+        		//additionalWriterForDefaultTcgaMode.writeFlush();
+        		additionalWriterForDefaultTcgaMode.close();
+            }
+        	//writer.writeFlush();
+        	writer.close();
         }
         
         if(BAC.fnocrd != null){
@@ -574,6 +579,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		}
        outWriter.println(outLine);
        outWriter.close();
+       
     }
     
     //receive cytosine statistics status from main program
@@ -763,6 +769,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 			}
 		}
 		else if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){ // only output variants
+			
 			if(value.isCpg){
 				if(getToolkit().getArguments().numberOfThreads > 1){
     				multiThreadWriter.add(value.getVariantContext());
