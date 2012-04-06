@@ -49,7 +49,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     public boolean bisulfiteConversionModeOnestrand = true;
 	
 	@Advanced
-	@Argument(fullName = "cytosine_contexts_acquired", shortName = "C", doc = "Specify the cytosine contexts to check (e.g. -C CG,1,0.7  CG is the methylation pattern to check, 1 is the C's position in CG pattern, 0.7 is the forced cytosine pattern methylation pattern. You could specify '-C' multiple times for different cytosine pattern)", required = false)
+	@Argument(fullName = "cytosine_contexts_acquired", shortName = "C", doc = "Specify the cytosine contexts to check (e.g. -C CG,1,0.7  CG is the methylation pattern to check, 1 is the C's position in CG pattern, 0.7 is the initial cytosine pattern methylation level. You could specify '-C' multiple times for different cytosine pattern)", required = false)
     public List<String> cytosineContextsAcquired = new ArrayList<String>();
 
 	@Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum mapping quality required to consider a base for calling", required = false)

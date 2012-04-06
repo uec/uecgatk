@@ -3,9 +3,18 @@
  */
 package edu.usc.epigenome.uecgatk.BisSNP;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
+import net.sf.samtools.SAMRecord;
+
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 /**
@@ -34,6 +43,22 @@ public class BisulfiteContextsGenotypeLikelihoods {
 	private HashMap<String, Double[]> GPsAtCytosineTenGenotypes;
 	private double[] GPsAtCytosineNormalizedByThreeGenotypes;
     private Allele A, B;
+    private ReadBackedPileup pileup;
+    private BisulfiteArgumentCollection BAC;
+    private int readsFwdRef = 0;
+    private int readsFwdAlt = 0;
+    private int readsRevRef = 0;
+    private int readsRevAlt = 0;
+    
+    private int readsAlleleA = 0;
+    private int readsAlleleB = 0;
+    private double totalBaseQualAlleleA = Double.NaN;
+    private double totalBaseQualAlleleB = Double.NaN;
+    private double rmsBaseQual = Double.NaN;
+    private double rmsMapQual = Double.NaN;
+    private int mapQual0 = 0;
+  //Reads supporting ALT. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"
+    //Average base quality for reads supporting alleles. For each allele, in the same order as listed
 	/**
 	 * 
 	 */
@@ -42,7 +67,7 @@ public class BisulfiteContextsGenotypeLikelihoods {
 			double log10bbPosteriorLikelihoods,Set<String> cytosineContexts, int numOfCReadsInBisulfiteCStrand,int numOfTReadsInBisulfiteCStrand,
 			int numOfOtherReadsInBisulfiteCStrand, int numOfGReadsInGenotypeGStrand, int numOfAReadsInGenotypeGStrand, int numOfOtherReadsInGenotypeGStrand,
 			int totalDepth, HashMap<String,CytosineParameters> cytosineParameters, String bestMatchedCytosinePattern, HashMap<Integer,double[]> GPsBeforeCytosineTenGenotypes, HashMap<Integer,double[]> GPsAfterCytosineTenGenotypes,
-			HashMap<String, Double[]> GPsAtCytosineTenGenotypes ) {
+			HashMap<String, Double[]> GPsAtCytosineTenGenotypes, ReadBackedPileup pileup, BisulfiteArgumentCollection BAC ) {
 		// TODO Auto-generated constructor stub
 		this.sample = sample;
 		this.numOfCReadsInBisulfiteCStrand = numOfCReadsInBisulfiteCStrand;
@@ -64,7 +89,9 @@ public class BisulfiteContextsGenotypeLikelihoods {
 		this.GPsAtCytosineNormalizedByThreeGenotypes = new double[]{log10aaPosteriorLikelihoods, log10abPosteriorLikelihoods, log10bbPosteriorLikelihoods};
 	    this.A = A;
 	    this.B = B;
-		
+		this.pileup = pileup;
+		this.BAC = BAC;
+		setupSupportingReadsInfo();
 	}
 
 	public String getSample() {
@@ -100,7 +127,9 @@ public class BisulfiteContextsGenotypeLikelihoods {
     }
     
     public double getMethylationLevel(){
-    	return (double)numOfCReadsInBisulfiteCStrand/(double)(numOfCReadsInBisulfiteCStrand + numOfTReadsInBisulfiteCStrand);
+    	double methy = (double)numOfCReadsInBisulfiteCStrand/(double)(numOfCReadsInBisulfiteCStrand + numOfTReadsInBisulfiteCStrand);
+
+    	return methy;
     }
     
     public int getNumOfCReadsInBisulfiteCStrand(){
@@ -160,6 +189,185 @@ public class BisulfiteContextsGenotypeLikelihoods {
     public HashMap<String, Double[]> getGPsAtCytosineTenGenotypes(){
     	return GPsAtCytosineTenGenotypes;
     }
+    
+    public String getAveBaseQualAsString(){
+    	String aveBaseQual = null;
+    	if(!Double.isNaN(totalBaseQualAlleleA/readsAlleleA) && !Double.isNaN(totalBaseQualAlleleA/readsAlleleA)){
+    		aveBaseQual = String.format("%.1f", totalBaseQualAlleleA/readsAlleleA) + "," + String.format("%.1f", totalBaseQualAlleleB/readsAlleleB);
+    	}
+    	else if(!Double.isNaN(totalBaseQualAlleleA/readsAlleleA)){
+    		aveBaseQual =String.format("%.1f", totalBaseQualAlleleA/readsAlleleA);
+    	}
+    	else if(!Double.isNaN(totalBaseQualAlleleB/readsAlleleB)){
+    		aveBaseQual = String.format("%.1f", totalBaseQualAlleleB/readsAlleleB);
+    	}
+    	else{
+    		aveBaseQual = VCFConstants.MISSING_VALUE_v4;
+    	}
+    	return aveBaseQual;
+    }
+    
+    public String getDP4AsString(){
+    	String DP4String = readsFwdRef + "," + readsRevRef + "," + readsFwdAlt + "," + readsRevAlt;
+    	return DP4String;
+    } 
+    
+    public double getBQ(){
+    	return rmsBaseQual;
+    }
+    
+    public double getMQ(){
+    	return rmsMapQual;
+    }
+    
+    public double getMQ0(){
+    	return mapQual0;
+    }
 	
+    private void setupSupportingReadsInfo(){
+    	int[] rmsBaseQualTotal = new int[pileup.depthOfCoverage()];
+    	int[] rmsMapQualTotal = new int[pileup.depthOfCoverage()];
+    	int index = 0;
+    	
+    	for ( PileupElement p : pileup ) {
+        	SAMRecord samRecord = p.getRead();
+        	if(samRecord.getDuplicateReadFlag()){ //get rid of duplicate reads
+            	continue;
+            }
+        	int offset = p.getOffset();
+        	if(offset < 0)//is deletion
+        		continue;
+        	boolean paired = samRecord.getReadPairedFlag();
+        	if(paired){
+        		try {
+					samRecord = (SAMRecord) p.getRead().clone();
+				} catch (CloneNotSupportedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+            	boolean Paired = samRecord.getReadPairedFlag();	
+	        	boolean secondOfPair = samRecord.getSecondOfPairFlag();
+
+	        	if (samRecord.getNotPrimaryAlignmentFlag())
+				{
+					continue;
+				}
+				
+				// Inverted dups, count only one end
+				if (samRecord.getAlignmentStart() == samRecord.getMateAlignmentStart() && samRecord.getReadNegativeStrandFlag() == samRecord.getMateNegativeStrandFlag())
+				{
+					if (samRecord.getSecondOfPairFlag()) continue;
+   				}
+	        	if (Paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
+				{
+					continue;
+				}
+	        	
+	        	
+	        	if(secondOfPair){	        		
+		        	samRecord.setReadNegativeStrandFlag(!samRecord.getReadNegativeStrandFlag());        		
+	        	}
+	        	
+        	}
+			
+        	boolean negStrand = samRecord.getReadNegativeStrandFlag();
+			
+			
+			 //Reads supporting ALT. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"
+            //Average base quality for reads supporting alleles. For each allele, in the same order as listed
+        	rmsMapQualTotal[index] = p.getMappingQual();
+			rmsBaseQualTotal[index] = p.getQual();
+			index++;
+			GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
+            //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
+			if(GATKrecordFilterStor.isGoodBase()){
+				//should different by GPs
+				
+				if(p.getMappingQual()==0){
+					//if(mapQual0==-1){
+					//	mapQual0=1;
+					//}
+					//else{
+						mapQual0++;
+					//}
+				}
+				if(negStrand){
+
+					if(BaseUtilsMore.iupacCodeEqual(p.getBase(), A.getBases()[0], negStrand)){
+						readsAlleleA++;
+						
+						if(Double.isNaN(totalBaseQualAlleleA)){
+							totalBaseQualAlleleA = p.getQual();
+						}
+						else{
+							totalBaseQualAlleleA += p.getQual();
+						}
+						if(A.isReference()){
+							readsRevRef++;
+						}
+						else{
+							readsRevAlt++;
+						}
+					}
+					else if(BaseUtilsMore.iupacCodeEqual(p.getBase(), B.getBases()[0], negStrand)){
+						readsAlleleB++;
+						
+						if(Double.isNaN(totalBaseQualAlleleB)){
+							totalBaseQualAlleleB = p.getQual();
+						}
+						else{
+							totalBaseQualAlleleB += p.getQual();
+						}
+						if(B.isReference()){
+							readsRevRef++;
+						}
+						else{
+							readsRevAlt++;
+						}
+					}
+
+				}
+				else{
+					if(BaseUtilsMore.iupacCodeEqual(p.getBase(), A.getBases()[0], negStrand)){
+						readsAlleleA++;
+						
+						if(Double.isNaN(totalBaseQualAlleleA)){
+							totalBaseQualAlleleA = p.getQual();
+						}
+						else{
+							totalBaseQualAlleleA += p.getQual();
+						}
+						if(A.isReference()){
+							readsFwdRef++;
+						}
+						else{
+							readsFwdAlt++;
+						}
+					}
+					else if(BaseUtilsMore.iupacCodeEqual(p.getBase(), B.getBases()[0], negStrand)){
+						readsAlleleB++;
+						
+						if(Double.isNaN(totalBaseQualAlleleB)){
+							totalBaseQualAlleleB = p.getQual();
+						}
+						else{
+							totalBaseQualAlleleB += p.getQual();
+						}
+						if(B.isReference()){
+							readsFwdRef++;
+						}
+						else{
+							readsFwdAlt++;
+						}
+					}
+				}
+			}
+			
+        }
+    	
+    	rmsBaseQual = MathUtils.rms(rmsBaseQualTotal);
+    	rmsMapQual = MathUtils.rms(rmsMapQualTotal);
+    }
+    
     
 }

@@ -369,7 +369,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
                         cytosineContexts,numCCalleleStrand,numTCalleleStrand,numOtherCalleleStrand,
                         numGGalleleStrand, numAGalleleStrand, numOtherGalleleStrand, getFilteredDepth(pileup),
                         cytosineParametersStatus, bestMatchedCytosinePattern,GPsBeforeCytosineTenGenotypes,GPsAfterCytosineTenGenotypes,
-                        GPsAtCytosineTenGenotypes
+                        GPsAtCytosineTenGenotypes, pileup, BAC 
                         ));
         }
        // return refAllele;

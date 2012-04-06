@@ -256,7 +256,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
         
         //Bisulfite-seq own INFO column
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, 1, VCFHeaderLineType.String, "Cytosine Context"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Cytosine Context"));
         //headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.GENOTYPE_TYPE, 1, VCFHeaderLineType.String, "Genotype Type"));
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.C_STRAND_KEY, 1, VCFHeaderLineType.String, "Cytosine in negative strand"));
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this position"));
@@ -265,10 +265,12 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUM_OF_SAMPLES, 1, VCFHeaderLineType.Integer, "Number of Samples With Data"));
         
         //General VCF INFO column
-        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total Depth"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, 1, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, 1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total Depth, not filtered by mapping quality and base quality score criteria yet"));
+       // headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"));
+       // headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+       // headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
+        //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.RMS_BASE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "RMS Base Quality across all Read "));
+        //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.RMS_MAPPING_QUALITY_KEY, 1, VCFHeaderLineType.Float, "RMS Mapping Quality"));
         //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ANCESTRAL_ALLELE_KEY, 1, VCFHeaderLineType.String, "Ancestral Allele"));
         //headerInfo.add(new VCFInfoHeaderLine(VCFConstants.HAPMAP2_KEY, 0, VCFHeaderLineType.Flag, "HapMap2 membership"));
         
@@ -282,20 +284,26 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         // FORMAT fields
        // headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.GENOTYPE_POSTERIORS_KEY));
 
+        //required by TCGA VCF1.1 in FORMAT field
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.READS_SUPPORT_ALT, 4, VCFHeaderLineType.Integer, "Reads supporting ALT, only keep good base. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.AVE_BASE_QUALITY_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Float, "Average base quality for reads supporting alleles. For each allele, in the same order as listed"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.SOMATIC_STAT_VAR, 1, VCFHeaderLineType.Integer, "Somatic status of the variant. 1) wildtype; 2) germline, somatic; 3) LOH; 4) post-transcriptional modification; 5) unknown"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth, not filtered by mapping quality and base quality score criteria yet"));
+        
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
-        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
+        
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.BEST_C_PATTERN, 1, VCFHeaderLineType.String, "Best Cytosine Context"));
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_POSTERIORS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled posteriors for genotypes as defined in the VCF specification"));
-        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Cytosine reads status: number of C in Bisulfite-conversion strand, number of T in Bisulfite-conversion strand, number of Others in Bisulfite-conversion strand," +
-        		" number of G in Genotype strand, number of A in Genotype strand, number of Others in Genotype strand. If not a Cytosine position, Bisulfite-conversion strand will represent Forward strand, Genotype strand will represent Reverse strand"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Cytosine reads status: 1) number of C in Bisulfite-conversion strand, 2) number of T in Bisulfite-conversion strand, 3) number of Others in Bisulfite-conversion strand," +
+        		" 4) number of G in Genotype strand, 5) number of A in Genotype strand, 6) number of Others in Genotype strand. If not a Cytosine position, Bisulfite-conversion strand will represent Forward strand, Genotype strand will represent Reverse strand"));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, 1, VCFHeaderLineType.Float, "Methylation rate. 0-100%, 100% indicates fully methylated"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this Cytosine position"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this Cytosine position"));
         
         // FILTER fields
         if ( BAC.STANDARD_CONFIDENCE_FOR_EMITTING < BAC.STANDARD_CONFIDENCE_FOR_CALLING )
-            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
+            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality. When QUAL is less than Confidance score criteria user provided"));
 
            // headerInfo.add(new VCFFilterHeaderLine(BisulfiteVCFConstants.QUALITY_BELOW_10, "Quality below 10"));
            // headerInfo.add(new VCFFilterHeaderLine(BisulfiteVCFConstants.LESS_THAN_HALF_SAMPLES_HAVE_DATE, "Less than 50% of samples have data"));

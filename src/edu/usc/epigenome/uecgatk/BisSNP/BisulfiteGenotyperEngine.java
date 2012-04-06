@@ -17,6 +17,9 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -85,6 +88,7 @@ public class BisulfiteGenotyperEngine{
     private static boolean secondIteration = false;
 
 	protected double MAX_PHRED = 1000000;
+	private int SOMATIC_STATS = 5;
 	
 	public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 	
@@ -206,6 +210,7 @@ public class BisulfiteGenotyperEngine{
         char Strand = '+';
         String cType = null;
         HashSet<String> cytosineConfirmed = new HashSet<String>();
+        HashMap<String,Double> logRatiosMap = new HashMap<String,Double>();
         for ( String sample : BCGLs.keySet() ) {
         	BisulfiteContextsGenotypeLikelihoods GL = BCGLs.get(sample);
         	
@@ -243,6 +248,7 @@ public class BisulfiteGenotyperEngine{
             	
             
             double logRatioTmp = 10 * (normalizedPosteriors[bestAFguess] - normalizedPosteriors[secondAFguess]);
+            logRatiosMap.put(sample, logRatioTmp);
            // double logRatioTmp = 10 * (normalizedPosteriors[bestAFguess]-Math.log10(1- Math.pow(10, normalizedPosteriors[bestAFguess]) ));
             if(logRatioTmp > logRatio)
             	logRatio = logRatioTmp;
@@ -364,10 +370,11 @@ public class BisulfiteGenotyperEngine{
             double[] alleleFrequency = new double[2];
             
             
-            assignGenotypes(vc,bestAF, genotypes, -logRatio/10.0, BCGLs, BCGLs.keySet());
+            assignGenotypes(vc,bestAF, genotypes, logRatiosMap, BCGLs, BCGLs.keySet());
             
             attributes.put(BisulfiteVCFConstants.NUM_OF_SAMPLES, BCGLs.keySet().size());
             attributes.put(VCFConstants.DEPTH_KEY, totalDepth);
+            /*
             if(bestAF != 0){
             	alleleFrequency[0] = (double)alleleCount[0]/(double)alleleNumber;
                 if(alleleCount[1] == -1){
@@ -389,7 +396,7 @@ public class BisulfiteGenotyperEngine{
             	
             	
             }
-            
+            */
             
             //add INFO colum about methylation summary across Read Group
             if(passesCallThreshold(logRatio) & !cytosineConfirmed.isEmpty()){
@@ -471,7 +478,7 @@ public class BisulfiteGenotyperEngine{
 	private void assignGenotypes(VariantContext vc,
                                                  int bestAF,
                                                  GenotypesContext calls,
-                                                 double logRatio,
+                                                 HashMap<String,Double> logRatios,
                                                  HashMap<String,BisulfiteContextsGenotypeLikelihoods> BCGLs,
                                                  Set<String> sampleNames) {
         if ( !vc.isVariant() )
@@ -484,7 +491,7 @@ public class BisulfiteGenotyperEngine{
             	
              //   if ( !g.hasLikelihoods() )
              //       continue;
-                
+                Double logRatio = -logRatios.get(sampleName)/10.0;
                 Allele alleleA = BCGLs.get(sampleName).getAlleleA();
                 Allele alleleB = BCGLs.get(sampleName).getAlleleB();
                 ArrayList<Allele> myAlleles = new ArrayList<Allele>();
@@ -537,16 +544,22 @@ public class BisulfiteGenotyperEngine{
                 //attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand()); //need to fix it to judge strand
                 attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BCGL.getBestMatchedCytosinePattern());
                 
-                attributes.put(BisulfiteVCFConstants.C_STATUS, BCGL.getBaseCountStatusAsString());
+                
                 if(BCGL.getBestMatchedCytosinePattern() != null){
                 	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, String.format("%.2f", 100*BCGL.getMethylationLevel()));
+                	attributes.put(BisulfiteVCFConstants.C_STATUS, BCGL.getBaseCountStatusAsString());
                 }
                 else{
-                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, Double.NaN);
+                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFConstants.MISSING_VALUE_v4);
+                	attributes.put(BisulfiteVCFConstants.C_STATUS, VCFConstants.MISSING_VALUE_v4);
                 }
-                
+                attributes.put(BisulfiteVCFConstants.SOMATIC_STAT_VAR, SOMATIC_STATS);
+                attributes.put(BisulfiteVCFConstants.READS_SUPPORT_ALT, BCGL.getDP4AsString());
+                attributes.put(BisulfiteVCFConstants.AVE_BASE_QUALITY_KEY, BCGL.getAveBaseQualAsString()); // need to ask kothiyalp@mail.nih.gov the average mean RMS or arithmic average here
+                //Reads supporting ALT. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"
+                //Average base quality for reads supporting alleles. For each allele, in the same order as listed
                 genotypes.add(new Genotype(BCGL.getSample(), alleles, Genotype.NO_LOG10_PERROR, null, attributes, false));
-
+                
         }
 
         GenomeLoc loc = refContext.getLocus();
