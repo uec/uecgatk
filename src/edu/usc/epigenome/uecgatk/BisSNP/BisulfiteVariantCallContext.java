@@ -30,6 +30,7 @@ public class BisulfiteVariantCallContext {
 	
 	public boolean isC = false;
 	public boolean isCpg = false;
+	public boolean isHetCpg = false;
 	public AlignmentContext rawContext = null;
 	public ReferenceContext ref = null;
     public boolean confidentlyCalled = false;
@@ -101,8 +102,12 @@ public class BisulfiteVariantCallContext {
 			            	
 						summary.cytosinePatternConfirmedSet.add(cytosinePattern);
 						isC = true;
-						if(cytosinePattern.equalsIgnoreCase("CG"))
+						if(cytosinePattern.equalsIgnoreCase("CG")){
 							isCpg = true;
+							if(BCGL.getCytosineParameters().get("CG").isHeterozygousCytosinePattern)
+								isHetCpg = true;
+						}
+							
 						
 					}
 					

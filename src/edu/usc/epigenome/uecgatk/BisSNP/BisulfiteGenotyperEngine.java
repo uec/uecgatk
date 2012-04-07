@@ -266,7 +266,13 @@ public class BisulfiteGenotyperEngine{
 						//else{
 						//	cType = cType + "," + cytosinePattern;
 						//}
-						cytosineConfirmed.add(cytosinePattern);
+						if(GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern){
+							cytosineConfirmed.add(BaseUtilsMore.makeIupacCodeFrom2String(GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).patternOfAlleleA, GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).patternOfAlleleB));
+						}
+						else{
+							cytosineConfirmed.add(cytosinePattern);
+						}
+						
 					}
             	}
             }
@@ -366,8 +372,8 @@ public class BisulfiteGenotyperEngine{
             //System.err.println(logRatio);
             
             
-            int alleleNumber =  vc.getNAlleles();
-            double[] alleleFrequency = new double[2];
+          //  int alleleNumber =  vc.getNAlleles();
+          //  double[] alleleFrequency = new double[2];
             
             
             assignGenotypes(vc,bestAF, genotypes, logRatiosMap, BCGLs, BCGLs.keySet());
@@ -408,8 +414,8 @@ public class BisulfiteGenotyperEngine{
 						cType = cType + "," + c;
 					}
             	}
-            		attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, numOfC);
-            		attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, numOfT);
+            		//attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, numOfC);
+            		//attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, numOfT);
                 	attributes.put(BisulfiteVCFConstants.C_STRAND_KEY, Strand);
                 	attributes.put(BisulfiteVCFConstants.CYTOSINE_TYPE, cType);
             }
@@ -542,15 +548,28 @@ public class BisulfiteGenotyperEngine{
                 attributes.put(VCFConstants.GENOTYPE_POSTERIORS_KEY, likelihoods.getAsString());
                 //attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, BCGL.getNumOfCReadsInBisulfiteCStrand());
                 //attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand()); //need to fix it to judge strand
-                attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BCGL.getBestMatchedCytosinePattern());
+                
+                
                 
                 
                 if(BCGL.getBestMatchedCytosinePattern() != null){
-                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, String.format("%.2f", 100*BCGL.getMethylationLevel()));
-                	attributes.put(BisulfiteVCFConstants.C_STATUS, BCGL.getBaseCountStatusAsString());
+                	//attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, String.format("%.2f", 100*BCGL.getMethylationLevel()));
+                	
+                	attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, BCGL.getNumOfCReadsInBisulfiteCStrand());
+            		attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand());
+                	if(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern){
+                		attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BaseUtilsMore.makeIupacCodeFrom2String(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleA, BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleB));
+                	}
+                	else{
+                		attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BCGL.getBestMatchedCytosinePattern());
+                	}
+            		attributes.put(BisulfiteVCFConstants.C_STATUS, BCGL.getBaseCountStatusAsString());
                 }
                 else{
-                	attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFConstants.MISSING_VALUE_v4);
+                	attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, VCFConstants.MISSING_VALUE_v4);
+                	//attributes.put(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFConstants.MISSING_VALUE_v4);
+                	attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, VCFConstants.MISSING_VALUE_v4);
+            		attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, VCFConstants.MISSING_VALUE_v4);
                 	attributes.put(BisulfiteVCFConstants.C_STATUS, VCFConstants.MISSING_VALUE_v4);
                 }
                 attributes.put(BisulfiteVCFConstants.SOMATIC_STAT_VAR, SOMATIC_STATS);

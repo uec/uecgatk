@@ -24,10 +24,10 @@ public class BisulfiteVCFConstants{
 
 	    // INFO/FORMAT field keys for Bis-SNP VCF 
 		public static final String GENOTYPE_TYPE = "HOM_REF,HET,HOM_VAR";
-	    public static final String NUMBER_OF_C_KEY = "Cm";
-	    public static final String NUMBER_OF_T_KEY = "Cu";
-	    public static final String C_STATUS = "CS6"; //to record number of C, T, other_reads in bisulfite_conversion strand, number of A,G, other_reads in genotype strand
-	    public static final String C_STRAND_KEY = "Strand";
+	    public static final String NUMBER_OF_C_KEY = "CM";
+	    public static final String NUMBER_OF_T_KEY = "CU";
+	    public static final String C_STATUS = "BRC6"; //to record number of C, T, other_reads in bisulfite_conversion strand, number of A,G, other_reads in genotype strand
+	    public static final String C_STRAND_KEY = "CS";
 	    public static final String CYTOSINE_TYPE = "Context";
 	    public static final String CYTOSINE_METHY_VALUE = "MR"; // in 0-100% scale
 	    public static final String VCF_HEADER_VERSION_FORMAT = "fileformat";

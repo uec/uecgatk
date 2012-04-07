@@ -55,6 +55,8 @@ public class BaseUtilsMore {
 		return (byte)Character.toUpperCase((char)b);
 	}
 	
+	
+	
 	//find the observe base is matched IUPAC code pattern or not, consider cytosine methylation, so T will be equal to C..
 	static public boolean iupacCodeEqual(byte pattern, byte observe, boolean negStrand){
 		pattern = toUpperCase(pattern);
@@ -313,4 +315,90 @@ public class BaseUtilsMore {
 	        return new String(new byte[] {b});
 	        
 	    }
+		
+		static public String makeIupacCodeFrom2String(String a, String b){
+			byte[] as = a.getBytes();
+			byte[] bs = b.getBytes();
+			String c = "";
+			for(int i=0;i<Math.max(as.length, bs.length);i++){
+				if(i<as.length & i<bs.length){
+					c += (char)makeIupacCodeFrom2Byte(as[i],bs[i]);
+				}
+				else if(i<as.length){
+					c += (char)as[i];
+				}
+				else{
+					c += (char)bs[i];
+				}
+			}
+			return c;
+		}
+		
+		static public byte makeIupacCodeFrom2Byte(byte a, byte b){
+			a = toUpperCase(a);
+			b = toUpperCase(b);
+			if(BaseUtils.basesAreEqual(a, b)){
+				return a;
+			}
+			else{
+				if(BaseUtils.basesAreEqual(a, BaseUtils.A)){
+					switch (b) {
+		        	
+		        	case 'C':
+		        		return 'M';
+		        	case 'G':
+		        		return 'R';
+		        	case 'T':
+		        		return 'W';
+		        	default:
+		        		return 'N';
+					}
+				}
+				else if(BaseUtils.basesAreEqual(a, BaseUtils.C)){
+					switch (b) {
+		        	case 'A':
+		        		return 'M';
+		        	
+		        	case 'G':
+		        		return 'S';
+		        	case 'T':
+		        		return 'Y';
+		        	default:
+		        		return 'N';
+					}
+				}
+				else if(BaseUtils.basesAreEqual(a, BaseUtils.G)){
+					switch (b) {
+		        	case 'A':
+		        		return 'R';
+		        	case 'C':
+		        		return 'S';
+		        	
+		        	case 'T':
+		        		return 'K';
+		        	default:
+		        		return 'N';
+					}
+				}
+				else if(BaseUtils.basesAreEqual(a, BaseUtils.T)){
+					switch (b) {
+		        	case 'A':
+		        		return 'W';
+		        	case 'C':
+		        		return 'Y';
+		        	case 'G':
+		        		return 'K';
+		        	
+		        	default:
+		        		return 'N';
+					}
+				}
+				else{
+					return 'N';
+				}
+			}
+				
+			
+		}
+		
 }

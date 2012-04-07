@@ -256,11 +256,10 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
         
         //Bisulfite-seq own INFO column
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Cytosine Context"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_TYPE, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Cytosine Context. e.g. 'CG' means homozygous CG sites, while heterozygous CG sites will be output as IUPAC code"));
         //headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.GENOTYPE_TYPE, 1, VCFHeaderLineType.String, "Genotype Type"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.C_STRAND_KEY, 1, VCFHeaderLineType.String, "Cytosine in negative strand"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this position"));
-        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this position"));
+        headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.C_STRAND_KEY, 1, VCFHeaderLineType.Character, "Strand of cytosine relative to reference genome. Does not apply to non-cytosine positions"));
+       
         //headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Methylation value in this position"));
         headerInfo.add(new VCFInfoHeaderLine(BisulfiteVCFConstants.NUM_OF_SAMPLES, 1, VCFHeaderLineType.Integer, "Number of Samples With Data"));
         
@@ -286,6 +285,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
         //required by TCGA VCF1.1 in FORMAT field
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this position"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this position"));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.READS_SUPPORT_ALT, 4, VCFHeaderLineType.Integer, "Reads supporting ALT, only keep good base. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.AVE_BASE_QUALITY_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Float, "Average base quality for reads supporting alleles. For each allele, in the same order as listed"));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.SOMATIC_STAT_VAR, 1, VCFHeaderLineType.Integer, "Somatic status of the variant. 1) wildtype; 2) germline, somatic; 3) LOH; 4) post-transcriptional modification; 5) unknown"));
@@ -295,8 +296,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.BEST_C_PATTERN, 1, VCFHeaderLineType.String, "Best Cytosine Context"));
         headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_POSTERIORS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled posteriors for genotypes as defined in the VCF specification"));
-        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Cytosine reads status: 1) number of C in Bisulfite-conversion strand, 2) number of T in Bisulfite-conversion strand, 3) number of Others in Bisulfite-conversion strand," +
-        		" 4) number of G in Genotype strand, 5) number of A in Genotype strand, 6) number of Others in Genotype strand. If not a Cytosine position, Bisulfite-conversion strand will represent Forward strand, Genotype strand will represent Reverse strand"));
+        headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.C_STATUS, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Bisulfite read counts: 1) number of C in cytosine strand, 2) number of T in cytosine strand, 3) number of A/G/N in cytosine strand," +
+        		" 4) number of G in guanine strand, 5) number of A in guanine strand, 6) number of C/T/N in guanine strand."));
         headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.CYTOSINE_METHY_VALUE, 1, VCFHeaderLineType.Float, "Methylation rate. 0-100%, 100% indicates fully methylated"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 1, VCFHeaderLineType.Integer, "Number of Unconverted Cytosines in this Cytosine position"));
         //headerInfo.add(new VCFFormatHeaderLine(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 1, VCFHeaderLineType.Integer, "Number of Converted Cytosines in this Cytosine position"));
@@ -520,8 +521,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	outLine = outLine + String.format("##Methylation summary in total:")  + "\n";
         	for(String key : sum.cytosineMethySummary.keySet()){
             	Pair<Integer,Double> methyValue = sum.cytosineMethySummary.get(key);
-            	logger.info(String.format("%% Methylation level of %s loci in total:       %3.3f", key, methyValue.getSecond()/methyValue.getFirst()));
-        		logger.info(String.format(" number of %s loci in total:       %d", key, methyValue.getFirst()/samples.size()));
+            	logger.info(String.format("%% Average methylation level of %s loci in total:       %3.3f", key, methyValue.getSecond()/methyValue.getFirst()));
+        		logger.info(String.format(" Average number of %s loci in total:       %d", key, methyValue.getFirst()/samples.size()));
         		outLine = outLine + key + ":" + methyValue.getSecond()/methyValue.getFirst() + "\t" + methyValue.getFirst()/samples.size()  + "\n";
             }
         }
