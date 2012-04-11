@@ -401,4 +401,18 @@ public class BaseUtilsMore {
 			
 		}
 		
+		
+		static public boolean searchIupacPatternFromBases(byte[] searchPatterns, byte[] bases, boolean complement){
+			
+			for(int i=0;i<searchPatterns.length;i++){
+				if(i>=bases.length)
+					return false;
+				byte base = bases[i];
+				if(complement)
+					base = BaseUtilsMore.iupacCodeComplement(base);
+				if(!BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(searchPatterns[i], base))
+					return false;
+			}
+			return true;
+		}
 }

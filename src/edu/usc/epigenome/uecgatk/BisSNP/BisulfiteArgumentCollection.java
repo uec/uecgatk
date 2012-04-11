@@ -39,7 +39,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	 @Input(fullName="dbsnp", shortName = "D", doc="dbSNP file", required=false)
 	 public RodBinding<VariantContext> dbsnp;
 	
-	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM, Normal sequencing mode: NM", required = false)
+	@Argument(fullName = "sequencing_mode", shortName = "sm", doc = "Bisulfite mode: BM, GNOMe-seq mode: GM", required = false)
     public BisulfiteEnums.MethylSNPModel sequencingMode = BisulfiteEnums.MethylSNPModel.BM;
 	
 //	@Argument(fullName = "paired_end_mode", shortName = "pem", doc = "work in paired end mode", required = false)
@@ -70,8 +70,14 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "test_location", shortName = "loc", doc = "for debug only, output the detail information in the location", required = false)
     public long testLocus = -1;
 	
-	@Argument(fullName = "minmum_cytosine_converted", shortName = "minConv", doc = "disregard first few cytosines in the reads which may come from uncomplete bisulfite conversion in the first few cytosines of the reads", required = false)
+	@Argument(fullName = "minmum_cytosine_converted", shortName = "minConv", doc = "disregard first few cytosines in the reads which may come from uncomplete bisulfite conversion in the first few cytosines of the reads (5'end) ", required = false)
     public short minConv = 0;
+	
+	@Argument(fullName = "trim_5_end_bp", shortName = "trim5", doc = "how many bases at 5'end of the reads are discarded", required = false)
+    public int trim5 = 0;
+	
+	@Argument(fullName = "trim_3_end_bp", shortName = "trim3", doc = "how many bases at 3'end of the reads are discarded", required = false)
+    public int trim3 = 0;
 	
 	@Argument(fullName = "bisulfite_conversion_rate", shortName = "bsRate", doc = "bisulfite conversion rate", required = false)
     public double bsRate = 0.9975;
@@ -144,7 +150,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
    // }
     
     public void makeCytosine(){
-    	cytosineDefined = new CytosinePatternsUserDefined(cytosineContextsAcquired);
+    	cytosineDefined = new CytosinePatternsUserDefined(cytosineContextsAcquired,sequencingMode);
   //  	System.err.println(cytosineContextsAcquired.toString() + "\t" + cytosineDefined.getContextDefined().keySet().toString());
     }
 	
@@ -179,6 +185,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.cTypeThreshold = cTypeThreshold;
         bac.testLocus = testLocus;
         bac.minConv = minConv;
+        bac.trim5 = trim5;
+        bac.trim3 = trim3;
         bac.bsRate = bsRate;
         bac.overRate = overRate;
         bac.validateDbsnpHet = validateDbsnpHet;

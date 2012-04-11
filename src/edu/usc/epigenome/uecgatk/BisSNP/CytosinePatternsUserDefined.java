@@ -22,10 +22,12 @@ public class CytosinePatternsUserDefined {
 	private List<String> cytosineContextsAcquired;
 	private HashMap<String,CytosineParameters> contexts;
 	private int maxCytosinePatternLen = 0;
+	private BisulfiteEnums.MethylSNPModel sequencingMode;
 	
-	public CytosinePatternsUserDefined(List<String> cytosineContextsAcquired) {
+	public CytosinePatternsUserDefined(List<String> cytosineContextsAcquired, BisulfiteEnums.MethylSNPModel sequencingMode) {
 		// TODO Auto-generated constructor stub
 		this.cytosineContextsAcquired = cytosineContextsAcquired;
+		this.sequencingMode = sequencingMode;
 		contexts = new HashMap<String,CytosineParameters>();
 		setContextsDefinedByUsers();
 		setMaxCytosinePatternLen();
@@ -44,7 +46,7 @@ public class CytosinePatternsUserDefined {
 	}
 	
 	public CytosinePatternsUserDefined clone(){
-		return new CytosinePatternsUserDefined(cytosineContextsAcquired);
+		return new CytosinePatternsUserDefined(cytosineContextsAcquired, sequencingMode);
 	}
 	
 	private void setMaxCytosinePatternLen(){
@@ -88,32 +90,70 @@ public class CytosinePatternsUserDefined {
 	
 
 	private void setContextsDefinedByDefault(){
-		
-		CytosineParameters cp1 = new CytosineParameters();
-		cp1.cytosinePosition = 1;
-		cp1.cytosineMethylation = 0.5;
-		cp1.methylationAutoestimated = true;
-		contexts.put("CG", cp1);
-		CytosineParameters cp2 = new CytosineParameters();
-		cp2.cytosinePosition = 1;
-		cp2.cytosineMethylation = 0.5;
-		cp2.methylationAutoestimated = true;
-		contexts.put("CHG", cp2);
-		CytosineParameters cp3 = new CytosineParameters();
-		cp3.cytosinePosition = 1;
-		cp3.cytosineMethylation = 0.5;
-		cp3.methylationAutoestimated = true;
-		contexts.put("CHH", cp3);
-		CytosineParameters cp4 = new CytosineParameters();
-		cp4.cytosinePosition = 1;
-		cp4.cytosineMethylation = 0.5;
-		cp4.methylationAutoestimated = true;
-		contexts.put("CHH", cp4);
-		//CytosineParameters cp3 = new CytosineParameters();
-		//cp3.cytosinePosition = 1;
-		//cp3.cytosineMethylation = 0.5;
-		//cp3.methylationAutoestimated = true;
-		//contexts.put("C", cp3);
+		if(sequencingMode == BisulfiteEnums.MethylSNPModel.BM){
+			CytosineParameters cp1 = new CytosineParameters();
+			cp1.cytosinePosition = 1;
+			cp1.cytosineMethylation = 0.5;
+			cp1.methylationAutoestimated = true;
+			contexts.put("CG", cp1);
+			CytosineParameters cp2 = new CytosineParameters();
+			cp2.cytosinePosition = 1;
+			cp2.cytosineMethylation = 0.5;
+			cp2.methylationAutoestimated = true;
+			contexts.put("CHG", cp2);
+			CytosineParameters cp3 = new CytosineParameters();
+			cp3.cytosinePosition = 1;
+			cp3.cytosineMethylation = 0.5;
+			cp3.methylationAutoestimated = true;
+			contexts.put("CHH", cp3);
+			CytosineParameters cp4 = new CytosineParameters();
+			cp4.cytosinePosition = 1;
+			cp4.cytosineMethylation = 0.5;
+			cp4.methylationAutoestimated = true;
+			contexts.put("C", cp4);
+			//CytosineParameters cp3 = new CytosineParameters();
+			//cp3.cytosinePosition = 1;
+			//cp3.cytosineMethylation = 0.5;
+			//cp3.methylationAutoestimated = true;
+			//contexts.put("C", cp3);
+		}
+		else if(sequencingMode == BisulfiteEnums.MethylSNPModel.GM){
+			CytosineParameters cp1 = new CytosineParameters();
+			cp1.cytosinePosition = 2;
+			cp1.cytosineMethylation = 0.5;
+			cp1.methylationAutoestimated = true;
+			contexts.put("HCG", cp1);
+			CytosineParameters cp2 = new CytosineParameters();
+			cp2.cytosinePosition = 2;
+			cp2.cytosineMethylation = 0.5;
+			cp2.methylationAutoestimated = true;
+			contexts.put("WCG", cp2);
+			CytosineParameters cp3 = new CytosineParameters();
+			cp3.cytosinePosition = 2;
+			cp3.cytosineMethylation = 0.5;
+			cp3.methylationAutoestimated = true;
+			contexts.put("GCG", cp3);
+			CytosineParameters cp4 = new CytosineParameters();
+			cp4.cytosinePosition = 2;
+			cp4.cytosineMethylation = 0.5;
+			cp4.methylationAutoestimated = true;
+			contexts.put("GCH", cp4);
+			CytosineParameters cp5 = new CytosineParameters();
+			cp5.cytosinePosition = 2;
+			cp5.cytosineMethylation = 0.5;
+			cp5.methylationAutoestimated = true;
+			contexts.put("HCH", cp5);
+			CytosineParameters cp6 = new CytosineParameters();
+			cp6.cytosinePosition = 2;
+			cp6.cytosineMethylation = 0.5;
+			cp6.methylationAutoestimated = true;
+			contexts.put("WCH", cp6);
+			CytosineParameters cp7 = new CytosineParameters();
+			cp7.cytosinePosition = 1;
+			cp7.cytosineMethylation = 0.5;
+			cp7.methylationAutoestimated = true;
+			contexts.put("C", cp7);
+		}
 
 	}
 	

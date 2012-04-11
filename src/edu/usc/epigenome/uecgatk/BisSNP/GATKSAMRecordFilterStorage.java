@@ -25,6 +25,7 @@ public class GATKSAMRecordFilterStorage {
 	private GATKSAMRecord GATKrecord = null;
 	private boolean goodBase = false;
 	private BisulfiteArgumentCollection BAC;
+	private int cytosineConverted = 0; //record number of cytosine converted in the reads (for minConv option in BAC)
 	
 	public GATKSAMRecordFilterStorage(GATKSAMRecord GATKrecord, BisulfiteArgumentCollection BAC, int offset) {
 		// TODO Auto-generated constructor stub
@@ -42,7 +43,8 @@ public class GATKSAMRecordFilterStorage {
 		byte[] quals = GATKrecord.getBaseQualities();
 		
 		if ( GATKrecord.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE && quals[offset] >= BAC.MIN_BASE_QUALTY_SCORE &&
-	             (BAC.USE_BADLY_MATED_READS || (!BadMateFilter.hasBadMate(GATKrecord)) && !GATKrecord.getNotPrimaryAlignmentFlag()) ) {
+	             (BAC.USE_BADLY_MATED_READS || (!BadMateFilter.hasBadMate(GATKrecord)) && !GATKrecord.getNotPrimaryAlignmentFlag()) 
+	             && offset >= BAC.trim5 && offset < GATKrecord.getReadLength()-BAC.trim3) {
 	        	//System.out.println("bad mates");
 				//if((GATKrecord.getReadPairedFlag() && GATKrecord.getProperPairFlag()))
 				goodBase = true;

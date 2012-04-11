@@ -391,11 +391,20 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		//tmpMethy[0] = FLAT_METHY_STATUS;// 0: methy status in positive strand; 1: methy status in negative strand;
 		//tmpMethy[1] = FLAT_METHY_STATUS;
 		HashMap<Integer,methyStatus> cytosineAndAdjacent = new HashMap<Integer,methyStatus>();
-
+		 
 		//check adjacent position likelihood
 		int maxCytosineLength=BAC.cytosineDefined.getMaxCytosinePatternLen();
-		for(int i = 0 - maxCytosineLength; i <= maxCytosineLength; i++){
+		byte[] refBytes = new byte[maxCytosineLength*2+1];
+		//byte[] refBytesFwd = new byte[maxCytosineLength];
+		//byte[] refBytesRvd = new byte[maxCytosineLength];
+		for(int i = 0 - maxCytosineLength, index=0; i <= maxCytosineLength; i++,index++){
 			GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(contig, position + i );
+			if( !ref.getWindow().containsP(loc) )
+				continue;
+			
+			ReferenceContext tmpRef = new ReferenceContext(ref.getGenomeLocParser(),loc, ref.getWindow(),ref.getBases());
+			refBytes[index] = tmpRef.getBase();
+			
 			if(i == 0)
 				continue;
 			List<GATKSAMRecord> reads =  new ArrayList<GATKSAMRecord>();;
@@ -410,10 +419,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			}
 			ReadBackedPileup tmpPileup = new ReadBackedPileupImpl(loc,reads,elementOffsets);
 			
-			if( !ref.getWindow().containsP(loc) )
-				continue;
 			
-			ReferenceContext tmpRef = new ReferenceContext(ref.getGenomeLocParser(),loc, ref.getWindow(),ref.getBases());
 
 			BisulfiteDiploidSNPGenotypeLikelihoods tmpGL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, tmpRef, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, tmpMethy);
 	
@@ -441,6 +447,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		boolean firstSeen = true;
 		for(String cytosineType : BAC.cytosineDefined.getContextDefined().keySet()){
 			boolean heterozygousPattern = false;
+			
 			tmpMethy = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosineMethylation;
 			int cytosinePos = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosinePosition;
 
@@ -452,9 +459,11 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			//forward strand
 			byte[] basesAlelleAFwd = cytosineType.getBytes();
 			byte[] basesAlelleBFwd = cytosineType.getBytes();
+			byte[] refWindFwd = new byte[cytosineType.length()];
             for(byte base : cytosineType.getBytes()){
             	int pos = i - cytosinePos;
             	int index = i-1;
+            	refWindFwd[index] = refBytes[pos+maxCytosineLength];
             	i++;
             	if(pos == 0)
             		continue;
@@ -509,9 +518,11 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             //reverse strand
             byte[] basesAlelleARev = cytosineType.getBytes();
 			byte[] basesAlelleBRev = cytosineType.getBytes();
+			byte[] refWindRvd = new byte[cytosineType.length()];
             for(byte base : cytosineType.getBytes()){
             	int pos = cytosinePos - i;
             	int index = i-1;
+            	refWindRvd[index] = refBytes[pos+maxCytosineLength];
             	i++;
             	
             	if(pos == 0)
@@ -690,7 +701,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					cps.patternOfAlleleA = new String(basesAlelleAFwd);
 					cps.patternOfAlleleB = new String(basesAlelleBFwd);
 				}
-
+				cps.isReferenceCytosinePattern = BaseUtilsMore.searchIupacPatternFromBases(cytosineType.getBytes(), refWindFwd, false);
 				//value[0] = adjacentCytosineSeqLikelihood;
 				if(adjacentCytosineSeqLikelihood > maxRatio){ 
 					maxRatio = adjacentCytosineSeqLikelihood;
@@ -710,6 +721,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					cps.patternOfAlleleA = new String(basesAlelleARev);
 					cps.patternOfAlleleB = new String(basesAlelleBRev);
 				}
+				cps.isReferenceCytosinePattern = BaseUtilsMore.searchIupacPatternFromBases(cytosineType.getBytes(), refWindRvd, true);
 				if(adjacentCytosineSeqLikelihoodReverseStrand > maxRatio){
 					maxRatio = adjacentCytosineSeqLikelihoodReverseStrand;
 					
