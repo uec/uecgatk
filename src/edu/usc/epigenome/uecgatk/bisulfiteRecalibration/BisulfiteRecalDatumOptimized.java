@@ -20,8 +20,8 @@ public class BisulfiteRecalDatumOptimized extends RecalDatumOptimized {
 		super(numObservations, numMismatches);
 		// TODO Auto-generated constructor stub
 	}
-	@Override
-	public synchronized final void incrementBaseCounts( final byte curBase, final byte refBase )  {
+
+	public synchronized void incrementBaseCountsBisulfite( final byte curBase, final byte refBase )  {
     	
 		
             //if( readBaseIndex != refBaseIndex && !(BisulfiteSnpUtil.isCytosine(refBase,false) && BisulfiteSnpUtil.isCytosine(readBase,true))) {

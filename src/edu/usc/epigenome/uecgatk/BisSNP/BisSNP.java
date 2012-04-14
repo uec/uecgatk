@@ -72,7 +72,7 @@ public class BisSNP extends CommandLineExecutable {
 	
 	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "automately estimate cytosine pattern methylation status in the first iteration")
     private static boolean autoEstimateC = false;
-	
+		
 	 //control the output, output to TCGA VCF 
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;

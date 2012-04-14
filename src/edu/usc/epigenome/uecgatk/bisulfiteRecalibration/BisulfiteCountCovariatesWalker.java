@@ -374,10 +374,10 @@ public class BisulfiteCountCovariatesWalker extends LocusWalker<BisulfiteCountCo
 
         // Add one to the number of observations and potentially one to the number of mismatches
         if(gatkRead.getReadNegativeStrandFlag()){
-        	datum.incrementBaseCounts(BaseUtils.simpleComplement(base), BaseUtils.simpleComplement(refBase));
+        	datum.incrementBaseCountsBisulfite(BaseUtils.simpleComplement(base), BaseUtils.simpleComplement(refBase));
         }
         else{
-        	datum.incrementBaseCounts(base, refBase);
+        	datum.incrementBaseCountsBisulfite(base, refBase);
         }
         
         counter.countedBases++;
