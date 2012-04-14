@@ -39,6 +39,8 @@ public class BaseUtilsMore {
     public final static byte N = (byte)'N'; //A,C,G,T
     public final static byte D = (byte)'D'; //A,G,T
 	
+    public final static byte X = (byte)'X'; // to represent converted cytosine:  reference cytosine, but read base is 'T'
+    
 	//convert input bases to uppercase
 	static public byte[] toUpperCase(byte[] in)
 	{
@@ -415,4 +417,42 @@ public class BaseUtilsMore {
 			}
 			return true;
 		}
+		
+		/**
+	     * Converts a simple base to a base index
+	     *
+	     * @param base [AaCcGgTt]
+	     * @return 0, 1, 2, 3, 4, or -1 if the base can't be understood
+	     */
+	    static public int simpleBaseToBaseIndex(byte base) {
+	        switch (base) {
+	            case '*':               // the wildcard character counts as an A
+	            case 'A':
+	            case 'a':
+	                return 0;
+
+	            case 'C':
+	            case 'c':
+	                return 1;
+
+	            case 'G':
+	            case 'g':
+	                return 2;
+
+	            case 'T':
+	            case 't':
+	                return 3;
+
+	            case 'X':
+	            case 'x':
+	                return 4;
+	                
+	            default:
+	                return -1;
+	        }
+	    }
+	    
+	    static public boolean isRegularBase(byte base) {
+	        return simpleBaseToBaseIndex(base) != -1;
+	    }
 }

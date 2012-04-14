@@ -351,7 +351,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      * @return the VariantCallContext object
      */
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-    	
+
     	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit(),autoEstimateC, secondIteration);
 
  //       CytosineTypeStatus cts = null;

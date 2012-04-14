@@ -91,4 +91,54 @@ public class BisSNPUtils {
 		}
 	}
 	
+	public static boolean isCytosine(byte base, boolean bisulfiteConversionSpace)
+	{
+		char refC = (char) base;
+		boolean out;
+		
+		if (bisulfiteConversionSpace)
+		{
+			out = ((refC == 'C') || (refC == 'T'));
+		}
+		else
+		{
+			out = (refC == 'C');
+		}
+		
+		return out; 
+	}
+	
+	public static boolean isCytosine(int pos, String seqStr, boolean bisulfiteConversionSpace)
+	{
+		char refC = seqStr.charAt(pos);
+		
+		boolean out;
+		
+		if (bisulfiteConversionSpace)
+		{
+			out = ((refC == 'C') || (refC == 'T'));
+		}
+		else
+		{
+			out = (refC == 'C');
+		}
+		
+		return out; 
+	}
+	
+	public static boolean isThymine(int pos, String seqStr)
+	{
+		char seqC = seqStr.charAt(pos);
+		
+		return (seqC == 'T'); 
+	}
+	
+	public static boolean isThymineInCytosinePos(int pos, String seqStr, byte refBase)
+	{
+		char seqC = seqStr.charAt(pos);
+		
+		return ((seqC == 'T') && (refBase == 'C')); 
+	}
+	
+	
 }
