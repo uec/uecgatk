@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.walkers.recalibration.Covariate;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum;
 import org.broadinstitute.sting.gatk.walkers.recalibration.RecalibrationArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -59,13 +58,13 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
-@WalkerName("TableRecalibration")
+@WalkerName("BisulfiteTableRecalibration")
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 @Reference(window=@Window(start=-500,stop=500))
 // This walker requires -I input.bam, it also requires -R reference.fasta
 public class BisulfiteTableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
-    public static final String PROGRAM_RECORD_NAME = "GATK TableRecalibration";
+    public static final String PROGRAM_RECORD_NAME = "GATK BisulfiteTableRecalibration";
 
     /////////////////////////////
     // Shared Arguments

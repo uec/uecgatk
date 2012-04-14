@@ -121,7 +121,7 @@ public class BisSNP extends CommandLineExecutable {
 		return argCollection;
 	}
 
-     
+     	
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
