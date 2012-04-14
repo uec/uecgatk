@@ -148,7 +148,7 @@ public class BisSNP extends CommandLineExecutable {
 	//set up Writer information. if writer is not initiat here, then there will be some wired close stream problem.
 	public void setupInfo(){
 		if(walker instanceof BisulfiteGenotyper){
-
+			
 			if(argCollection.numberOfThreads == 1){
 			//	((BisulfiteGenotyper) walker).setWriter(writer);
 

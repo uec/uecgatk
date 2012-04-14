@@ -138,6 +138,16 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
         
     }
     
+ // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+
+    public Comparable getValueBisulfite(final String str) {
+        byte[] bytes = str.getBytes();
+        final Dinuc returnDinuc = dinucHashMap.get(Dinuc.hashBytes(bytes[0], bytes[1]));
+        if (returnDinuc.compareTo(NO_DINUC) == 0) {
+            return null;
+        }
+        return returnDinuc;
+    }
 
     
     /**
