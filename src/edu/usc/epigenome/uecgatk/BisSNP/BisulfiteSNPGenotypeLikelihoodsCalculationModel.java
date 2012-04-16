@@ -113,9 +113,12 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 
 		byte refBase = ref.getBase();
 		
+		if ( !Allele.acceptableAlleleBases(new byte[]{refBase}) )  //illegal reference sequence
+			refBase = 'N';
 		
 		this.refAllele = Allele.create(refBase, true);
-       
+
+			
     //    numCNegStrand = 0;
     //    numTNegStrand = 0;
     //    numCPosStrand = 0;

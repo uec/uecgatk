@@ -227,7 +227,6 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      *
      **/
     public void initialize() {
-
         samples = new TreeSet<String>();
         //sometimes, BAM file also provided sample name, and it is different from user provided in the argument, then there will be an error~
         

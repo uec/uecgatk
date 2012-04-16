@@ -176,7 +176,7 @@ public class BisSNP extends CommandLineExecutable {
         return headerInfo.containsKey("org.broadinstitute.sting.gatk.version") ? headerInfo.getString("org.broadinstitute.sting.gatk.version") : "<unknown>";
     }
 	
-
+ 
     public static String getBuildTime() {
         ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
         return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
