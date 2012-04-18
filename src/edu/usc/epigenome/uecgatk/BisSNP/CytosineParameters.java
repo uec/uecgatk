@@ -31,7 +31,7 @@ public class CytosineParameters {
 	public int numOfTReadsInCytosinePosInBisulfiteCStrandAlleleB = 0;
 	public int numOfOtherReadsInCytosinePosInBisulfiteCStrandAlleleB = 0;
 
-	public boolean isReferenceCytosinePattern = true; //is this reference cytosine pattern in the reference genome?
+	public boolean isReferenceCytosinePattern = false; //is this reference cytosine pattern in the reference genome?
 	
 	public CytosineParameters() {
 		// TODO Auto-generated constructor stub

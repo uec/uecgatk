@@ -83,6 +83,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	
 		// TODO Auto-generated constructor stub
 		this.BAC = BAC;
+
 		//this.cts = cts;
 		this.testLoc = BAC.testLocus;
 		this.autoEstimateC = autoEstimateC;
@@ -453,7 +454,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			
 			tmpMethy = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosineMethylation;
 			int cytosinePos = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosinePosition;
-
+			//if(secondIteration)
+			//	System.err.println(cytosineType + "\t" + tmpMethy);
             double adjacentCytosineSeqLikelihood = 0;
 			double adjacentCytosineSeqLikelihoodReverseStrand = 0;
 			int i = 1;
@@ -732,6 +734,12 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				}
 				cytosineParametersStatus.put(cytosineType, cps);
 					
+			}
+			else{
+				CytosineParameters cps = new CytosineParameters();
+				cps.isReferenceCytosinePattern = BaseUtilsMore.searchIupacPatternFromBases(cytosineType.getBytes(), refWindRvd, true);
+				cps.isCytosinePattern = false;
+				cytosineParametersStatus.put(cytosineType, cps);
 			}
 			if(position == BAC.testLocus){
             	System.err.println("countMatchedOnFwd: " + countMatchedOnFwd + "\tcountMatchedOnRvd: " + countMatchedOnRvd);

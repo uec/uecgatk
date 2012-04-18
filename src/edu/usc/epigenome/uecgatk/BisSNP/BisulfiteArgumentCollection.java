@@ -134,7 +134,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     public boolean ovd = false;
     
     @Argument(fullName = "locus_not_continuous", shortName = "lnc", doc = "locu to look at is not continuous, if the distance is too large, it will make some trouble in multithread VCF writer, just enable this option in performance test only", required = false)
-    public boolean lnc = false;
+    public boolean lnc = true;
     
     @Argument(fullName = "bissnp_methy_summary_file", shortName = "bmsf", doc = "input the methylation summary estimate from BisSNP, for BisSNPUtils right now only", required = false)
 	public String bmsf = null;
@@ -178,8 +178,8 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
  //       bac.pairedEndMode = pairedEndMode;
         bac.bisulfiteConversionModeOnestrand = bisulfiteConversionModeOnestrand;
         bac.cytosineContextsAcquired = cytosineContextsAcquired;
-        //bac.cytosineDefined = cytosineDefined;
-        bac.makeCytosine();
+        bac.cytosineDefined = cytosineDefined;
+        //bac.makeCytosine();
         //bac.cytosineDefined = cytosineDefined;
         
         bac.cTypeThreshold = cTypeThreshold;

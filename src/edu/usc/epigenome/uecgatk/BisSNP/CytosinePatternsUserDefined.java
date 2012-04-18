@@ -46,7 +46,12 @@ public class CytosinePatternsUserDefined {
 	}
 	
 	public CytosinePatternsUserDefined clone(){
-		return new CytosinePatternsUserDefined(cytosineContextsAcquired, sequencingMode);
+		CytosinePatternsUserDefined returnType = new CytosinePatternsUserDefined(cytosineContextsAcquired, sequencingMode);
+		returnType.cytosineContextsAcquired = cytosineContextsAcquired;
+		returnType.contexts = contexts;
+		returnType.maxCytosinePatternLen = maxCytosinePatternLen;
+		returnType.sequencingMode = sequencingMode;
+		return returnType;
 	}
 	
 	private void setMaxCytosinePatternLen(){
@@ -100,6 +105,12 @@ public class CytosinePatternsUserDefined {
 			cp2.cytosinePosition = 1;
 			cp2.cytosineMethylation = 0.5;
 			cp2.methylationAutoestimated = true;
+			contexts.put("CH", cp2);
+			/*
+			CytosineParameters cp2 = new CytosineParameters();
+			cp2.cytosinePosition = 1;
+			cp2.cytosineMethylation = 0.5;
+			cp2.methylationAutoestimated = true;
 			contexts.put("CHG", cp2);
 			CytosineParameters cp3 = new CytosineParameters();
 			cp3.cytosinePosition = 1;
@@ -111,11 +122,7 @@ public class CytosinePatternsUserDefined {
 			cp4.cytosineMethylation = 0.5;
 			cp4.methylationAutoestimated = true;
 			contexts.put("C", cp4);
-			//CytosineParameters cp3 = new CytosineParameters();
-			//cp3.cytosinePosition = 1;
-			//cp3.cytosineMethylation = 0.5;
-			//cp3.methylationAutoestimated = true;
-			//contexts.put("C", cp3);
+			*/
 		}
 		else if(sequencingMode == BisulfiteEnums.MethylSNPModel.GM){
 			CytosineParameters cp1 = new CytosineParameters();

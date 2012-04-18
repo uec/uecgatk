@@ -95,6 +95,7 @@ public class BisulfiteGenotyperEngine{
 
 	public BisulfiteGenotyperEngine(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, BisulfiteArgumentCollection BAC, GenomeAnalysisEngine toolkit, boolean autoEstimateC, boolean secondIteration) {
 		this.BAC = BAC.clone();
+		
 		this.toolkit = toolkit;
 		this.autoEstimateC = autoEstimateC;
 		this.secondIteration = secondIteration;
