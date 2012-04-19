@@ -134,10 +134,13 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     public boolean ovd = false;
     
     @Argument(fullName = "locus_not_continuous", shortName = "lnc", doc = "locu to look at is not continuous, if the distance is too large, it will make some trouble in multithread VCF writer, just enable this option in performance test only", required = false)
-    public boolean lnc = true;
+    public boolean lnc = false;
     
     @Argument(fullName = "bissnp_methy_summary_file", shortName = "bmsf", doc = "input the methylation summary estimate from BisSNP, for BisSNPUtils right now only", required = false)
 	public String bmsf = null;
+    
+    @Argument(fullName = "maximum_read_cov", shortName = "toCoverage", doc = "maximum read coverage allowed. Default is: 500", required = false)
+	public int toCoverage = 500;
     
     public CytosinePatternsUserDefined cytosineDefined = null;
     
@@ -195,6 +198,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.referenceGenomeVer = referenceGenomeVer;
         bac.heterozygosity = heterozygosity;
         bac.tiVsTv = tiVsTv;
+        bac.toCoverage = toCoverage;
         
         bac.orad = orad;
         bac.fnorad = fnorad;

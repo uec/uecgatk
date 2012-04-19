@@ -197,7 +197,7 @@ public class BisulfiteGenotyperEngine{
         if ( bglcms.get() == null ) {
             return null;
         }
-        
+       // System.err.println(vc.toString());
         HashMap<String, Object> attributes = new HashMap<String, Object>();
         int totalDepth = 0;
         int[] alleleCount = new int[2];
@@ -584,7 +584,7 @@ public class BisulfiteGenotyperEngine{
 
         GenomeLoc loc = refContext.getLocus();
         int endLoc = calculateEndPos(alleles, refAllele, loc);
-        
+       // System.err.println(alleles.toString());
         VariantContextBuilder vcb = new VariantContextBuilder("BG_call", loc.getContig(), loc.getStart(), endLoc,alleles);
         vcb.referenceBaseForIndel(refContext.getBase());
    	 	vcb.log10PError(VariantContext.NO_LOG10_PERROR);

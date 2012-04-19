@@ -319,6 +319,16 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 
             if(alternateAllele == null || BaseUtils.basesAreEqual(alternateAllele,refBase) || alternateAllele == bestAllele){
             	AlleleA = Allele.create(refBase, true);
+
+            	if(BaseUtils.basesAreEqual(bestAllele,refBase)){
+            		for(byte base : BaseUtils.BASES){
+            			if(base != refBase){
+            				bestAllele = base;
+            				break;
+            			}
+            		}
+            	}
+            	
             	AlleleB = Allele.create(bestAllele, false);
             	
             		alternateAllele = bestAllele;
@@ -343,6 +353,16 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	
             	}
             }
+            
+           // if(AlleleA.equals(AlleleB, true) && ((AlleleA.isReference() && AlleleB.isNonReference())||(AlleleB.isReference() && AlleleA.isNonReference()))){
+           // 	if(AlleleA.isReference() && AlleleB.isNonReference()){
+           // 		AlleleB = AlleleA;
+          //  	}
+          //  	else{
+          //  		AlleleA = AlleleB;
+          //  	}
+          //  }
+            	
             DiploidGenotype AAGenotype = DiploidGenotype.createHomGenotype(bestAllele);
             DiploidGenotype ABGenotype = DiploidGenotype.createDiploidGenotype(bestAllele, alternateAllele);
             DiploidGenotype BBGenotype = DiploidGenotype.createHomGenotype(alternateAllele);
@@ -385,7 +405,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			HashMap<Integer,double[]> GPsBeforeCytosineTenGenotypes, HashMap<Integer,double[]> GPsAfterCytosineTenGenotypes, HashMap<String, Double[]> GPsAtCytosineTenGenotypes, 
 			HashMap<String,CytosineParameters> cytosineParametersStatus){
 		String bestCytosinePattern = null;
-		String bestCytosinePatternRelative = null; //when there is no best cytosine pattern, just return the maximum Liklihood's cytosine pattern which maybe heterozygous
+		//String bestCytosinePatternRelative = null; //when there is no best cytosine pattern, just return the maximum Liklihood's cytosine pattern which maybe heterozygous
 		double maxRatioInCytosinePos = Double.NEGATIVE_INFINITY;
 		GenomeLoc location = pileup.getLocation();
 		String contig = location.getContig();
@@ -693,7 +713,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
         	
         	if(tmpMethyStatus.ratio > maxRatioInCytosinePos){
         		maxRatioInCytosinePos = tmpMethyStatus.ratio;
-        		bestCytosinePatternRelative = cytosineType;
+        		//bestCytosinePatternRelative = cytosineType;
         	}
             
             if(countMatchedOnFwd >= cytosineType.length()){
@@ -745,10 +765,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             	System.err.println("countMatchedOnFwd: " + countMatchedOnFwd + "\tcountMatchedOnRvd: " + countMatchedOnRvd);
             } 
 		}
-		if(bestCytosinePattern != null)
+		//if(bestCytosinePattern != null)
 			return bestCytosinePattern;
-		else
-			return bestCytosinePatternRelative;
+		//else
+		//	return bestCytosinePatternRelative;
 		//return maxGL;	
 	}
 	

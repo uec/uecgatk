@@ -357,6 +357,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      */
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
     	
+    	if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
+    		return null;
+    	
     	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit(),autoEstimateC, secondIteration);
 
  //       CytosineTypeStatus cts = null;
