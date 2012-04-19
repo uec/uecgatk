@@ -33,6 +33,9 @@ public class CytosineParameters {
 
 	public boolean isReferenceCytosinePattern = false; //is this reference cytosine pattern in the reference genome?
 	
+	public boolean isCTHeterozygousLoci = false; //CT heterozygous loci would appear in SNP.vcf file, but not appear in CpG.vcf or C.vcf file, it will not appear in summary statitics of heterozygous cytosine pattern, since C/T heterozygous would lead methylation level not estimatable..
+	
+	
 	public CytosineParameters() {
 		// TODO Auto-generated constructor stub
 	}
