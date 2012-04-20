@@ -138,7 +138,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     
     protected SAMFileWriter samWriter = null; //only works with single core right now
     
-    private int SAMPLE_READS_MEAN_COVERAGE = 30;
+    private DownsamplingBAM downsampleBam = null;
+
 
     private BisulfiteGenotyperEngine BG_engine = null;
     
@@ -272,6 +273,14 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	BAC.makeCytosine();
         	cytosineDefinedMemorizedForSecondRun = new CytosinePatternsUserDefined(BAC.cytosineContextsAcquired, BAC.sequencingMode);
         }
+        
+        if(BAC.orad){
+    		File outputBamFile = new File(BAC.fnorad);
+    		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
+    		samFileWriterFactory.setCreateIndex(true);
+    		samWriter = samFileWriterFactory.makeBAMWriter(getToolkit().getSAMFileHeader(), false, outputBamFile);
+    		downsampleBam = new DownsamplingBAM(BAC,samWriter);
+    	}
         	
         
     }
@@ -371,7 +380,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
    //     	cts = new CytosineTypeStatus(BAC);
 
         	if(BAC.orad){
-//        		downsamplingBamFile(rawContext);
+        		downsampleBam.downsamplingBamFile(rawContext);
         	}
         		
 

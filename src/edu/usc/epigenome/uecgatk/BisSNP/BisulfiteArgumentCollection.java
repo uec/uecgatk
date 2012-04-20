@@ -201,6 +201,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.toCoverage = toCoverage;
         
         bac.orad = orad;
+        bac.orcad = orcad;
         bac.fnorad = fnorad;
         bac.vfn2 = vfn2;
         bac.fnocrd = fnocrd;
