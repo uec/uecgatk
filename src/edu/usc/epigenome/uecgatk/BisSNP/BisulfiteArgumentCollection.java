@@ -142,6 +142,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
     @Argument(fullName = "maximum_read_cov", shortName = "toCoverage", doc = "maximum read coverage allowed. Default is: 500", required = false)
 	public int toCoverage = 500;
     
+    @Argument(fullName = "maximum_cache_for_output_vcf", shortName = "vcfCache", doc = "maximum cached position for multithreads output of VCF. Default is: 40,000,000", required = false)
+	public int vcfCache = 40000000;
+    
     public CytosinePatternsUserDefined cytosineDefined = null;
     
    // public BisulfiteArgumentCollection(){
@@ -210,6 +213,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.ovd = ovd;
         bac.lnc = lnc;
         bac.bmsf = bmsf;
+        bac.vcfCache = vcfCache;
         
         return bac;
     }
