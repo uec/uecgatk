@@ -137,12 +137,15 @@ public class BisulfiteGenotyperEngine{
         Map<String, AlignmentContext> stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext);
         HashMap<String, BisulfiteContextsGenotypeLikelihoods> BCGLs = new HashMap<String, BisulfiteContextsGenotypeLikelihoods>();
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, BCGLs); //get likelihood and methylation pattern information from BisulfiteSNPGenotypeLikelihoodsCalculationModel
+        if(rawContext.getBasePileup().getLocation().getStart() == BAC.testLocus){
+        	
+          	System.err.println("??" + vc.getAlleles().toString());
         
+        }
         if ( vc == null )
             return;
-    //  for(Genotype gt : vc.getGenotypes()){
-    //      	System.err.println(gt.getPhredScaledQual());
-    //      }
+        
+      
         
         //VariantCallContext vcc = UGE.calculateGenotypes(tracker, refContext, rawContext, vc);
         bisulfiteVariantCallContext = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, BCGLs, vc); //including all Reads group genotypes information into vcc, and provide most probable genotype and alt-allele for all of ReadsGroup 
@@ -589,8 +592,8 @@ public class BisulfiteGenotyperEngine{
         vcb.referenceBaseForIndel(refContext.getBase());
    	 	vcb.log10PError(VariantContext.NO_LOG10_PERROR);
    	 	vcb.genotypes(genotypes);
-   	 	
-   	 	
+   	 	if(loc.getStart() == BAC.testLocus)
+   	 		System.err.println("hah" + alleles.toString());
         return vcb.make();
     }
     

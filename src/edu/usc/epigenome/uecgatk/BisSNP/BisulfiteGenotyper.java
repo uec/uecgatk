@@ -219,6 +219,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							//cytosineMethySummaryTmp.put(cytosineKey5,methySummary5);
 						//}
 						if(cytosineKey.equalsIgnoreCase("CG")){
+							//homozygous sites
 							String cytosineKey1 = "CG_reference-CH_sample";
 							Pair<Integer, Double> methySummary1 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey1,methySummary1);
@@ -235,8 +236,42 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							String cytosineKey5 = "Not_C_reference-CG_sample";
 							Pair<Integer, Double> methySummary5 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey5,methySummary5);
+							//heterozygous sites
+							
+							String cytosineKey6 = "CG_reference-CG_CThetSnp_sample";
+							Pair<Integer, Double> methySummary6 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey6,methySummary6);
+							String cytosineKey7 = "CG_reference-CG_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary7 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey7,methySummary7);
+							
+							String cytosineKey12 = "CG_reference-CH_CThetSnp_sample";
+							Pair<Integer, Double> methySummary12 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey12,methySummary12);
+							String cytosineKey13 = "CG_reference-CH_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary13 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey13,methySummary13);
+							String cytosineKey14 = "CG_reference-NotC_hetSnp_sample";
+							Pair<Integer, Double> methySummary14 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey14,methySummary14);
+							
+							String cytosineKey8 = "CH_reference-CG_CThetSnp_sample";
+							Pair<Integer, Double> methySummary8 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey8,methySummary8);
+							String cytosineKey9 = "CH_reference-CG_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary9 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey9,methySummary9);
+							
+							String cytosineKey10 = "Not_C_reference-CG_CThetSnp_sample";
+							Pair<Integer, Double> methySummary10 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey10,methySummary10);
+							String cytosineKey11 = "Not_C_reference-CG_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary11 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey11,methySummary11);
+							
 						}
 						else if(cytosineKey.equalsIgnoreCase("CH")){
+							//homozygous site
 							String cytosineKey1 = "CH_reference-CG_sample";
 							Pair<Integer, Double> methySummary1 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey1,methySummary1);
@@ -253,6 +288,39 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							String cytosineKey5 = "Not_C_reference-CH_sample";
 							Pair<Integer, Double> methySummary5 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey5,methySummary5);	
+							
+							//heterozygous sites
+							
+							String cytosineKey6 = "CH_reference-CH_CThetSnp_sample";
+							Pair<Integer, Double> methySummary6 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey6,methySummary6);
+							String cytosineKey7 = "CH_reference-CH_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary7 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey7,methySummary7);
+							
+							String cytosineKey12 = "CH_reference-CG_CThetSnp_sample";
+							Pair<Integer, Double> methySummary12 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey12,methySummary12);
+							String cytosineKey13 = "CH_reference-CG_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary13 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey13,methySummary13);
+							String cytosineKey14 = "CH_reference-NotC_hetSnp_sample";
+							Pair<Integer, Double> methySummary14 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey14,methySummary14);
+							
+							String cytosineKey8 = "CG_reference-CH_CThetSnp_sample";
+							Pair<Integer, Double> methySummary8 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey8,methySummary8);
+							String cytosineKey9 = "CG_reference-CH_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary9 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey9,methySummary9);
+							
+							String cytosineKey10 = "Not_C_reference-CH_CThetSnp_sample";
+							Pair<Integer, Double> methySummary10 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey10,methySummary10);
+							String cytosineKey11 = "Not_C_reference-CH_OtherhetSnp_sample";
+							Pair<Integer, Double> methySummary11 = new Pair<Integer, Double>(0, 0.0);
+							cytosineMethySummaryTmp.put(cytosineKey11,methySummary11);
 						}
 					}
 					cytosineMethySummaryByReadsGroup.put(sample, cytosineMethySummaryTmp);
@@ -525,28 +593,313 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         			Pair<Integer,Double> sumValue = cytosineMethySummaryInEachReadGroup.get(cytosineKey);
         			sumValue.set(cytosineNum, methyValue);
         			cytosineMethySummaryInEachReadGroup.put(cytosineKey, sumValue);
-        			if(value.isHetSnp()){
-        				continue;
+        			//if(value.isHetSnp()){
+        			//	continue;
+        			//}
+        			//heterozygous sites
+					
+					
+        			if(cytosineParameters.get(cytosineKey).isHeterozygousCytosinePattern || cytosineParameters.get(cytosineKey).isCTHeterozygousLoci){
+        				if(cytosineParameters.get(cytosineKey).isCTHeterozygousLoci){//CT SNPs heterozygous site
+        					if(cytosineKey.equalsIgnoreCase("CG")){
+        						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							String cytosineKeyTmp = "CG_reference-CG_CThetSnp_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            						}
+            						else{
+            							if(value.isC){
+            								String cytosineKeyTmp = "CG_reference-CH_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								
+            							}
+            							
+            						}
+            						
+            					}
+            					else{
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+            								String cytosineKeyTmp = "CH_reference-CG_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "Not_C_reference-CG_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						else{
+            							
+            						}
+            						
+            					}
+        					}
+        					else if(cytosineKey.equalsIgnoreCase("CH")){
+        						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							String cytosineKeyTmp = "CH_reference-CH_CThetSnp_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            						}
+            						else{
+            							if(value.isC){
+            								String cytosineKeyTmp = "CH_reference-CG_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								
+            							}
+            							
+            						}
+            						
+            					}
+            					else{
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+            								String cytosineKeyTmp = "CG_reference-CH_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "Not_C_reference-CH_CThetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						else{
+            							
+            						}
+            						
+            					}
+        					}
+        				}
+        				else{//other SNPs heterozygous site
+        					if(cytosineKey.equalsIgnoreCase("CG")){
+        						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							String cytosineKeyTmp = "CG_reference-CG_OtherhetSnp_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            						}
+            						else{
+            							if(value.isC){
+            								String cytosineKeyTmp = "CG_reference-CH_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "CG_reference-NotC_hetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						
+            					}
+            					else{
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+            								String cytosineKeyTmp = "CH_reference-CG_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "Not_C_reference-CG_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						else{
+            							
+            						}
+            						
+            					}
+        					}
+        					else if(cytosineKey.equalsIgnoreCase("CH")){
+        						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							String cytosineKeyTmp = "CH_reference-CH_OtherhetSnp_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            						}
+            						else{
+            							if(value.isC){
+            								String cytosineKeyTmp = "CH_reference-CG_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "CH_reference-NotC_hetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						
+            					}
+            					else{
+            						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+            							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+            								String cytosineKeyTmp = "CG_reference-CH_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							else{
+            								String cytosineKeyTmp = "Not_C_reference-CH_OtherhetSnp_sample";
+                    						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                    	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                    	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                    	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                    	        			}
+                    	        			
+                    	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                    	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                    	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+            							}
+            							
+            						}
+            						else{
+            							
+            						}
+            						
+            					}
+        					}
+        				}
         			}
-        			if(cytosineParameters.get(cytosineKey).isHeterozygousCytosinePattern || cytosineParameters.get(cytosineKey).isCTHeterozygousLoci)
-        			System.err.println("how??" + value.ref.getLocus().getStart() + value.getVariantContext().toString());
-					if(cytosineKey.equalsIgnoreCase("CG")){
-						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
-    						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-    							String cytosineKeyTmp = "CG_reference-CG_sample";
-        						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-        	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-        	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-        	        				methyValueTmp += bcglTmp.getMethylationLevel();
-        	        			}
-        	        			
-        	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-        	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-        	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    						}
-    						else{
-    							if(value.isC){
-    								String cytosineKeyTmp = "CG_reference-CH_sample";
+        			else{//homozygous site
+        				if(cytosineKey.equalsIgnoreCase("CG")){
+    						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+        						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+        							String cytosineKeyTmp = "CG_reference-CG_sample";
             						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
             	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
             	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -556,27 +909,74 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
             	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
             	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							else{
-    								String cytosineKeyTmp = "CG_reference-not_C_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							
-    						}
-    						
+        						}
+        						else{
+        							if(value.isC){
+        								String cytosineKeyTmp = "CG_reference-CH_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							else{
+        								String cytosineKeyTmp = "CG_reference-not_C_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							
+        						}
+        						
+        					}
+        					else{
+        						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+        							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+        								String cytosineKeyTmp = "CH_reference-CG_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							else{
+        								String cytosineKeyTmp = "Not_C_reference-CG_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							
+        						}
+        						else{
+        							
+        						}
+        						
+        					}
     					}
-    					else{
-    						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-    							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-    								String cytosineKeyTmp = "CH_reference-CG_sample";
+    					else if(cytosineKey.equalsIgnoreCase("CH")){
+    						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
+        						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+        							String cytosineKeyTmp = "CH_reference-CH_sample";
             						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
             	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
             	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -586,104 +986,73 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
             	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
             	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							else{
-    								String cytosineKeyTmp = "Not_C_reference-CG_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							
-    						}
-    						else{
-    							
-    						}
-    						
+        						}
+        						else{
+        							if(value.isC){
+        								String cytosineKeyTmp = "CH_reference-CG_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							else{
+        								String cytosineKeyTmp = "CH_reference-not_C_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							
+        						}
+        						
+        					}
+        					else{
+        						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+        							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
+        								String cytosineKeyTmp = "CG_reference-CH_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							else{
+        								String cytosineKeyTmp = "Not_C_reference-CH_sample";
+                						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
+                	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
+                	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+                	        				methyValueTmp += bcglTmp.getMethylationLevel();
+                	        			}
+                	        			
+                	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
+                	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
+                	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
+        							}
+        							
+        						}
+        						else{
+        							
+        						}
+        						
+        					}
     					}
-					}
-					else if(cytosineKey.equalsIgnoreCase("CH")){
-						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
-    						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-    							String cytosineKeyTmp = "CH_reference-CH_sample";
-        						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-        	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-        	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-        	        				methyValueTmp += bcglTmp.getMethylationLevel();
-        	        			}
-        	        			
-        	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-        	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-        	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    						}
-    						else{
-    							if(value.isC){
-    								String cytosineKeyTmp = "CH_reference-CG_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							else{
-    								String cytosineKeyTmp = "CH_reference-not_C_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							
-    						}
-    						
-    					}
-    					else{
-    						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-    							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-    								String cytosineKeyTmp = "CG_reference-CH_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							else{
-    								String cytosineKeyTmp = "Not_C_reference-CH_sample";
-            						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
-            	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
-            	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-            	        				methyValueTmp += bcglTmp.getMethylationLevel();
-            	        			}
-            	        			
-            	        			Pair<Integer,Double> sumValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp);
-            	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
-            	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
-    							}
-    							
-    						}
-    						else{
-    							
-    						}
-    						
-    					}
-					}
+        			}
+        			//System.err.println("how??" + value.ref.getLocus().getStart() + value.getVariantContext().toString());
+					
 					
         			//if(cytosineKey.equalsIgnoreCase("CG")){
         				/*

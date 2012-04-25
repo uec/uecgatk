@@ -61,6 +61,9 @@ public class BisulfiteRecalDataManager extends RecalDataManager {
         		//System.err.println(tmp.toString());
         		((BisulfiteDinucCovariate)tmp).getValues(gatkRead, tempCovariateValuesHolder,ref);
         	}
+        	else if(tmp instanceof BisulfiteCStrandCovariate){
+        		((BisulfiteCStrandCovariate)tmp).getValues(gatkRead, tempCovariateValuesHolder,ref);
+        	}
         	else{
         		tmp.getValues(gatkRead, tempCovariateValuesHolder);
         	}

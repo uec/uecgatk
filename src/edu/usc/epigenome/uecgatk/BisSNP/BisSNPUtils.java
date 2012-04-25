@@ -106,6 +106,35 @@ public class BisSNPUtils {
 		return out; 
 	}
 	
+	public static boolean isCytosine(byte base, boolean bisulfiteConversionSpace, boolean secondPair)
+	{
+		char refC = (char) base;
+		boolean out;
+		
+		if (bisulfiteConversionSpace)
+		{
+			if(secondPair){
+				out = ((refC == 'G') || (refC == 'A'));
+			}
+			else{
+				out = ((refC == 'C') || (refC == 'T'));
+			}
+			
+		}
+		else
+		{
+			if(secondPair){
+				out = (refC == 'G');
+			}
+			else{
+				out = (refC == 'C');
+			}
+			
+		}
+		
+		return out; 
+	}
+	
 	public static boolean isCytosine(int pos, String seqStr, boolean bisulfiteConversionSpace)
 	{
 		char refC = seqStr.charAt(pos);
@@ -119,6 +148,36 @@ public class BisSNPUtils {
 		else
 		{
 			out = (refC == 'C');
+		}
+		
+		return out; 
+	}
+	
+	public static boolean isCytosine(int pos, String seqStr, boolean bisulfiteConversionSpace, boolean secondPair)
+	{
+		char refC = seqStr.charAt(pos);
+		
+		boolean out;
+		
+		if (bisulfiteConversionSpace)
+		{
+			if(secondPair){
+				out = ((refC == 'G') || (refC == 'A'));
+			}
+			else{
+				out = ((refC == 'C') || (refC == 'T'));
+			}
+			
+		}
+		else
+		{
+			if(secondPair){
+				out = (refC == 'G');
+			}
+			else{
+				out = (refC == 'C');
+			}
+			
 		}
 		
 		return out; 

@@ -77,8 +77,8 @@ public class BisSNP extends CommandLineExecutable {
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "BisSNP-0.60";
-  
+	private static String BisVersion = "BisSNP-0.61";
+	
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
     // argument collection, the collection of command line args we accept. copy from GATK, since they are private class in GATK

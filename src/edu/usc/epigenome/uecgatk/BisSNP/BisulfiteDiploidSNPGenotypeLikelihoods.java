@@ -125,10 +125,9 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
 	public int add(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, boolean negStrand) {
         
         byte observedBase = 0, qualityScore = 0;
-        if ( !usableBase(p, ignoreBadBases) ){
-        	return 0;
-        }
-            
+        
+        
+        observedBase = p.getBase();
         SAMRecord samRecord = p.getRead();
         boolean paired = samRecord.getReadPairedFlag();
         if(paired){
@@ -158,18 +157,22 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     		}
         	if(secondOfPair){
            	 	negStrand = !negStrand;
+           	 //observedBase = BaseUtils.simpleComplement(observedBase);
+           	 	//samRecord.setReadNegativeStrandFlag(!samRecord.getReadNegativeStrandFlag());
         	}
         }
 		
-    	
-    	
+        if ( !usableBase(p, ignoreBadBases) ){
+        	return 0;
+        }
+       
         byte qual = p.getQual();
         if ( qual > SAMUtils.MAX_PHRED_SCORE )
             throw new MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
         if ( capBaseQualsAtMappingQual )
             qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
         
-        observedBase = p.getBase(); 
+         
         
         qualityScore = qual;
          

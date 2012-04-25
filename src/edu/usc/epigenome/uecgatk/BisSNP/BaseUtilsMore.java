@@ -446,7 +446,25 @@ public class BaseUtilsMore {
 	            case 'X':
 	            case 'x':
 	                return 4;
-	                
+	            case 'B':
+	            case 'b':
+	                return 5;
+
+	            case 'D':
+	            case 'd':
+	                return 6;
+
+	            case 'H':
+	            case 'h':
+	                return 7;
+
+	            case 'U':
+	            case 'u':
+	                return 8;
+
+	            case 'Y':
+	            case 'y':
+	                return 9;
 	            default:
 	                return -1;
 	        }
@@ -455,4 +473,32 @@ public class BaseUtilsMore {
 	    static public boolean isRegularBase(byte base) {
 	        return simpleBaseToBaseIndex(base) != -1;
 	    }
+	    
+	    static public byte convertTo2ndEnd(byte base) {
+	    	switch (base) {               // the wildcard character counts as an A
+            case 'A':
+            case 'a':
+                return 'B';
+
+            case 'C':
+            case 'c':
+            	return 'D';
+
+            case 'G':
+            case 'g':
+            	return 'H';
+
+            case 'T':
+            case 't':
+            	return 'U';
+
+            case 'X':
+            case 'x':
+            	return 'Y';
+                
+            default:
+                return base;
+	    	}
+	    }
+	    
 }

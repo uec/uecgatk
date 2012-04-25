@@ -39,9 +39,10 @@ import java.util.Map;
 
 
 
-@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
+//@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS) // Only look at covered loci, not every loci of the reference file
-@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})
+//@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})
+@ReadFilters({MappingQualityZeroFilter.class})
 // Filter out all reads with zero or unavailable mapping quality
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 // This walker requires both -I input.bam and -R reference.fasta
@@ -240,12 +241,13 @@ public class BisulfiteCountCovariatesWalker extends LocusWalker<BisulfiteCountCo
                 }
             }
         }
-
+        
         logger.info("The covariates being used here: ");
         for (Covariate cov : requestedCovariates) {
             logger.info("\t" + cov.getClass().getSimpleName());
             cov.initialize(RAC); // Initialize any covariate member variables using the shared argument collection
         }
+        //System.err.println("..");
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -268,12 +270,13 @@ public class BisulfiteCountCovariatesWalker extends LocusWalker<BisulfiteCountCo
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicative of poor quality
         CountedData counter = new CountedData();
+        //System.err.println("haha");
         if (tracker.getValues(knownSites).size() == 0) { // If something here is in one of the knownSites tracks then skip over it, otherwise proceed
             // For each read at this locus
             for (final PileupElement p : context.getBasePileup()) {
                 final GATKSAMRecord gatkRead = p.getRead();
                 int offset = p.getOffset();
-
+                
                 if (gatkRead.containsTemporaryAttribute(SKIP_RECORD_ATTRIBUTE)) {
                     continue;
                 }
@@ -297,7 +300,7 @@ public class BisulfiteCountCovariatesWalker extends LocusWalker<BisulfiteCountCo
 
                     byte[] bases = gatkRead.getReadBases();
                     byte refBase = ref.getBase();
-
+                    
                     // Skip if this base is an 'N' or etc.
                     if (BaseUtils.isRegularBase(bases[offset])) {
                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
@@ -324,24 +327,57 @@ public class BisulfiteCountCovariatesWalker extends LocusWalker<BisulfiteCountCo
      */
     private static void updateMismatchCounts(CountedData counter, final AlignmentContext context, final byte refBase) {
         for (PileupElement p : context.getBasePileup()) {
-            final byte readBase = p.getBase();
-            final int readBaseIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
-            final int refBaseIndex = BaseUtils.simpleBaseToBaseIndex(refBase);
+            byte readBase = p.getBase();
+            int readBaseIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
+            int refBaseIndex = BaseUtils.simpleBaseToBaseIndex(refBase);
             boolean negStrand = p.getRead().getReadNegativeStrandFlag();
             if (readBaseIndex != -1 && refBaseIndex != -1) {
-                if (readBaseIndex != refBaseIndex) {
-                	if((BisSNPUtils.isCytosine(refBase,false) && BisSNPUtils.isCytosine(readBase,true)) || (negStrand && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(refBase),false) && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(readBase),true))){
+                
+                	if(p.getRead().getReadPairedFlag()){
                 		
-                	}
-                	else{
-                		counter.novelCountsMM++;
-                	}
-                	
+                		
+                			if(p.getRead().getSecondOfPairFlag()){
+                				readBase = BaseUtils.simpleComplement(readBase);
+                        		readBaseIndex = BaseUtils.simpleBaseToBaseIndex(readBase);
+                        		if(readBaseIndex != refBaseIndex){
+                        			if((BisSNPUtils.isCytosine(refBase,false) && BisSNPUtils.isCytosine(readBase,true) && !negStrand) || (negStrand && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(refBase),false) && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(readBase),true))){
+                                		
+                                	}
+                                	else{
+                                		counter.novelCountsMM++;
+                                	}
+                        		}
+                				
+                    		}
+                    		else{
+                    			if(readBaseIndex != refBaseIndex){
+                    				if((BisSNPUtils.isCytosine(refBase,false) && BisSNPUtils.isCytosine(readBase,true) && !negStrand) || (negStrand && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(refBase),false) && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(readBase),true))){
+                                		
+                                	}
+                                	else{
+                                		counter.novelCountsMM++;
+                                	}
+                    			}
+                    			
+                    		}
+                		}
+                		
                 }
+                else{
+                	if (readBaseIndex != refBaseIndex) {
+                		if((BisSNPUtils.isCytosine(refBase,false) && BisSNPUtils.isCytosine(readBase,true) && !negStrand) || (negStrand && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(refBase),false) && BisSNPUtils.isCytosine(BaseUtils.simpleComplement(readBase),true))){
+                        		
+                        }
+                        else{
+                        		counter.novelCountsMM++;
+                        }
+                	}
+                		
+                }
+
                 counter.novelCountsBases++;
             }
         }
-    }
 
     /**
      * Major workhorse routine for this walker.

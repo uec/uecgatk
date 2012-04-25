@@ -28,6 +28,8 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
     private static final Dinuc NO_DINUC = new Dinuc(NO_CALL, NO_CALL);
 	private HashMap<Integer, Dinuc> dinucHashMap;
 	private final byte[] BASES = {(byte) 'A', (byte) 'C', (byte) 'G', (byte) 'T', (byte) 'X'};
+	private final byte[] BASES_2nd_pair = {(byte) 'B', (byte) 'D', (byte) 'H', (byte) 'U', (byte) 'Y'}; // each are the base in 2nd end
+	private boolean pairedEnd=true;
 	
 	@Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
@@ -38,6 +40,14 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
                 dinucHashMap.put(Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2)); // This might seem silly, but Strings are too slow
             }
         }
+        if(pairedEnd){
+        	 for (byte byte1 : BASES_2nd_pair) {
+                 for (byte byte2 : BASES_2nd_pair) {
+                     dinucHashMap.put(Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2)); // This might seem silly, but Strings are too slow
+                 }
+             }
+        }
+       
         // Add the "no dinuc" entry too
         dinucHashMap.put(Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC);
     }
@@ -49,6 +59,10 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
         final HashMap<Integer, Dinuc> dinucHashMapRef = this.dinucHashMap; //optimize access to dinucHashMap
         final int readLength = read.getReadLength();
         final boolean negativeStrand = read.getReadNegativeStrandFlag();
+        boolean secondPair = false;
+        if(read.getReadPairedFlag()){
+        	secondPair = read.getSecondOfPairFlag();
+        }
         byte[] bases = read.getReadBases();
         byte base;
         byte prevBase;
@@ -99,32 +113,59 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
             refBase = refBases[offset];
             
             if (BaseUtilsMore.isRegularBase(prevBase)) {
-                if(prevBase == BaseUtils.T){
-                	if(prevRefBase == BaseUtils.C){
-                		prevBase = BaseUtilsMore.X;
-                	}	
+                if(secondPair){
+                	if(prevBase == BaseUtils.A && !negativeStrand){
+                    	if(prevRefBase == BaseUtils.C){
+                    		prevBase = BaseUtilsMore.X;
+                    	}	
+                    }
+                  //  else if(prevBase == BaseUtils.T && negativeStrand){
+                  //  	if(prevRefBase == BaseUtils.G){
+                  //  		prevBase = BaseUtilsMore.X;
+                  //  	}
+                  //  }
+                    if(base == BaseUtils.A && !negativeStrand){
+                    	if(refBase == BaseUtils.C){
+                    		base = BaseUtilsMore.X;
+                    	}	
+                    }
+                 //   else if(base == BaseUtils.T && negativeStrand){
+                 //   	if(refBase == BaseUtils.G){
+                 //   		base = BaseUtilsMore.X;
+                 //   	}	
+                 //   }
+                    base = BaseUtilsMore.convertTo2ndEnd(base);
+                    prevBase = BaseUtilsMore.convertTo2ndEnd(prevBase);
                 }
-                else if(prevBase == BaseUtils.A && negativeStrand){
-                	if(prevRefBase == BaseUtils.G){
-                		prevBase = BaseUtilsMore.X;
-                	}
+                else{
+                	if(prevBase == BaseUtils.T && !negativeStrand){
+                    	if(prevRefBase == BaseUtils.C){
+                    		prevBase = BaseUtilsMore.X;
+                    	}	
+                    }
+                 //   else if(prevBase == BaseUtils.A && negativeStrand){
+                 //   	if(prevRefBase == BaseUtils.G){
+                 //   		prevBase = BaseUtilsMore.X;
+                 //   	}
+                  //  }
+                    if(base == BaseUtils.T && !negativeStrand){
+                    	if(refBase == BaseUtils.C){
+                    		base = BaseUtilsMore.X;
+                    	}	
+                    }
+                 //   else if(base == BaseUtils.A && negativeStrand){
+                 //   	if(refBase == BaseUtils.G){
+                 //   		base = BaseUtilsMore.X;
+                 //   	}	
+                //    }
                 }
-                if(base == BaseUtils.T){
-                	if(refBase == BaseUtils.C){
-                		base = BaseUtilsMore.X;
-                	}	
-                }
-                else if(base == BaseUtils.A && negativeStrand){
-                	if(refBase == BaseUtils.G){
-                		base = BaseUtilsMore.X;
-                	}	
-                }
+            	
             	comparable[offset] = dinucHashMapRef.get(Dinuc.hashBytes(prevBase, base));
             }
             else {
                 comparable[offset] = NO_DINUC;
             }
-            //System.err.println(prevBase + "\t" + base);
+           // System.err.println((char)prevBase + "\t" + (char)base + "\t" + dinucHashMapRef.get(Dinuc.hashBytes(prevBase, base)));
             offset++;
           //  if(base == BaseUtilsMore.X && (start + offset)==7009607){
           //  	System.err.println(offset + "\t" + (char)prevBase + "\t" + (char)base + "\t" + (char)prevRefBase + "\t" + (char)refBase + "\t" + start + "\t" + end + "\t" + negativeStrand + "\t" + (start + offset) + "\n" + new String(refBases) + "\n" + new String(bases));
@@ -163,5 +204,7 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
             array[r] = temp;
         }
     }
+    
+    
     
 }

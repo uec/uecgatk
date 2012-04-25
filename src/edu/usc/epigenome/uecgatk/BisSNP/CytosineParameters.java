@@ -21,7 +21,9 @@ public class CytosineParameters {
 	public boolean isCytosinePattern = false;
 	
 	//implement heterozygous, need to do it in the future, useful for Allele specific analysis.. 
-	public boolean isHeterozygousCytosinePattern = false;//mean position outside cytosine are heterozygous, right now, only enable the calculation in CpG sites
+	public boolean isHeterozygousCytosinePattern = false;//mean position at cytosine are heterozygous, 
+	public boolean isHeterozygousInContextPosition = false;//mean position at context position rather than cytosine position are heterozygous,
+	
 	public String patternOfAlleleA = null;
 	public String patternOfAlleleB = null;
 	public int numOfCReadsInCytosinePosInBisulfiteCStrandAlleleA = 0;
