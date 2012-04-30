@@ -9,6 +9,7 @@ import java.util.Set;
 
 import net.sf.samtools.SAMRecord;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -57,6 +58,8 @@ public class BisulfiteContextsGenotypeLikelihoods {
     private double rmsBaseQual = Double.NaN;
     private double rmsMapQual = Double.NaN;
     private int mapQual0 = 0;
+    
+    private ReferenceContext ref = null;
   //Reads supporting ALT. Number of 1) forward ref alleles; 2) reverse ref; 3) forward non-ref; 4) reverse non-ref alleles"
     //Average base quality for reads supporting alleles. For each allele, in the same order as listed
 	/**
@@ -278,7 +281,7 @@ public class BisulfiteContextsGenotypeLikelihoods {
         	rmsMapQualTotal[index] = p.getMappingQual();
 			rmsBaseQualTotal[index] = p.getQual();
 			index++;
-			GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
+			GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, ref, p.getOffset());
             //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
 			if(GATKrecordFilterStor.isGoodBase()){
 				//should different by GPs

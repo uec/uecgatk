@@ -71,7 +71,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	private boolean autoEstimateC = false;
     private boolean secondIteration = false;
     private double FLAT_METHY_STATUS = 0.5;
-    
+    private String CYTOSINE_CONV_START = "Xs";
     
     
     private Allele refAllele = null;
@@ -203,9 +203,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				
 				//summary number of C,T in the positive and negative strand
 				//BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(ref, BAC);
-				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
+				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC,ref, p.getOffset());
+				setGoodConvertedBase(p.getRead(), ref, negStrand);
                 //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
-				if(GATKrecordFilterStor.isGoodBase()){
+				if(GATKrecordFilterStor.isGoodBase() && isGoodConvertedBase(p.getRead(), offset)){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
 							numCNegStrand++;
@@ -268,7 +269,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
           //  	GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, BAC.cytosineDefined.getContextDefined().get(bestMatchedCytosinePattern).cytosineMethylation);
             	
          //   }
-            GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, getMethyLevelFromPileup(pileup));
+            GL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, getMethyLevelFromPileup(pileup, ref));
             if(cytosineParametersStatus.containsKey(bestMatchedCytosinePattern)){
             	cytosineStrand = cytosineParametersStatus.get(bestMatchedCytosinePattern).cytosineStrand;
             }
@@ -451,7 +452,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			ReadBackedPileup tmpPileup = new ReadBackedPileupImpl(loc,reads,elementOffsets);
 			
 			
-			tmpMethy = getMethyLevelFromPileup(tmpPileup);
+			tmpMethy = getMethyLevelFromPileup(tmpPileup, ref);
 			BisulfiteDiploidSNPGenotypeLikelihoods tmpGL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, tmpRef, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, tmpMethy);
 	
 			tmpGL.setPriors(tracker, tmpRef, BAC.heterozygosity, BAC.novelDbsnpHet, BAC.validateDbsnpHet, loc);
@@ -474,13 +475,13 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             
 		}
 		
-		tmpMethy = getMethyLevelFromPileup(pileup);
+		tmpMethy = getMethyLevelFromPileup(pileup, ref);
 		BisulfiteDiploidSNPGenotypeLikelihoods tmpGL = new BisulfiteDiploidSNPGenotypeLikelihoods(tracker, ref, (BisulfiteDiploidSNPGenotypePriors)priors, BAC, tmpMethy);
 		tmpGL.setPriors(tracker, ref, BAC.heterozygosity, BAC.novelDbsnpHet, BAC.validateDbsnpHet, location);
 		boolean firstSeen = true;
 		for(String cytosineType : BAC.cytosineDefined.getContextDefined().keySet()){
-			boolean heterozygousPattern = false;
-			
+			boolean heterozygousPattern = false; //heterozygous at cytosine psoition
+			boolean heterozygousAtContext = false; //heterozygous at context psoition
 			//tmpMethy = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosineMethylation;
 			int cytosinePos = BAC.cytosineDefined.getContextDefined().get(cytosineType).cytosinePosition;
 			//if(secondIteration)
@@ -528,7 +529,13 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		 	            		basesAlelleBFwd[index] = tmpMethyStatus.genotype.base2;
 		 	            }
 	            		 else if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base1) || BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, tmpMethyStatus.genotype.base2)){// it is not include into output now.. since CpG and CpA, CpA is not context anymore.. unless we implement numCAlleleA in CytosineParameters..
-	            			// heterozygousPattern = true;
+	            			//isHeterozygousInContextPosition
+	            			 heterozygousAtContext = true;
+	            			 basesAlelleAFwd[index] = tmpMethyStatus.genotype.base1;
+		            		 basesAlelleBFwd[index] = tmpMethyStatus.genotype.base2;
+		            		 countMatchedOnFwd++;
+		            		 adjacentCytosineSeqLikelihood += tmpMethyStatus.ratio;
+	            			 // heterozygousPattern = true;
 	            			// basesAlelleAFwd[index] = tmpMethyStatus.genotype.base1;
 	            			// basesAlelleBFwd[index] = tmpMethyStatus.genotype.base2;
 	            			// countMatchedOnFwd++;
@@ -590,9 +597,15 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	            			 basesAlelleBRev[index] = tmpMethyStatus.genotype.base2;
 		 	            }
 	            		 else if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, BaseUtilsMore.iupacCodeComplement(tmpMethyStatus.genotype.base1)) || BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(base, BaseUtilsMore.iupacCodeComplement(tmpMethyStatus.genotype.base2))){
-	            			// heterozygousPattern = true;
+	            			 heterozygousAtContext = true;
+	            			 basesAlelleARev[index] = tmpMethyStatus.genotype.base1;
+	            			 basesAlelleBRev[index] = tmpMethyStatus.genotype.base2;
+	            			 countMatchedOnRvd++;
+	            			 adjacentCytosineSeqLikelihoodReverseStrand += tmpMethyStatus.ratio;
+	            			 
+	            			 // heterozygousPattern = true;
 	            			// basesAlelleARev[index] = tmpMethyStatus.genotype.base1;
-	            			// basesAlelleARev[index] = tmpMethyStatus.genotype.base2;
+	            			// basesAlelleBRev[index] = tmpMethyStatus.genotype.base2;
 	            			// countMatchedOnRvd++;
 	            			// adjacentCytosineSeqLikelihoodReverseStrand += tmpMethyStatus.ratio;
 	            		 }
@@ -735,8 +748,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             	cps.isCytosinePattern = true;
             	cps.cytosineMethylation = tmpMethy;
 				cps.cytosineStrand = '+';
-				if(heterozygousPattern){
-					cps.isHeterozygousCytosinePattern = true;
+				if(heterozygousPattern || heterozygousAtContext){
+					cps.isHeterozygousCytosinePattern = heterozygousPattern;
+					cps.isHeterozygousInContextPosition = heterozygousAtContext;
 					cps.patternOfAlleleA = new String(basesAlelleAFwd);
 					cps.patternOfAlleleB = new String(basesAlelleBFwd);
 					
@@ -761,8 +775,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
             	cps.isCytosinePattern = true;
             	cps.cytosineMethylation = tmpMethy;
 				cps.cytosineStrand = '-';
-				if(heterozygousPattern){
-					cps.isHeterozygousCytosinePattern = true;
+				if(heterozygousPattern || heterozygousAtContext){
+					cps.isHeterozygousCytosinePattern = heterozygousPattern;
+					cps.isHeterozygousInContextPosition = heterozygousAtContext;
 					cps.patternOfAlleleA = new String(basesAlelleARev);
 					cps.patternOfAlleleB = new String(basesAlelleBRev);
 					
@@ -930,7 +945,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	        return count;
 	    }
 	 
-	 private double getMethyLevelFromPileup(ReadBackedPileup pileup){
+	 private double getMethyLevelFromPileup(ReadBackedPileup pileup, ReferenceContext ref){
 		 int numCNegStrand = 0;
 		 int numTNegStrand = 0;
 		 int numCPosStrand = 0;
@@ -982,9 +997,9 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				
 	        	
 				
-				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
+				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, ref, p.getOffset());
              
-				if(GATKrecordFilterStor.isGoodBase()){
+				if(GATKrecordFilterStor.isGoodBase() && isGoodConvertedBase(p.getRead(), offset)){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
 							numCNegStrand++;
@@ -1015,6 +1030,68 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		 
 	 }
 	
-	
+	 private boolean isGoodConvertedBase(GATKSAMRecord GATKrecord, int offset){
+		 int start = (Integer)GATKrecord.getAttribute(CYTOSINE_CONV_START);
+		 if( start != -1 && offset >=  (Integer)GATKrecord.getAttribute(CYTOSINE_CONV_START))
+				return true;
+			else
+				return false;
+	 }
+	 
+	private void setGoodConvertedBase(GATKSAMRecord GATKrecord, ReferenceContext refContext, boolean negStrand){
+			int cytosineConvertStart = -1;
+			byte[] bases = GATKrecord.getReadBases();
+			if(refContext == null)
+				return;
+			//System.err.println(new String(refBases));
+			//byte[] refBases = refContext.getBases();
+			int convertedCount=0;
+			
+			if(negStrand){
+				for(int i=0; i<bases.length;i++){
+					GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), GATKrecord.getAlignmentStart()+i);
+					if( !refContext.getWindow().containsP(loc) )
+						break;
+					
+					ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+					byte refBase = tmpRef.getBase();
+					//System.err.print((char)refBase);
+					if(BaseUtils.basesAreEqual(refBase, BaseUtils.G)){
+						if(BaseUtils.basesAreEqual(bases[i], BaseUtils.A)){
+							convertedCount++;
+							if(convertedCount >= BAC.minConv){
+								cytosineConvertStart=i;
+								break;
+							}
+								
+						}
+					}
+				}
+			}
+			else{
+				for(int i=0; i<bases.length;i++){
+					//System.err.println(GATKrecord.getAlignmentStart() + "\t" + i + "\t" + refContext.getWindow().getStart() + "\t" + refContext.getWindow().getStop());
+					GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), GATKrecord.getAlignmentStart()+i);
+					if( !refContext.getWindow().containsP(loc) )
+						break;
+					
+					ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+					byte refBase = tmpRef.getBase();
+					//System.err.print((char)refBase);
+					if(BaseUtils.basesAreEqual(refBase, BaseUtils.C)){
+						if(BaseUtils.basesAreEqual(bases[i], BaseUtils.T)){
+							convertedCount++;
+							if(convertedCount >= BAC.minConv){
+								cytosineConvertStart=i;
+								break;
+							}
+								
+						}
+					}
+				}
+			}
+			GATKrecord.setAttribute(CYTOSINE_CONV_START, cytosineConvertStart);
+			
+		}
 
 }

@@ -304,7 +304,7 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
      */
 	protected boolean usableBase(PileupElement p, boolean ignoreBadBases) {
         // ignore deletions, Q0 bases, and filtered bases
-		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, p.getOffset());
+		GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, ref, p.getOffset());
         if ( p.isDeletion() ||
                 p.getQual() == 0 ||
                 (p.getRead() instanceof GATKSAMRecord &&
