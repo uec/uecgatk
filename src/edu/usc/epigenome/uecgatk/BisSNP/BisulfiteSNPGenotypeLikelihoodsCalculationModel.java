@@ -205,7 +205,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				//BadBaseFilterBisulfite badReadPileupFilter = new BadBaseFilterBisulfite(ref, BAC);
 				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC,ref, p.getOffset());
 				setGoodConvertedBase(p.getRead(), ref, negStrand);
-                //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
+               //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
+				
 				if(GATKrecordFilterStor.isGoodBase() && isGoodConvertedBase(p.getRead(), offset)){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
@@ -1000,6 +1001,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, ref, p.getOffset());
              
 				if(GATKrecordFilterStor.isGoodBase() && isGoodConvertedBase(p.getRead(), offset)){
+				//if(GATKrecordFilterStor.isGoodBase()){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
 							numCNegStrand++;
@@ -1031,15 +1033,20 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	 }
 	
 	 private boolean isGoodConvertedBase(GATKSAMRecord GATKrecord, int offset){
-		 int start = (Integer)GATKrecord.getAttribute(CYTOSINE_CONV_START);
-		 if( start != -1 && offset >=  (Integer)GATKrecord.getAttribute(CYTOSINE_CONV_START))
+		 int start = (Integer)GATKrecord.getTemporaryAttribute(CYTOSINE_CONV_START);
+		 if( start != -1 && offset >=  (Integer)GATKrecord.getTemporaryAttribute(CYTOSINE_CONV_START))
 				return true;
 			else
 				return false;
 	 }
 	 
 	private void setGoodConvertedBase(GATKSAMRecord GATKrecord, ReferenceContext refContext, boolean negStrand){
-			int cytosineConvertStart = -1;
+			if(GATKrecord.containsTemporaryAttribute(CYTOSINE_CONV_START)){
+				
+				//System.err.println(GATKrecord.getTemporaryAttribute(CYTOSINE_CONV_START));
+				return;
+			}
+		int cytosineConvertStart = -1;
 			byte[] bases = GATKrecord.getReadBases();
 			if(refContext == null)
 				return;
@@ -1090,7 +1097,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					}
 				}
 			}
-			GATKrecord.setAttribute(CYTOSINE_CONV_START, cytosineConvertStart);
+			GATKrecord.setTemporaryAttribute(CYTOSINE_CONV_START, cytosineConvertStart);
 			
 		}
 

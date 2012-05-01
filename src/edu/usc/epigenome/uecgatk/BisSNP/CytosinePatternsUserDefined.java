@@ -106,6 +106,11 @@ public class CytosinePatternsUserDefined {
 			cp2.cytosineMethylation = 0.5;
 			cp2.methylationAutoestimated = true;
 			contexts.put("CH", cp2);
+			CytosineParameters cp3 = new CytosineParameters();
+			cp3.cytosinePosition = 1;
+			cp3.cytosineMethylation = 0.5;
+			cp3.methylationAutoestimated = true;
+			contexts.put("C", cp3);
 			/*
 			CytosineParameters cp2 = new CytosineParameters();
 			cp2.cytosinePosition = 1;

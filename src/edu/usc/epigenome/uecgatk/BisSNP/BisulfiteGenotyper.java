@@ -103,7 +103,7 @@ import edu.usc.epigenome.uecgatk.YapingWriter.NOMeSeqReadsWriterImp;
 //@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
-@Downsample(by=DownsampleType.NONE)
+@Downsample(by=DownsampleType.BY_SAMPLE)
 public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext, BisulfiteGenotyper.ContextCondition> implements TreeReducible<BisulfiteGenotyper.ContextCondition> {
 
 
@@ -238,20 +238,20 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							cytosineMethySummaryTmp.put(cytosineKey5,methySummary5);
 							//heterozygous sites
 							
-							String cytosineKey6 = "CG_reference-CG_CThetSnp_sample";
+							String cytosineKey6 = "CG_reference-CG_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary6 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey6,methySummary6);
-							String cytosineKey7 = "CG_reference-CG_OtherhetSnp_sample";
+							String cytosineKey7 = "CG_reference-CG_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary7 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey7,methySummary7);
 							String cytosineKey15 = "CG_reference-CG_ContextPos_hetSnp_sample";
 							Pair<Integer, Double> methySummary15 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey15,methySummary15);
 							
-							String cytosineKey12 = "CG_reference-CH_CThetSnp_sample";
+							String cytosineKey12 = "CG_reference-CH_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary12 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey12,methySummary12);
-							String cytosineKey13 = "CG_reference-CH_OtherhetSnp_sample";
+							String cytosineKey13 = "CG_reference-CH_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary13 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey13,methySummary13);
 							String cytosineKey14 = "CG_reference-NotC_hetSnp_sample";
@@ -265,20 +265,20 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							cytosineMethySummaryTmp.put(cytosineKey17,methySummary17);
 							
 							
-							String cytosineKey8 = "CH_reference-CG_CThetSnp_sample";
+							String cytosineKey8 = "CH_reference-CG_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary8 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey8,methySummary8);
-							String cytosineKey9 = "CH_reference-CG_OtherhetSnp_sample";
+							String cytosineKey9 = "CH_reference-CG_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary9 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey9,methySummary9);
 							String cytosineKey18 = "CH_reference-CG_ContextPos_hetSnp_sample";
 							Pair<Integer, Double> methySummary18 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey18,methySummary18);
 							
-							String cytosineKey10 = "Not_C_reference-CG_CThetSnp_sample";
+							String cytosineKey10 = "Not_C_reference-CG_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary10 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey10,methySummary10);
-							String cytosineKey11 = "Not_C_reference-CG_OtherhetSnp_sample";
+							String cytosineKey11 = "Not_C_reference-CG_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary11 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey11,methySummary11);
 							String cytosineKey19 = "Not_C_reference-CG_ContextPos_hetSnp_sample";
@@ -308,20 +308,20 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							
 							//heterozygous sites
 							
-							String cytosineKey6 = "CH_reference-CH_CThetSnp_sample";
+							String cytosineKey6 = "CH_reference-CH_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary6 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey6,methySummary6);
-							String cytosineKey7 = "CH_reference-CH_OtherhetSnp_sample";
+							String cytosineKey7 = "CH_reference-CH_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary7 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey7,methySummary7);
 							String cytosineKey15 = "CH_reference-CH_ContextPos_hetSnp_sample";
 							Pair<Integer, Double> methySummary15 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey15,methySummary15);
 							
-							String cytosineKey12 = "CH_reference-CG_CThetSnp_sample";
+							String cytosineKey12 = "CH_reference-CG_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary12 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey12,methySummary12);
-							String cytosineKey13 = "CH_reference-CG_OtherhetSnp_sample";
+							String cytosineKey13 = "CH_reference-CG_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary13 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey13,methySummary13);
 							String cytosineKey14 = "CH_reference-NotC_hetSnp_sample";
@@ -334,20 +334,20 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 							Pair<Integer, Double> methySummary17 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey17,methySummary17);
 							
-							String cytosineKey8 = "CG_reference-CH_CThetSnp_sample";
+							String cytosineKey8 = "CG_reference-CH_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary8 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey8,methySummary8);
-							String cytosineKey9 = "CG_reference-CH_OtherhetSnp_sample";
+							String cytosineKey9 = "CG_reference-CH_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary9 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey9,methySummary9);
 							String cytosineKey18 = "CG_reference-CH_ContextPos_hetSnp_sample";
 							Pair<Integer, Double> methySummary18 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey18,methySummary18);
 							
-							String cytosineKey10 = "Not_C_reference-CH_CThetSnp_sample";
+							String cytosineKey10 = "Not_C_reference-CH_is_CT_het_Snp_sample";
 							Pair<Integer, Double> methySummary10 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey10,methySummary10);
-							String cytosineKey11 = "Not_C_reference-CH_OtherhetSnp_sample";
+							String cytosineKey11 = "Not_C_reference-CH_is_Other_het_Snp_sample";
 							Pair<Integer, Double> methySummary11 = new Pair<Integer, Double>(0, 0.0);
 							cytosineMethySummaryTmp.put(cytosineKey11,methySummary11);
 							String cytosineKey19 = "Not_C_reference-CH_ContextPos_hetSnp_sample";
@@ -502,8 +502,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      */
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
     	
-    	if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
-    		return null;
+    	//if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
+    	//	return null;
     	
     	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit(),autoEstimateC, secondIteration);
 
@@ -616,15 +616,18 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	for(String cytosineKey : cytosineParameters.keySet()){
         		//if(!cytosineParameters.get(cytosineKey).isCTHeterozygousLoci && (cytosineParameters.get(cytosineKey).isCytosinePattern || cytosineParameters.get(cytosineKey).isReferenceCytosinePattern)){
         		if(cytosineParameters.get(cytosineKey).isCytosinePattern || cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
-        			Integer cytosineNum = cytosineMethySummaryInEachReadGroup.get(cytosineKey).getFirst() + 1;
-        			Double methyValue = cytosineMethySummaryInEachReadGroup.get(cytosineKey).getSecond();
-        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
-        				methyValue += bcglTmp.getMethylationLevel();
+        			if(cytosineParameters.get(cytosineKey).isCytosinePattern){
+        				Integer cytosineNum = cytosineMethySummaryInEachReadGroup.get(cytosineKey).getFirst() + 1;
+            			Double methyValue = cytosineMethySummaryInEachReadGroup.get(cytosineKey).getSecond();
+            			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
+            				methyValue += bcglTmp.getMethylationLevel();
+            			}
+            			
+            			Pair<Integer,Double> sumValue = cytosineMethySummaryInEachReadGroup.get(cytosineKey);
+            			sumValue.set(cytosineNum, methyValue);
+            			cytosineMethySummaryInEachReadGroup.put(cytosineKey, sumValue);
         			}
         			
-        			Pair<Integer,Double> sumValue = cytosineMethySummaryInEachReadGroup.get(cytosineKey);
-        			sumValue.set(cytosineNum, methyValue);
-        			cytosineMethySummaryInEachReadGroup.put(cytosineKey, sumValue);
         			//if(value.isHetSnp()){
         			//	continue;
         			//}
@@ -647,7 +650,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
             						}
             						else{
-            							if(value.isC){
+            							if(value.isCph){
             								String cytosineKeyTmp = "CG_reference-CH_ContextPos_hetSnp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -659,7 +662,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
             							}
-            							else{
+            							else if(!value.isC){
             								String cytosineKeyTmp = "CG_reference-NotC_ContextPos_hetSnp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -724,7 +727,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
             						}
             						else{
-            							if(value.isC){
+            							if(value.isCph){
             								String cytosineKeyTmp = "CH_reference-CG_ContextPos_hetSnp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -736,7 +739,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
             							}
-            							else{
+            							else if(!value.isC){
             								String cytosineKeyTmp = "CH_reference-NotC_ContextPos_hetSnp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -792,7 +795,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             					if(cytosineKey.equalsIgnoreCase("CG")){
             						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-                							String cytosineKeyTmp = "CG_reference-CG_CThetSnp_sample";
+                							String cytosineKeyTmp = "CG_reference-CG_is_CT_het_Snp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                     	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -804,8 +807,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 						}
                 						else{
-                							if(value.isC){
-                								String cytosineKeyTmp = "CG_reference-CH_CThetSnp_sample";
+                							if(value.isCph){
+                								String cytosineKeyTmp = "CG_reference-CH_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -826,7 +829,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 					else{
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
                 							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-                								String cytosineKeyTmp = "CH_reference-CG_CThetSnp_sample";
+                								String cytosineKeyTmp = "CH_reference-CG_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -838,7 +841,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
                 							else{
-                								String cytosineKeyTmp = "Not_C_reference-CG_CThetSnp_sample";
+                								String cytosineKeyTmp = "Not_C_reference-CG_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -860,7 +863,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             					else if(cytosineKey.equalsIgnoreCase("CH")){
             						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-                							String cytosineKeyTmp = "CH_reference-CH_CThetSnp_sample";
+                							String cytosineKeyTmp = "CH_reference-CH_is_CT_het_Snp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                     	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -872,8 +875,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 						}
                 						else{
-                							if(value.isC){
-                								String cytosineKeyTmp = "CH_reference-CG_CThetSnp_sample";
+                							if(value.isCpg){
+                								String cytosineKeyTmp = "CH_reference-CG_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -894,7 +897,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 					else{
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
                 							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-                								String cytosineKeyTmp = "CG_reference-CH_CThetSnp_sample";
+                								String cytosineKeyTmp = "CG_reference-CH_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -906,7 +909,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
                 							else{
-                								String cytosineKeyTmp = "Not_C_reference-CH_CThetSnp_sample";
+                								String cytosineKeyTmp = "Not_C_reference-CH_is_CT_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -930,7 +933,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             					if(cytosineKey.equalsIgnoreCase("CG")){
             						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-                							String cytosineKeyTmp = "CG_reference-CG_OtherhetSnp_sample";
+                							String cytosineKeyTmp = "CG_reference-CG_is_Other_het_Snp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                     	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -942,8 +945,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 						}
                 						else{
-                							if(value.isC){
-                								String cytosineKeyTmp = "CG_reference-CH_OtherhetSnp_sample";
+                							if(value.isCph){
+                								String cytosineKeyTmp = "CG_reference-CH_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -954,7 +957,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
-                							else{
+                							else if(!value.isC){
                 								String cytosineKeyTmp = "CG_reference-NotC_hetSnp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -973,7 +976,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 					else{
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
                 							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-                								String cytosineKeyTmp = "CH_reference-CG_OtherhetSnp_sample";
+                								String cytosineKeyTmp = "CH_reference-CG_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -985,7 +988,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
                 							else{
-                								String cytosineKeyTmp = "Not_C_reference-CG_OtherhetSnp_sample";
+                								String cytosineKeyTmp = "Not_C_reference-CG_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -1007,7 +1010,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             					else if(cytosineKey.equalsIgnoreCase("CH")){
             						if(cytosineParameters.get(cytosineKey).isReferenceCytosinePattern){
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
-                							String cytosineKeyTmp = "CH_reference-CH_OtherhetSnp_sample";
+                							String cytosineKeyTmp = "CH_reference-CH_is_Other_het_Snp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                     	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -1019,8 +1022,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                     	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 						}
                 						else{
-                							if(value.isC){
-                								String cytosineKeyTmp = "CH_reference-CG_OtherhetSnp_sample";
+                							if(value.isCpg){
+                								String cytosineKeyTmp = "CH_reference-CG_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -1031,7 +1034,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
-                							else{
+                							else if(!value.isC){
                 								String cytosineKeyTmp = "CH_reference-NotC_hetSnp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -1050,7 +1053,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 					else{
                 						if(cytosineParameters.get(cytosineKey).isCytosinePattern){
                 							if(value.ref.getBase() == BaseUtils.C || value.ref.getBase() == BaseUtils.G){
-                								String cytosineKeyTmp = "CG_reference-CH_OtherhetSnp_sample";
+                								String cytosineKeyTmp = "CG_reference-CH_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -1062,7 +1065,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                         	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
                 							}
                 							else{
-                								String cytosineKeyTmp = "Not_C_reference-CH_OtherhetSnp_sample";
+                								String cytosineKeyTmp = "Not_C_reference-CH_is_Other_het_Snp_sample";
                         						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                         	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
                         	        			if(!Double.isNaN(bcglTmp.getMethylationLevel())){	
@@ -1101,7 +1104,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
         						}
         						else{
-        							if(value.isC){
+        							if(value.isCph){
         								String cytosineKeyTmp = "CG_reference-CH_sample";
                 						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                 	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -1113,7 +1116,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                 	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
         							}
-        							else{
+        							else if(!value.isC){
         								String cytosineKeyTmp = "CG_reference-not_C_sample";
                 						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                 	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -1178,7 +1181,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
             	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
         						}
         						else{
-        							if(value.isC){
+        							if(value.isCpg){
         								String cytosineKeyTmp = "CH_reference-CG_sample";
                 						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                 	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -1190,7 +1193,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 	        			sumValueTmp.set(cytosineNumTmp, methyValueTmp);
                 	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
         							}
-        							else{
+        							else if(!value.isC){
         								String cytosineKeyTmp = "CH_reference-not_C_sample";
                 						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                 	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
