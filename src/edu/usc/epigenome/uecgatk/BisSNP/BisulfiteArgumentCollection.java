@@ -140,7 +140,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	public String bmsf = null;
     
     @Argument(fullName = "maximum_read_cov", shortName = "toCoverage", doc = "maximum read coverage allowed. Default is: 500", required = false)
-	public int toCoverage = 500;
+	public int toCoverage = 250;
     
     @Argument(fullName = "maximum_cache_for_output_vcf", shortName = "vcfCache", doc = "maximum cached position for multithreads output of VCF. Default is: 40,000,000", required = false)
 	public int vcfCache = 40000000;

@@ -500,5 +500,47 @@ public class BaseUtilsMore {
                 return base;
 	    	}
 	    }
+	   
 	    
+	    //todo: better to get a bissnp based mismatched judges rather than reference compared in the future
+	    static public boolean isBisulfiteMismatch(byte refBase, byte base, boolean negStrand, boolean secondPair){
+	    	if(!negStrand){
+	 		   if(secondPair){
+	 			   if(BaseUtils.basesAreEqual(refBase, BaseUtils.G) && BaseUtils.basesAreEqual(base, BaseUtils.A) ){
+	         		   return false;
+	         	   }
+	         	   else{
+	         		   return true;
+	         	   }
+	 		   }
+	 		   else{
+	 			   if(BaseUtils.basesAreEqual(refBase, BaseUtils.C) && BaseUtils.basesAreEqual(base, BaseUtils.T)){
+	 				  return false;
+	         	   }
+	         	   else{
+	         		  return true;
+	         	   }
+	 		   }
+				   
+	 	   }
+	 	   else{
+	 		   if(secondPair){
+	 			   if(BaseUtils.basesAreEqual(refBase, BaseUtils.C) && BaseUtils.basesAreEqual(base, BaseUtils.T)){
+	 				  return false;
+	         	   }
+	         	   else{
+	         		  return true;
+	         	   }
+	 		   }
+	 		   else{
+	 			   if(BaseUtils.basesAreEqual(refBase, BaseUtils.G) && BaseUtils.basesAreEqual(base, BaseUtils.A)){
+	 				  return false;
+	         	   }
+	         	   else{
+	         		  return true;
+	         	   }
+	 		   }
+	 		   
+	 	   }
+	    }
 }

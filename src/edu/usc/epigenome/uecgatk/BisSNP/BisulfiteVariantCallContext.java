@@ -13,6 +13,7 @@ import java.util.Map;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -28,9 +29,11 @@ public class BisulfiteVariantCallContext {
 	private VariantContext vc;
 	private summaryAcrossReadsGroup summary;
 	
-	public boolean isC = false;
+	public boolean isC = false; //is one of provided cytosine pattern
 	public boolean isCpg = false;
+	public boolean isCph = false;
 	public boolean isHetCpg = false;
+	public boolean isHetCph = false;
 	public boolean isCThetLoci = false;
 	public AlignmentContext rawContext = null;
 	public ReferenceContext ref = null;
@@ -83,7 +86,21 @@ public class BisulfiteVariantCallContext {
 	   		 }
 	     }
 	        return false;
-	   }
+	}
+	
+	
+	
+	public boolean isHetCytosine() {
+	   	 if(this.vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			 if(tmp.isHet() || tmp.isHomVar())
+	   				 return true;
+	   		 }
+	     }
+	        return false;
+	}
 	
 	private void setSummaryAcrossReadsGroup(){
 		summary = new summaryAcrossReadsGroup();
@@ -105,12 +122,17 @@ public class BisulfiteVariantCallContext {
 						isC = true;
 						if(BCGL.getCytosineParameters().get(cytosinePattern).isCTHeterozygousLoci)
 							isCThetLoci = true;
-						if(cytosinePattern.equalsIgnoreCase("CG") && !isCThetLoci){
+						//if(cytosinePattern.equalsIgnoreCase("CG") && !isCThetLoci){
+						if(cytosinePattern.equalsIgnoreCase("CG")){
 							isCpg = true; //exclude C/T heterozygous CpG 
 							if(BCGL.getCytosineParameters().get("CG").isHeterozygousCytosinePattern)
 								isHetCpg = true;
 						}
-							
+						if(cytosinePattern.equalsIgnoreCase("CH")){
+							isCph = true; //exclude C/T heterozygous CpG 
+							if(BCGL.getCytosineParameters().get("CH").isHeterozygousCytosinePattern)
+								isHetCph = true;
+						}	
 						
 					}
 					

@@ -239,7 +239,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					}
 				}
 				
-									
+				
 				if((pileup.getLocation().getStart()) == testLoc){
 					System.err.println("before filter:\t" + onRefCoord + "\t" + offset + "\t" + negStrand + "\t" + pileup.getLocation().getStart() + "\t" + (char)p.getBase() + "\t" + p.getQual());
 					System.err.println("refBase: " + refBase + "\tGoodBase: " + GATKrecordFilterStor.isGoodBase());
@@ -247,7 +247,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					
 					if(paired)
 						System.err.println("isGoodBase: " + GATKrecordFilterStor.isGoodBase() + "\tsecondOfPair: " + "\t" + samRecord.getSecondOfPairFlag());
-		                     
+					    
 				}
             }
 
@@ -1039,6 +1039,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			else
 				return false;
 	 }
+	 
 	 
 	private void setGoodConvertedBase(GATKSAMRecord GATKrecord, ReferenceContext refContext, boolean negStrand){
 			if(GATKrecord.containsTemporaryAttribute(CYTOSINE_CONV_START)){

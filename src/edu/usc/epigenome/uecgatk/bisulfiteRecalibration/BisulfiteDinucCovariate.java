@@ -27,9 +27,10 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
 	private static final byte NO_CALL = (byte) 'N';
     private static final Dinuc NO_DINUC = new Dinuc(NO_CALL, NO_CALL);
 	private HashMap<Integer, Dinuc> dinucHashMap;
-	private final byte[] BASES = {(byte) 'A', (byte) 'C', (byte) 'G', (byte) 'T', (byte) 'X'};
-	private final byte[] BASES_2nd_pair = {(byte) 'B', (byte) 'D', (byte) 'H', (byte) 'U', (byte) 'Y'}; // each are the base in 2nd end
-	private boolean pairedEnd=true;
+	private final byte[] BASES = {(byte) 'A', (byte) 'C', (byte) 'G', (byte) 'T'};
+	private final byte BASE_X = (byte) 'X';
+	//private final byte[] BASES_2nd_pair = {(byte) 'B', (byte) 'D', (byte) 'H', (byte) 'U', (byte) 'Y'}; // each are the base in 2nd end
+	//private boolean pairedEnd=true;
 	
 	@Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
@@ -39,14 +40,15 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
             for (byte byte2 : BASES) {
                 dinucHashMap.put(Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2)); // This might seem silly, but Strings are too slow
             }
+            dinucHashMap.put(Dinuc.hashBytes(byte1, BASE_X), new Dinuc(byte1, BASE_X));
         }
-        if(pairedEnd){
-        	 for (byte byte1 : BASES_2nd_pair) {
-                 for (byte byte2 : BASES_2nd_pair) {
-                     dinucHashMap.put(Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2)); // This might seem silly, but Strings are too slow
-                 }
-             }
-        }
+      //  if(pairedEnd){
+      //  	 for (byte byte1 : BASES_2nd_pair) {
+      //           for (byte byte2 : BASES_2nd_pair) {
+      //               dinucHashMap.put(Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2)); // This might seem silly, but Strings are too slow
+      //           }
+      //       }
+      //  }
        
         // Add the "no dinuc" entry too
         dinucHashMap.put(Dinuc.hashBytes(NO_CALL, NO_CALL), NO_DINUC);
@@ -111,44 +113,36 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
             // previous base in the reference. This is done in part to be consistent with unmapped reads.
             base = bases[offset];
             refBase = refBases[offset];
-            
+            byte originalBase = bases[offset];
             if (BaseUtilsMore.isRegularBase(prevBase)) {
                 if(secondPair){
-                	if(prevBase == BaseUtils.A && !negativeStrand){
-                    	if(prevRefBase == BaseUtils.C){
-                    		prevBase = BaseUtilsMore.X;
-                    	}	
-                    }
-                  //  else if(prevBase == BaseUtils.T && negativeStrand){
-                  //  	if(prevRefBase == BaseUtils.G){
-                  //  		prevBase = BaseUtilsMore.X;
-                  //  	}
-                  //  }
-                    if(base == BaseUtils.A && !negativeStrand){
-                    	if(refBase == BaseUtils.C){
+                	//if(prevBase == BaseUtils.A && !negativeStrand){
+                   // 	if(prevRefBase == BaseUtils.C){
+                   // 		prevBase = BaseUtilsMore.X;
+                   // 	}	
+                   // }
+                  
+                    if(base == BaseUtils.A){ //
+                    	if(refBase == BaseUtils.G){
                     		base = BaseUtilsMore.X;
                     	}	
                     }
-                 //   else if(base == BaseUtils.T && negativeStrand){
-                 //   	if(refBase == BaseUtils.G){
-                 //   		base = BaseUtilsMore.X;
-                 //   	}	
-                 //   }
-                    base = BaseUtilsMore.convertTo2ndEnd(base);
-                    prevBase = BaseUtilsMore.convertTo2ndEnd(prevBase);
+                
+                    //base = BaseUtilsMore.convertTo2ndEnd(base);
+                    //prevBase = BaseUtilsMore.convertTo2ndEnd(prevBase);
                 }
                 else{
-                	if(prevBase == BaseUtils.T && !negativeStrand){
-                    	if(prevRefBase == BaseUtils.C){
-                    		prevBase = BaseUtilsMore.X;
-                    	}	
-                    }
+                //	if(prevBase == BaseUtils.T && !negativeStrand){
+               //     	if(prevRefBase == BaseUtils.C){
+               //     		prevBase = BaseUtilsMore.X;
+               //     	}	
+               //     }
                  //   else if(prevBase == BaseUtils.A && negativeStrand){
                  //   	if(prevRefBase == BaseUtils.G){
                  //   		prevBase = BaseUtilsMore.X;
                  //   	}
                   //  }
-                    if(base == BaseUtils.T && !negativeStrand){
+                    if(base == BaseUtils.T){
                     	if(refBase == BaseUtils.C){
                     		base = BaseUtilsMore.X;
                     	}	
@@ -165,12 +159,12 @@ public class BisulfiteDinucCovariate extends DinucCovariate {
             else {
                 comparable[offset] = NO_DINUC;
             }
-           // System.err.println((char)prevBase + "\t" + (char)base + "\t" + dinucHashMapRef.get(Dinuc.hashBytes(prevBase, base)));
+           //System.err.println((char)prevBase + "\t" + (char)base + "\t" + (char)originalBase + "\tpreRef: " + (char)prevRefBase + "\tref: " + (char)refBase + "\t" + dinucHashMapRef.get(Dinuc.hashBytes(prevBase, base)) + "\t" + secondPair + "\t" + negativeStrand + "\t" + read.getAlignmentStart() + "\t" + offset);
             offset++;
           //  if(base == BaseUtilsMore.X && (start + offset)==7009607){
           //  	System.err.println(offset + "\t" + (char)prevBase + "\t" + (char)base + "\t" + (char)prevRefBase + "\t" + (char)refBase + "\t" + start + "\t" + end + "\t" + negativeStrand + "\t" + (start + offset) + "\n" + new String(refBases) + "\n" + new String(bases));
           //  }
-            prevBase = base;
+            prevBase = originalBase;
             prevRefBase = refBase;
         }
         if (negativeStrand) {

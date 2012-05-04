@@ -6,8 +6,12 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
+import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
+import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
@@ -42,7 +46,7 @@ import java.util.Map;
 //@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS) // Only look at covered loci, not every loci of the reference file
 //@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})
-@ReadFilters({MappingQualityZeroFilter.class})
+@ReadFilters({MappingQualityZeroFilter.class,UnmappedReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class})
 // Filter out all reads with zero or unavailable mapping quality
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 // This walker requires both -I input.bam and -R reference.fasta

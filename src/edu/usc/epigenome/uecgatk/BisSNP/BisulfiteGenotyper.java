@@ -103,7 +103,7 @@ import edu.usc.epigenome.uecgatk.YapingWriter.NOMeSeqReadsWriterImp;
 //@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
-@Downsample(by=DownsampleType.BY_SAMPLE)
+@Downsample(by=DownsampleType.NONE)
 public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext, BisulfiteGenotyper.ContextCondition> implements TreeReducible<BisulfiteGenotyper.ContextCondition> {
 
 
@@ -502,8 +502,8 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
      */
     public BisulfiteVariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
     	
-    	//if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
-    	//	return null;
+    	if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
+    		return null;
     	
     	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit(),autoEstimateC, secondIteration);
 

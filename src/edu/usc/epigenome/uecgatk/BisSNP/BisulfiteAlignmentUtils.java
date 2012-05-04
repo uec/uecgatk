@@ -7,7 +7,10 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils.MismatchCount;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.MethylSNPModel;
 
@@ -35,6 +38,71 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
 	public BisulfiteAlignmentUtils() {
 		// TODO Auto-generated constructor stub
 	}
+	
+	public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex) {
+        return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
+    }
+
+    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
+        return getMismatchCount(r, refSeq, refIndex, 0, r.getReadLength());
+    }
+	public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
+        MismatchCount mc = new MismatchCount();
+
+        int readIdx = 0;
+        int endOnRead = startOnRead + nReadBases - 1; // index of the last base on read we want to count
+        byte[] readSeq = r.getReadBases();
+        Cigar c = r.getCigar();
+        for (int i = 0; i < c.numCigarElements(); i++) {
+
+            if (readIdx > endOnRead) break;
+
+            CigarElement ce = c.getCigarElement(i);
+            switch (ce.getOperator()) {
+           
+            case M:
+                    for (int j = 0; j < ce.getLength(); j++, refIndex++, readIdx++) {
+                        if (refIndex >= refSeq.length)
+                            continue;
+                        if (readIdx < startOnRead) continue;
+                        if (readIdx > endOnRead) break;
+                        byte refChr = refSeq[refIndex];
+                        byte readChr = readSeq[readIdx];
+                        // Note: we need to count X/N's as mismatches because that's what SAM requires
+                        //if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                        //     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                        //    continue; // do not count Ns/Xs/etc ?
+                        if (readChr != refChr) {
+                        	boolean secondPair = false;
+                        	if(r.getReadPairedFlag())
+                        		secondPair = r.getSecondOfPairFlag();
+                        	if(BaseUtilsMore.isBisulfiteMismatch(refChr, readChr, r.getReadNegativeStrandFlag(), secondPair)){
+                        		mc.numMismatches++;
+                                mc.mismatchQualities += r.getBaseQualities()[readIdx];
+                        	}
+                            
+                        }
+                    }
+                    break;
+                case I:
+                case S:
+                    readIdx += ce.getLength();
+                    break;
+                case D:
+                case N:
+                    refIndex += ce.getLength();
+                    break;
+                case H:
+                case P:
+                    break;
+                default:
+                    throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+            }
+
+        }
+        return mc;
+    }
+	
 
 	/** Returns the number of mismatches in the pileup element within the given reference context in bisulfite-seq space.
     *
@@ -90,7 +158,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                     	   if(sequencingMode == MethylSNPModel.BM || sequencingMode == MethylSNPModel.GM){ // in bisulfite conversion space, C and T will be treated as the same, but in different situation, there will be some variation..
                     		   if(!negStrand){
                         		   if(secondPair){
-                        			   if(((char)refChr == 'G' && (char)readChr == 'A') || ((char)refChr == 'A' && (char)readChr == 'G')){
+                        			   if(BaseUtils.basesAreEqual(readChr, BaseUtils.G) && BaseUtils.basesAreEqual(readChr, BaseUtils.A) ){
                                 		   
                                 	   }
                                 	   else{
@@ -98,7 +166,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                                 	   }
                         		   }
                         		   else{
-                        			   if(((char)refChr == 'C' && (char)readChr == 'T') || ((char)refChr == 'T' && (char)readChr == 'C')){
+                        			   if(BaseUtils.basesAreEqual(readChr, BaseUtils.C) && BaseUtils.basesAreEqual(readChr, BaseUtils.T)){
                                 		   
                                 	   }
                                 	   else{
@@ -109,7 +177,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                         	   }
                         	   else{
                         		   if(secondPair){
-                        			   if(((char)refChr == 'C' && (char)readChr == 'T') || ((char)refChr == 'T' && (char)readChr == 'C')){
+                        			   if(BaseUtils.basesAreEqual(readChr, BaseUtils.C) && BaseUtils.basesAreEqual(readChr, BaseUtils.T)){
                                 		   
                                 	   }
                                 	   else{
@@ -117,7 +185,7 @@ public class BisulfiteAlignmentUtils extends AlignmentUtils {
                                 	   }
                         		   }
                         		   else{
-                        			   if(((char)refChr == 'G' && (char)readChr == 'A') || ((char)refChr == 'A' && (char)readChr == 'G')){
+                        			   if(BaseUtils.basesAreEqual(readChr, BaseUtils.G) && BaseUtils.basesAreEqual(readChr, BaseUtils.A)){
                                 		   
                                 	   }
                                 	   else{
