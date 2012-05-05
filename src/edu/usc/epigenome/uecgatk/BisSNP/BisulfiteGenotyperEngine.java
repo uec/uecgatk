@@ -338,7 +338,7 @@ public class BisulfiteGenotyperEngine{
                 }
             
             	double QD =  logRatio/GL.getDepth();
-            	attributes.put("QD", QD);
+            	attributes.put(BisulfiteVCFConstants.QUAL_BY_DEPTH, QD);
             	HaplotypeScore  hpScore = new HaplotypeScore();
             	attributes.putAll(hpScore.annotate(tracker, null, refContext, stratifiedContexts, vc));
             }

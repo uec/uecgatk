@@ -49,6 +49,6 @@ public class BisulfiteVCFConstants{
 	    public static final String READS_SUPPORT_ALT = "DP4";
 	    public static final String SOMATIC_STAT_VAR = "SS";
 	    public static final String AVE_BASE_QUALITY_KEY = "BQ";
-	    
+	    public static final String QUAL_BY_DEPTH = "QD";
 }
 

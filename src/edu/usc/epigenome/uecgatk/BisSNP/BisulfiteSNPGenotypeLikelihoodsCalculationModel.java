@@ -206,8 +206,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 				GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC,ref, p.getOffset());
 				setGoodConvertedBase(p.getRead(), ref, negStrand);
                //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
-				
-				if(GATKrecordFilterStor.isGoodBase() && isGoodConvertedBase(p.getRead(), offset)){
+				// && isGoodConvertedBase(p.getRead(), offset)
+				if(GATKrecordFilterStor.isGoodBase()){
 					if(negStrand){
 						if(p.getBase()==BaseUtils.G){
 							numCNegStrand++;
@@ -1089,7 +1089,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 					if(BaseUtils.basesAreEqual(refBase, BaseUtils.C)){
 						if(BaseUtils.basesAreEqual(bases[i], BaseUtils.T)){
 							convertedCount++;
-							if(convertedCount >= BAC.minConv){
+							if(convertedCount >= BAC.minConv){  // this will cause problem in non-ref C's methylation estimation, since convert on C here is depended on ref C.
 								cytosineConvertStart=i;
 								break;
 							}
