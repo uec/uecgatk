@@ -67,7 +67,7 @@ import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 // This walker requires -I input.bam, it also requires -R reference.fasta
 public class BisulfiteTableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
-    public static final String PROGRAM_RECORD_NAME = "GATK BisulfiteTableRecalibration";
+    public static final String PROGRAM_RECORD_NAME = "BisSNP BisulfiteTableRecalibration";
 
     /////////////////////////////
     // Shared Arguments

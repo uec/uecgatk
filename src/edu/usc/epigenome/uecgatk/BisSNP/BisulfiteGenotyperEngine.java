@@ -14,6 +14,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.walkers.annotator.HaplotypeScore;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -280,8 +281,8 @@ public class BisulfiteGenotyperEngine{
 					}
             	}
             }
-            
-            if ( !BAC.NO_SLOD && bestAF != 0 ) {
+            if(bestAF != 0 ){
+            	if ( !BAC.NO_SLOD ) {
                 	//if(!passesCallThreshold(logRatioTmp)){ //only calculate SB score for Heterozygous SNP and Homozygous loci not pass threshold.. why?
                 		// the overall lod
                         //double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
@@ -331,9 +332,19 @@ public class BisulfiteGenotyperEngine{
                         strandScore *= 10.0;
                         //logger.debug(String.format("SLOD=%f", strandScore));
 
-                        attributes.put("SB", Double.valueOf(strandScore));
-                //	}
+                        attributes.put(VCFConstants.STRAND_BIAS_KEY, Double.valueOf(strandScore));
+                        
+                        
+                }
+            
+            	double QD =  logRatio/GL.getDepth();
+            	attributes.put("QD", QD);
+            	HaplotypeScore  hpScore = new HaplotypeScore();
+            	attributes.putAll(hpScore.annotate(tracker, null, refContext, stratifiedContexts, vc));
             }
+            attributes.put(VCFConstants.MAPPING_QUALITY_ZERO_KEY, GL.getMQ0());
+            
+            
         }  
         
             GenotypesContext genotypes = GenotypesContext.create();

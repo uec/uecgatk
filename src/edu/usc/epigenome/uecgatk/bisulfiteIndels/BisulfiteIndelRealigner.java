@@ -50,6 +50,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.indels.ConstrainedMateFixingManager;
 
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel;
@@ -81,12 +82,13 @@ import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteAlignmentUtils;
  * @time May 3, 2012 4:02:48 PM
  * 
  */
+@WalkerName("BisulfiteIndelRealigner")
 @BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_OUTPUT)
 public class BisulfiteIndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
     public static final String ORIGINAL_POSITION_TAG = "OP";
-    public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
+    public static final String PROGRAM_RECORD_NAME = "BisSNP BisulfiteIndelRealigner";
 
     public enum ConsensusDeterminationModel {
         /**

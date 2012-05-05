@@ -223,7 +223,7 @@ public class BisulfiteContextsGenotypeLikelihoods {
     	return rmsMapQual;
     }
     
-    public double getMQ0(){
+    public int getMQ0(){
     	return mapQual0;
     }
 	
@@ -283,17 +283,18 @@ public class BisulfiteContextsGenotypeLikelihoods {
 			index++;
 			GATKSAMRecordFilterStorage GATKrecordFilterStor = new GATKSAMRecordFilterStorage((GATKSAMRecord)p.getRead(), BAC, ref, p.getOffset());
             //GATKrecordFilterStor.setGoodBases(badReadPileupFilter, true);
+			if(p.getMappingQual()==0){
+				//if(mapQual0==-1){
+				//	mapQual0=1;
+				//}
+				//else{
+					mapQual0++;
+				//}
+			}
 			if(GATKrecordFilterStor.isGoodBase()){
 				//should different by GPs
 				
-				if(p.getMappingQual()==0){
-					//if(mapQual0==-1){
-					//	mapQual0=1;
-					//}
-					//else{
-						mapQual0++;
-					//}
-				}
+				
 				if(negStrand){
 
 					if(BaseUtilsMore.iupacCodeEqual(p.getBase(), A.getBases()[0], negStrand)){
