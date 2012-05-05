@@ -29,11 +29,11 @@ public class GATKSAMRecordFilterStorage {
 	private boolean goodBase = false;
 	private BisulfiteArgumentCollection BAC;
 //	private int cytosineConvertStart = -1; //record number of cytosine converted in the reads (for minConv option in BAC)   0-based system as offset
-	private int MISMATCH_WINDOW_SIZE = 20;
+	//private int MISMATCH_WINDOW_SIZE = 20;
 	// A bitset which represents the bases of the read.  If a bit is set, then
     // the base is good; otherwise it is a bad base (as defined by the setter).
 	// this is temporily use, finally we should implement indel aligner to exclude indels caused SNPs..
-	private BitSet mBitSet = null;
+	//private BitSet mBitSet = null;
 	
 	public GATKSAMRecordFilterStorage(GATKSAMRecord GATKrecord, BisulfiteArgumentCollection BAC, ReferenceContext refContext, int offset) {
 		// TODO Auto-generated constructor stub
@@ -63,9 +63,9 @@ public class GATKSAMRecordFilterStorage {
 		this.GATKrecord = GATKrecord;
 		this.BAC = BAC;
 		setGoodBases(offset,refContext, filterByOriginalQual);
-		BitSet mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(GATKrecord, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode, GATKrecord.getReadPairedFlag());
-		if ( mBitSet == null )
-			mBitSet = mismatches;
+	//	BitSet mismatches = BisulfiteAlignmentUtils.mismatchesInRefWindow(GATKrecord, refContext, BAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE, BAC.sequencingMode, GATKrecord.getReadPairedFlag());
+	//	if ( mBitSet == null )
+	//		mBitSet = mismatches;
 		
 	}
 	
@@ -92,7 +92,7 @@ public class GATKSAMRecordFilterStorage {
 		
 		if ( GATKrecord.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE && quals[offset] >= BAC.MIN_BASE_QUALTY_SCORE &&
 	             (BAC.USE_BADLY_MATED_READS || (!BadMateFilter.hasBadMate(GATKrecord)) && !GATKrecord.getNotPrimaryAlignmentFlag()) 
-	             && ( mBitSet == null || mBitSet.size() <= offset ? true : mBitSet.get(offset))
+	         //    && ( mBitSet == null || mBitSet.size() <= offset ? true : mBitSet.get(offset))
 	             && offset >= BAC.trim5 && offset < GATKrecord.getReadLength()-BAC.trim3) {
 	        	//System.out.println("bad mates");
 				//if((GATKrecord.getReadPairedFlag() && GATKrecord.getProperPairFlag()))
@@ -106,7 +106,7 @@ public class GATKSAMRecordFilterStorage {
 		
 		if ( GATKrecord.getMappingQuality() >= BAC.MIN_MAPPING_QUALTY_SCORE && quals[offset] >= BAC.MIN_BASE_QUALTY_SCORE &&
 	             (BAC.USE_BADLY_MATED_READS || (!BadMateFilter.hasBadMate(GATKrecord)) && !GATKrecord.getNotPrimaryAlignmentFlag())
-	             && ( mBitSet == null || mBitSet.size() <= offset ? true : mBitSet.get(offset))
+	         //    && ( mBitSet == null || mBitSet.size() <= offset ? true : mBitSet.get(offset))
 	             && offset >= BAC.trim5 && offset < GATKrecord.getReadLength()-BAC.trim3) {
 	        	//System.out.println("bad mates");
 				//if((GATKrecord.getReadPairedFlag() && GATKrecord.getProperPairFlag()))

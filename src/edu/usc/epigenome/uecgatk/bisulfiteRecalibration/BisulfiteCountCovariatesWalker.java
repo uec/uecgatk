@@ -43,7 +43,7 @@ import java.util.Map;
 
 
 
-//@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
+@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS) // Only look at covered loci, not every loci of the reference file
 //@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})
 @ReadFilters({MappingQualityZeroFilter.class,UnmappedReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class})

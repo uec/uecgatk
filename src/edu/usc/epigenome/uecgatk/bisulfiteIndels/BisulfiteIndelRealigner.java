@@ -81,7 +81,7 @@ import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteAlignmentUtils;
  * @time May 3, 2012 4:02:48 PM
  * 
  */
-@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
+@BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_OUTPUT)
 public class BisulfiteIndelRealigner extends ReadWalker<Integer, Integer> {
 
     public static final String ORIGINAL_CIGAR_TAG = "OC";
@@ -124,6 +124,9 @@ public class BisulfiteIndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     protected double LOD_THRESHOLD = 5.0;
 
+    @Argument(fullName="IgnoreOriginalCigar", shortName="cigar", doc="For most of bisulfite mapping program(except onal-align as i know), they did not output CIGAR string correctly, so enable this option to igore the original CIGAR", required=false)
+    protected boolean cigar = false;
+    
     /**
      * The realigned bam file.
      */
@@ -978,7 +981,7 @@ public class BisulfiteIndelRealigner extends ReadWalker<Integer, Integer> {
             return null;
 
         // if there are no indels, we do not need this consensus, can abort early:
-        if ( c.numCigarElements() == 1 && c.getCigarElement(0).getOperator() == CigarOperator.M ) return null;
+        if ( c.numCigarElements() == 1 && c.getCigarElement(0).getOperator() == CigarOperator.M && !cigar) return null; //this is not true, when in bisulfite space,most of bisulfite mapping program could not provide correct cigar, they just assume all are 'M'
 
         // create the new consensus
         ArrayList<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements()-1);

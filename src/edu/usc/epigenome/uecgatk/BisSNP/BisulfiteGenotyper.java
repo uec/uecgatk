@@ -77,6 +77,8 @@ import edu.usc.epigenome.uecgatk.YapingWriter.cpgReads;
 import edu.usc.epigenome.uecgatk.YapingWriter.cpgReadsWriterImp;
 import edu.usc.epigenome.uecgatk.YapingWriter.SortingNOMeSeqReadsWriter;
 import edu.usc.epigenome.uecgatk.YapingWriter.NOMeSeqReadsWriterImp;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -100,7 +102,7 @@ import edu.usc.epigenome.uecgatk.YapingWriter.NOMeSeqReadsWriterImp;
  * A Bisulfite genotyper. Works for single-sample data right now. 
  */
 
-//@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
+@BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_INPUT)
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.NONE)

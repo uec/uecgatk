@@ -49,6 +49,9 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
+
 /**
  * @author yaping
  * @contact lyping1986@gmail.com
@@ -57,7 +60,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
  */
 
 
-@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
+@BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_OUTPUT)
 @WalkerName("BisulfiteTableRecalibration")
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 @Reference(window=@Window(start=-500,stop=500))
