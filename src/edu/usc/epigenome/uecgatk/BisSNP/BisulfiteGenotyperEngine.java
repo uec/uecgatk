@@ -459,7 +459,7 @@ public class BisulfiteGenotyperEngine{
 	
 		
 	protected static BisulfiteSNPGenotypeLikelihoodsCalculationModel getGenotypeLikelihoodsCalculationObject(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration) {		
-        	return new BisulfiteSNPGenotypeLikelihoodsCalculationModel(BAC, autoEstimateC, secondIteration);  	
+        	return new BisulfiteSNPGenotypeLikelihoodsCalculationModel(BAC, autoEstimateC, secondIteration, BAC.useBAQ);  	
     }
 
 	

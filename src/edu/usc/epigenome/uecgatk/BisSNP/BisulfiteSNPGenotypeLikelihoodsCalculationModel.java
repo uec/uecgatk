@@ -15,6 +15,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteDiploidSNPGenotypeLikelihoods;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteDiploidSNPGenotypePriors;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.MethylSNPModel;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
@@ -30,6 +31,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SNPGenotypeLikelihoodsCalculationModel.BAQedPileupElement;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -71,15 +74,15 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 	private boolean autoEstimateC = false;
     private boolean secondIteration = false;
     private double FLAT_METHY_STATUS = 0.5;
-    private String CYTOSINE_CONV_START = "Xs";
-    
+    private String CYTOSINE_CONV_START = "Xn";
+    private boolean useBAQ = false;
     
     private Allele refAllele = null;
 	
 
 	
 	
-	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration) {
+	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration, boolean useBAQ) {
 	
 		// TODO Auto-generated constructor stub
 		this.BAC = BAC;
@@ -88,7 +91,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 		this.testLoc = BAC.testLocus;
 		this.autoEstimateC = autoEstimateC;
 		this.secondIteration = secondIteration;
-		
+		this.useBAQ = useBAQ;
 		if(BAC.sequencingMode == MethylSNPModel.NM){
 			FLAT_METHY_STATUS = 0.0;
 		}
@@ -128,6 +131,10 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup =AlignmentContextUtils.stratify(sample.getValue(),contextType).getBasePileup();
+            if(useBAQ){
+            	pileup = createBAQedPileup( pileup);
+            }
+            
             int numCNegStrand = 0;
         	int numTNegStrand = 0;
         	int numANegStrand = 0;
@@ -1101,5 +1108,24 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 			GATKrecord.setTemporaryAttribute(CYTOSINE_CONV_START, cytosineConvertStart);
 			
 		}
+	
+	
+	 public ReadBackedPileup createBAQedPileup( final ReadBackedPileup pileup ) {
+	        final List<PileupElement> BAQedElements = new ArrayList<PileupElement>();
+	        for( final PileupElement PE : pileup ) {
+	            final PileupElement newPE = new BAQedPileupElement( PE );
+	            BAQedElements.add( newPE );
+	        }
+	        return new ReadBackedPileupImpl( pileup.getLocation(), BAQedElements );
+	    }
+
+	    public class BAQedPileupElement extends PileupElement {
+	        public BAQedPileupElement( final PileupElement PE ) {
+	            super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletion(), PE.isBeforeInsertion(), PE.isNextToSoftClip());
+	        }
+
+	        @Override
+	        public byte getQual( final int offset ) { return BisBAQ.calcBAQFromTag(getRead(), offset, true); }
+	    }
 
 }

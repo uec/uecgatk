@@ -58,6 +58,10 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	@Argument(fullName = "use_badly_mated_reads", shortName = "badMate", doc = "use badly mated reads for calling", required = false)
     public boolean USE_BADLY_MATED_READS = false;
 	
+	@Argument(fullName = "use_baq_for_calculation", shortName = "useBAQ", doc = "use BAQ for genotype calculation", required = false)
+    public boolean useBAQ = false;
+	
+	
 	@Argument(fullName = "assume_single_sample", shortName = "single_sample", doc = "only single sample", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 	
@@ -168,6 +172,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.GenotypingMode = GenotypingMode;
         bac.OutputMode = OutputMode;
         bac.NO_SLOD = NO_SLOD;
+        bac.useBAQ = useBAQ;
         //bac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         bac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         bac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
