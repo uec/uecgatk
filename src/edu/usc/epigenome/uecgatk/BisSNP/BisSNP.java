@@ -70,14 +70,14 @@ public class BisSNP extends CommandLineExecutable {
 	@Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
 	
-	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "automately estimate cytosine pattern methylation status in the first iteration")
-    private static boolean autoEstimateC = false;
+//	@Argument(fullName = "auto_estimate_cytosine_mode", shortName = "aecm", doc = "automately estimate cytosine pattern methylation status in the first iteration")
+//    private static boolean autoEstimateC = false;
 		
 	 //control the output, output to TCGA VCF 
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "BisSNP-0.67.1";
+	private static String BisVersion = "BisSNP-0.67.3";
 	
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
@@ -89,7 +89,7 @@ public class BisSNP extends CommandLineExecutable {
     private static String argCommandline = "";
     
 	//to record it is in second iteration or not
-	private static boolean secondIteration = false;
+//	private static boolean secondIteration = false;
 	
 	//to record cytosine pattern methylation status estimated in the first iteration
 	private static CytosinePatternsUserDefined cytosineDefinedMemorizedForSecondRun = null;
@@ -132,10 +132,10 @@ public class BisSNP extends CommandLineExecutable {
 	        }
 			//System.err.println(output);
 			start(instance, args);
-			secondIteration = true;
-			if(autoEstimateC & secondIteration){ 
-				instance.execute(); // do the second iteration if it is in two-iteration mode
-			}
+	//		secondIteration = true;
+	//		if(autoEstimateC & secondIteration){ 
+	//			instance.execute(); // do the second iteration if it is in two-iteration mode
+	//		}
             System.exit(CommandLineProgram.result);      
         } catch (UserException e) {
             exitSystemWithUserError(e);
@@ -186,6 +186,7 @@ public class BisSNP extends CommandLineExecutable {
     protected int execute() throws Exception {
  
         try {
+        	/*
         	if(autoEstimateC & secondIteration){ // if auto-estimate cytosine model, and second iteration
         	//	System.out.println("2nd iteration!");
 
@@ -217,7 +218,8 @@ public class BisSNP extends CommandLineExecutable {
                 engine.execute();
                 
         	}
-        	else{ //1st iteration
+        	*/
+        	//else{ //1st iteration
         		
         		 engine.setParser(parser);
         	     bisulfiteArgumentSources.add(this);
@@ -225,7 +227,7 @@ public class BisSNP extends CommandLineExecutable {
         		walker = engine.getWalkerByName(getAnalysisName());
         		if(walker instanceof BisulfiteGenotyper){
         			
-        			((BisulfiteGenotyper) walker).setAutoParameters(autoEstimateC, secondIteration, argCommandline);
+        			((BisulfiteGenotyper) walker).setAutoParameters(argCommandline);
         		}
 	
         		engine.setArguments(getArgumentCollection());
@@ -280,7 +282,7 @@ public class BisSNP extends CommandLineExecutable {
         		}
                 
                 
-        	}
+        	//}
  
         } catch ( Exception e ) {
             throw e;

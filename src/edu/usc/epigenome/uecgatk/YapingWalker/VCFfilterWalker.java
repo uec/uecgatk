@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
@@ -71,8 +72,12 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	protected int minMapQ = 30;
 	@Argument(shortName="minBaseQ",doc="Minimum base quality in the covered loci when counting coverage, default:0", required=false)
 	protected int minBaseQ = 0;
-	@Argument(shortName="cached",doc="Number of loci, then do garbage collection, default:30,000,000", required=false)
-	protected int cached = 30000000;
+	@Argument(shortName="minPercentOneStrand",doc="Minimum percentage of one strand only when total sequence coverage > 10X, default:0.2", required=false)
+	protected double minPercentOneStrand = 0.2;
+	@Argument(shortName="minNumOneStrand",doc="Minimum number of one strand only when less than 10 coverages, default:2", required=false)
+	protected int minNumOneStrand = 2;
+	@Argument(shortName="filterSB",doc="filter out loci that have high Strand bias", required=false)
+	protected boolean filterSB = false;
 
 
 
@@ -105,6 +110,8 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 				//	oldRecord++;
 					if(passFilter(context)){
 	    			//	newRecord++;
+						
+						
 	    				newVcf.add(vc_input);
 	    			}
 				}
@@ -153,6 +160,7 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 		
 		if(context.hasBasePileup()){
 			int coverage = 0;
+			int negStarndCov = 0;
 			//System.err.println(context.hasReads() + "\t" + context.getPosition());
 			for(PileupElement p : context.getBasePileup()){
 				
@@ -169,10 +177,20 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	 						continue;
 				}
 				coverage++;
+				if(samRecord.getReadNegativeStrandFlag()){
+					negStarndCov++;
+				}
 			}
 			if(coverage>=minCov && coverage<=maxCov){	
+				if(filterSB){
+					if((coverage>10 && (double)negStarndCov/(double)coverage > minPercentOneStrand && (double)(coverage-negStarndCov)/(double)coverage > minPercentOneStrand) || (coverage<=10 && negStarndCov > minNumOneStrand && (coverage-negStarndCov) > minNumOneStrand)){
+						return true;
+					}
+				}
+				else{
+					return true;
+				}
 				
-				return true;
 			}
 		}
 		return false;
