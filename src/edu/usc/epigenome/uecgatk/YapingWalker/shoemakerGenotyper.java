@@ -76,7 +76,11 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 	 private double MIN_PERCENT_READS_REVERSE_STRAND = 0.2;
 	 private int MAX_COV=250;
 	 
+	 private double MAX_INFI=-10000.0;
+	 
 	 private bedObjectWriterImp writer=null;
+	 
+	 private int deugPos=7148298;
 	 
 	/**
 	 * 
@@ -98,26 +102,27 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 		if(context.getBasePileup().depthOfCoverage() < MIN_COVERAGE || context.getBasePileup().depthOfCoverage() > MAX_COV){
 			return null;
 		}
+		
 		//System.err.println(context.getBasePileup().getLocation().getStart());
 		ReadBackedPileup filteredPileup = getFilteredPileup(context.getBasePileup());
 		if(filteredPileup == null)
 			return null;
 		
 		int[] nucleotideFrequencyMatrix = generateNucleotideMatrix(filteredPileup); // get normalized A,G,C,T which involved base quality information to attenuate bad base effect. 
-	//	if(filteredPileup.getLocation().getStart()==7000010){
-	//		for(int value : nucleotideFrequencyMatrix){
-	//			System.err.println(value);
-	//		}
-	//	}
+		if(filteredPileup.getLocation().getStart()==deugPos){
+			for(int value : nucleotideFrequencyMatrix){
+				System.err.println(value);
+			}
+		}
 			
-		double[] genotypeProbabilityMatrix = getPvalueFromNucleotideFrequencyMatrix(nucleotideFrequencyMatrix, filteredPileup.depthOfCoverage());
+		double[] genotypeProbabilityMatrix = getPvalueFromNucleotideFrequencyMatrix(nucleotideFrequencyMatrix, filteredPileup);
 		DiploidGenotype bestGenotypeIndex = DiploidGenotype.createHomGenotype(BaseUtils.A);;
 		DiploidGenotype secondBestGenotypeIndex = DiploidGenotype.createHomGenotype(BaseUtils.A);;
 		double maximum= Double.NEGATIVE_INFINITY;
 		double second= Double.NEGATIVE_INFINITY;
 		for ( DiploidGenotype g : DiploidGenotype.values() ){
-			//if(filteredPileup.getLocation().getStart()==7000010)
-			//	System.err.println(genotypeProbabilityMatrix[g.ordinal()]);
+			if(filteredPileup.getLocation().getStart()==deugPos)
+				System.err.println(genotypeProbabilityMatrix[g.ordinal()]);
 			if(genotypeProbabilityMatrix[g.ordinal()]>maximum){
 				second=maximum;
 				maximum=genotypeProbabilityMatrix[g.ordinal()];
@@ -208,7 +213,7 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 			
 			int i = 0-baseCountToCheckUpDownStream;
 			byte[] quals = p.getRead().getBaseQualities();
-			
+			boolean goodAdjacentBase=true;
 			while(i <= baseCountToCheckUpDownStream){
 				int elementOffset = i + p.getOffset();
 				if(elementOffset < 0 || elementOffset > p.getRead().getReadLength()-1){
@@ -217,9 +222,14 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 				}
 				if(quals[elementOffset] < MIN_BASE_QUAL){
 					i++;
+					goodAdjacentBase=false;
 					continue;
 				}
-				//System.err.println(i + "\t" + elementOffset + "\t" + p.getOffset());
+				if(pileup.getLocation().getStart()==deugPos){
+					
+				//	System.err.println(i + "\t" + elementOffset + "\t" + p.getOffset());
+				
+				}
 				if(i==0){
 					if(p.getRead().getReadNegativeStrandFlag()){
 						baseRev[4]++;
@@ -255,14 +265,20 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 				
 				i++;
 			}
-			if(i<=baseCountToCheckUpDownStream){
+			if(!goodAdjacentBase){
 				continue;
 			}
 			
 			elementOffsets.add(p.getOffset());
 			reads.add(p.getRead());
 		}
+		
 		for(int i = 0; i< baseFwd.length-1;i++){
+			if(pileup.getLocation().getStart()==deugPos){
+				
+			//	System.err.println(baseFwd[i] + "\t" + baseFwd[4] + "\tfwd:" + i + "\t" + baseRev[i] + "\t" + baseRev[4]);
+			
+			}
 			if((double)baseFwd[i]/(double)baseFwd[4] >MIN_PERCENT_READS_REVERSE_STRAND){
 				if((double)baseRev[i]/(double)baseRev[4] < MIN_PERCENT_READS_REVERSE_STRAND){
 					return null;
@@ -270,6 +286,11 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 			}
 		}
 		for(int i = 0; i< baseRev.length-1;i++){
+			if(pileup.getLocation().getStart()==deugPos){
+				
+			//	System.err.println(baseRev[i] + "\t" + baseRev[4] + "\trew:" + i);
+			
+			}
 			if((double)baseRev[i]/(double)baseRev[4] >MIN_PERCENT_READS_REVERSE_STRAND){
 				if((double)baseFwd[i]/(double)baseFwd[4] < MIN_PERCENT_READS_REVERSE_STRAND){
 					return null;
@@ -283,23 +304,26 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 	private int[] generateNucleotideMatrix(ReadBackedPileup pileup){
 		double[] nucleotideProbabilityMatrix = new double[4]; //A,C,G,T,uncertain
 		for(int i=0; i<nucleotideProbabilityMatrix.length; i++){
-			nucleotideProbabilityMatrix[i]=0.0;
+			nucleotideProbabilityMatrix[i]=MAX_INFI;
 		}
 
 		for ( PileupElement p : pileup ) {
 			add(nucleotideProbabilityMatrix, p);
 		}
-		double[] nucleotideProbabilityMatrixNormalized = MathUtils.normalizeFromLog10(nucleotideProbabilityMatrix, true, false);
+		
+		double[] nucleotideProbabilityMatrixNormalized = MathUtils.normalizeFromLog10(nucleotideProbabilityMatrix, false, false);
 		int[] nucleotideFrequencyMatrix = new int[4];
 		for ( int i= 0; i < nucleotideProbabilityMatrixNormalized.length; i++ ) {
 			if(Double.isInfinite(nucleotideProbabilityMatrixNormalized[i])){
 				nucleotideFrequencyMatrix[i] = 1;
 			}
 			else{
-				nucleotideFrequencyMatrix[i] = (int) (-nucleotideProbabilityMatrixNormalized[i] * pileup.depthOfCoverage()) == 0 ? 1:  (int) (-nucleotideProbabilityMatrixNormalized[i] * pileup.depthOfCoverage());   //althoughrobert not mention it in paper, but without error model, fisher exact test do not allow 0 inout..
+				nucleotideFrequencyMatrix[i] = (int) (nucleotideProbabilityMatrixNormalized[i] * pileup.depthOfCoverage()) == 0 ? 1:  (int) (nucleotideProbabilityMatrixNormalized[i] * pileup.depthOfCoverage());   //althoughrobert not mention it in paper, but without error model, fisher exact test do not allow 0 inout..
+			}
+			if(pileup.getLocation().getStart()==deugPos){
+				System.err.println(nucleotideFrequencyMatrix[i] + "\t" + nucleotideProbabilityMatrixNormalized[i] + "\t" + pileup.depthOfCoverage() + "\t" + nucleotideProbabilityMatrix[i]);
 			}
 			
-		//	System.err.println(nucleotideFrequencyMatrix[i] + "\t" + nucleotideProbabilityMatrixNormalized[i] + "\t" + pileup.depthOfCoverage());
 		}
 		return nucleotideFrequencyMatrix;
 	}
@@ -308,16 +332,40 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 		double probability = 1.0-Math.pow(10.0,(-p.getQual()/10.0));
 
 			if(BaseUtils.basesAreEqual(p.getBase(), BaseUtils.A) ){   
-				nucleotideProbabilityMatrix[0] += Math.log10(probability);
+				if(Double.compare(nucleotideProbabilityMatrix[0], MAX_INFI)==0){
+					nucleotideProbabilityMatrix[0] = Math.log10(probability);
+				}
+				else{
+					nucleotideProbabilityMatrix[0] += Math.log10(probability);
+				}
+				
 			}
 			else if(BaseUtils.basesAreEqual(p.getBase(), BaseUtils.C)){
-				nucleotideProbabilityMatrix[1] += Math.log10(probability);
+				if(Double.compare(nucleotideProbabilityMatrix[1], MAX_INFI)==0){
+					nucleotideProbabilityMatrix[1] = Math.log10(probability);
+				}
+				else{
+					nucleotideProbabilityMatrix[1] += Math.log10(probability);
+				}
+				//nucleotideProbabilityMatrix[1] += Math.log10(probability);
 			}
 			else if(BaseUtils.basesAreEqual(p.getBase(), BaseUtils.G)){
-				nucleotideProbabilityMatrix[2] += Math.log10(probability);
+				if(Double.compare(nucleotideProbabilityMatrix[2], MAX_INFI)==0){
+					nucleotideProbabilityMatrix[2] = Math.log10(probability);
+				}
+				else{
+					nucleotideProbabilityMatrix[2] += Math.log10(probability);
+				}
+				//nucleotideProbabilityMatrix[2] += Math.log10(probability);
 			}
 			else if(BaseUtils.basesAreEqual(p.getBase(), BaseUtils.T)){
-				nucleotideProbabilityMatrix[3] += Math.log10(probability);
+				if(Double.compare(nucleotideProbabilityMatrix[3], MAX_INFI)==0){
+					nucleotideProbabilityMatrix[3] = Math.log10(probability);
+				}
+				else{
+					nucleotideProbabilityMatrix[3] += Math.log10(probability);
+				}
+				//nucleotideProbabilityMatrix[3] += Math.log10(probability);
 			}
 			//else{
 			//	nucleotideProbabilityMatrix[4] += Math.log10(probability);
@@ -327,17 +375,24 @@ public class shoemakerGenotyper extends LocusWalker<Long,Long> implements
 	}
 	
 	//return normalize log 10 p vlaue for each genotypes
-	private double[] getPvalueFromNucleotideFrequencyMatrix(int[] nucleotideFrequencyMatrix, int coverage){
+	private double[] getPvalueFromNucleotideFrequencyMatrix(int[] nucleotideFrequencyMatrix, ReadBackedPileup pileup){
 		double[] genotypeProbability = new double[DiploidGenotype.values().length];
+		int coverage = pileup.depthOfCoverage();
 		for ( DiploidGenotype g : DiploidGenotype.values() ) {
 			if(g.isHet()){
 				genotypeProbability[g.ordinal()]=getFisherPvalue(getFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix), (int)(coverage*0.5), (int)(coverage*0.5));
 				genotypeProbability[g.ordinal()]+=getFisherPvalue(getFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix), (int)(coverage*0.5), (int)(coverage*0.5));
+				
 			}
 			else{
-				genotypeProbability[g.ordinal()]=getFisherPvalue(getFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix), (int)(coverage*0.5), (int)(coverage*0.5));
-				genotypeProbability[g.ordinal()]+=getFisherPvalue(getFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix), (int)(coverage*0.5), (int)(coverage*0.5));
+				genotypeProbability[g.ordinal()]=getFisherPvalue(getFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix), coverage, 1);
+				genotypeProbability[g.ordinal()]+=getFisherPvalue(getFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix),getOtherBaseFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix), coverage, 1);
 			}
+			if(pileup.getLocation().getStart()==deugPos){
+				
+				System.err.println(g.toString() + "\t" + getFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix) + "\t" + getOtherBaseFrequencyFromMatrix(g.base1, nucleotideFrequencyMatrix) + "\t" + getFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix) + "\t" + getOtherBaseFrequencyFromMatrix(g.base2, nucleotideFrequencyMatrix));
+			
+		}
 		}
 		return MathUtils.normalizeFromLog10(genotypeProbability, true, false);
 	}
