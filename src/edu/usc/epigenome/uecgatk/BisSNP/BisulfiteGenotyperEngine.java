@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.OUTPUT_MODE;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisulfiteHaplotypeScore;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -85,8 +86,8 @@ public class BisulfiteGenotyperEngine{
 
  //   private static final int MISMATCH_WINDOW_SIZE = 20;
     
-    private static boolean autoEstimateC = false;
-    private static boolean secondIteration = false;
+ //   private static boolean autoEstimateC = false;
+ //   private static boolean secondIteration = false;
 
 	protected double MAX_PHRED = 1000000;
 	private int SOMATIC_STATS = 5;
@@ -94,12 +95,11 @@ public class BisulfiteGenotyperEngine{
 	public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 	
 
-	public BisulfiteGenotyperEngine(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, BisulfiteArgumentCollection BAC, GenomeAnalysisEngine toolkit, boolean autoEstimateC, boolean secondIteration) {
+	public BisulfiteGenotyperEngine(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, BisulfiteArgumentCollection BAC, GenomeAnalysisEngine toolkit) {
 		this.BAC = BAC.clone();
 		
 		this.toolkit = toolkit;
-		this.autoEstimateC = autoEstimateC;
-		this.secondIteration = secondIteration;
+		
 		filter.add(LOW_QUAL_FILTER_NAME);
 		//this.UGE = initializeUnifiedGenotypeEngine();
 		// TODO Auto-generated constructor stub
@@ -125,6 +125,7 @@ public class BisulfiteGenotyperEngine{
 		
 		return bisulfiteVariantCallContext;
 	}
+	
 	
 	/**
      * Compute full BisulfiteVariantCallContext at a given locus.
@@ -163,7 +164,7 @@ public class BisulfiteGenotyperEngine{
 
         // initialize the data for this thread if that hasn't been done yet
         if ( bglcms.get() == null ) {
-            bglcms.set(BisulfiteGenotyperEngine.getGenotypeLikelihoodsCalculationObject(BAC, autoEstimateC, secondIteration));
+            bglcms.set(BisulfiteGenotyperEngine.getGenotypeLikelihoodsCalculationObject(BAC));
            // if(refContext.getLocus().getStart() == BAC.testLocus){
             //	System.err.println("initiate\t" + refContext.getLocus().getStart());
            // }
@@ -332,15 +333,15 @@ public class BisulfiteGenotyperEngine{
                         strandScore *= 10.0;
                         //logger.debug(String.format("SLOD=%f", strandScore));
 
-                        attributes.put(VCFConstants.STRAND_BIAS_KEY, Double.valueOf(strandScore));
+                        attributes.put(VCFConstants.STRAND_BIAS_KEY, String.format("%.4f", strandScore));
                         
                         
                 }
             
             	double QD =  logRatio/GL.getDepth();
             	attributes.put(BisulfiteVCFConstants.QUAL_BY_DEPTH, QD);
-            	HaplotypeScore  hpScore = new HaplotypeScore();
-            	attributes.putAll(hpScore.annotate(tracker, null, refContext, stratifiedContexts, vc));
+            	//BisulfiteHaplotypeScore  hpScore = new BisulfiteHaplotypeScore();
+            	//attributes.putAll(hpScore.annotate(tracker, null, refContext, stratifiedContexts, vc));
             }
             attributes.put(VCFConstants.MAPPING_QUALITY_ZERO_KEY, GL.getMQ0());
             
@@ -458,8 +459,8 @@ public class BisulfiteGenotyperEngine{
     }
 	
 		
-	protected static BisulfiteSNPGenotypeLikelihoodsCalculationModel getGenotypeLikelihoodsCalculationObject(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration) {		
-        	return new BisulfiteSNPGenotypeLikelihoodsCalculationModel(BAC, autoEstimateC, secondIteration, BAC.useBAQ);  	
+	protected static BisulfiteSNPGenotypeLikelihoodsCalculationModel getGenotypeLikelihoodsCalculationObject(BisulfiteArgumentCollection BAC) {		
+        	return new BisulfiteSNPGenotypeLikelihoodsCalculationModel(BAC, BAC.useBAQ);  	
     }
 
 	
@@ -574,7 +575,7 @@ public class BisulfiteGenotyperEngine{
             		attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand());
                 	if(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern){
                 		attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BaseUtilsMore.makeIupacCodeFrom2String(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleA, BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleB));
-                	}
+                	}   //bugs here!!!, only output YG, but not CR in the next position!!!
                 	else{
                 		attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BCGL.getBestMatchedCytosinePattern());
                 	}

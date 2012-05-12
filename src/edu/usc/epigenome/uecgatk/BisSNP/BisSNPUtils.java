@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -33,6 +34,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -197,5 +200,190 @@ public class BisSNPUtils {
 		return ((seqC == 'T') && (refBase == 'C')); 
 	}
 	
+	public static boolean isHomoC(VariantContext vc) {
+  	   	 if(vc.hasGenotypes()){
+  	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+  	   		 while(it.hasNext()){
+  	   			Genotype tmp = it.next();
+  	   			//System.err.println(tmp.getGenotypeString());
+  	   			if(tmp.getGenotypeString().equalsIgnoreCase("C/C") || tmp.getGenotypeString().equalsIgnoreCase("G/G")){
+  	   				return true;
+  	   			}
+  	   		 }
+  	     }
+  	     return false;
+  	}
 	
+	public static boolean isHetCpattern(VariantContext vc) {  //het at C sites or G sites.
+ 	   	 if(vc.hasGenotypes()){
+ 	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+ 	   		 while(it.hasNext()){
+ 	   			Genotype tmp = it.next();
+ 	   			//System.err.println(tmp.getGenotypeString());
+ 	   			if(tmp.getGenotypeString().equalsIgnoreCase("C/C") || tmp.getGenotypeString().equalsIgnoreCase("G/G")){
+ 	   				return true;
+ 	   			}
+ 	   		 }
+ 	     }
+ 	     return false;
+ 	}
+	
+	public static boolean isHetCpg_at_C(VariantContext vc) {
+	   	 if(vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			if(tmp.isHom())
+	   				return false;
+	   			//System.err.println(tmp.getGenotypeString());
+	   			if(tmp.hasAttribute(BisulfiteVCFConstants.BEST_C_PATTERN)){
+	   				byte[] bases = tmp.getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".").getBytes();
+	   				if(bases.length < 2)
+	   					return false;
+	   				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[0],BaseUtils.C) && BaseUtils.basesAreEqual(bases[1], BaseUtils.G)){
+	   					return true;
+	   				}
+	   				
+	   			}
+	   		 }
+	     }
+	     return false;
+	}
+	
+	public static boolean isHetCpg_at_G(VariantContext vc) {
+	   	 if(vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			if(tmp.isHom()){
+	   				if(vc.hasAttribute(BisulfiteVCFConstants.CYTOSINE_TYPE)){
+	   					//System.err.println(vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
+	   					if(vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".").equalsIgnoreCase("[CG, CH, C]"))
+	   						return true;	
+	   				}
+	   			}
+	   		 }
+	     }
+	     return false;
+	}
+	
+	/* After fix bugs in BisulfiteGenotyperEngine, the following two should works correct!!
+	public static boolean isHetCpg_at_C(VariantContext vc) {
+ 	   	 if(vc.hasGenotypes()){
+ 	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+ 	   		 while(it.hasNext()){
+ 	   			Genotype tmp = it.next();
+ 	   			if(tmp.isHom())
+ 	   				return false;
+ 	   			//System.err.println(tmp.getGenotypeString());
+ 	   			if(tmp.hasAttribute(BisulfiteVCFConstants.BEST_C_PATTERN)){
+ 	   				byte[] bases = tmp.getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".").getBytes();
+ 	   				if(bases.length < 2)
+ 	   					return false;
+ 	   				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[0],BaseUtils.C) && BaseUtils.basesAreEqual(bases[1], BaseUtils.G)){
+ 	   					return true;
+ 	   				}
+ 	   				
+ 	   			}
+ 	   		 }
+ 	     }
+ 	     return false;
+ 	}
+	
+	public static boolean isHetCpg_at_G(VariantContext vc) {
+	   	 if(vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			if(tmp.isHom()){
+	   				if(tmp.hasAttribute(BisulfiteVCFConstants.BEST_C_PATTERN)){
+	 	   				byte[] bases = tmp.getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".").getBytes();
+	 	   			if(bases.length < 2)
+ 	   					return false;
+	 	   				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[1],BaseUtils.G) && BaseUtils.basesAreEqual(bases[0], BaseUtils.C)){
+	 	   					return true;
+	 	   				}
+	 	   				
+	 	   			}
+	   			}
+	   		 }
+	     }
+	     return false;
+	}
+	*/
+	public static boolean isHetCph_at_C(VariantContext vc) {
+	   	 if(vc.hasGenotypes()){
+	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+	   		 while(it.hasNext()){
+	   			Genotype tmp = it.next();
+	   			if(tmp.isHom())
+	   				return false;
+	   			//System.err.println(tmp.getGenotypeString());
+	   			if(tmp.hasAttribute(BisulfiteVCFConstants.BEST_C_PATTERN)){
+	   				byte[] bases = tmp.getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".").getBytes();
+	   				if(bases.length < 2)
+ 	   					return false;
+	   				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[0],BaseUtils.C) && bases[1]==BaseUtilsMore.H){
+	   					return true;
+	   				}
+	   				
+	   			}
+	   		 }
+	     }
+	     return false;
+	}
+	
+	
+	
+	
+	public static boolean isRefCpg(ReferenceContext refContext){
+		byte[] refBytes = new byte[3];
+		for(int i=-1, index=0; i <= 1; i++, index++){
+			GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), refContext.getLocus().getStart() + i );
+			if( !refContext.getWindow().containsP(loc) ){
+				refBytes[index]=BaseUtils.NO_CALL_INDEX;
+				continue;
+			}
+				
+			
+			ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+			refBytes[index] = tmpRef.getBase();
+		}
+		if(BaseUtils.basesAreEqual(refBytes[0], BaseUtils.C) && BaseUtils.basesAreEqual(refBytes[1], BaseUtils.G)){
+			return true;
+		}	
+		else if(BaseUtils.basesAreEqual(refBytes[1], BaseUtils.C) && BaseUtils.basesAreEqual(refBytes[2], BaseUtils.G)){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	
+	public static boolean isRefCph(ReferenceContext refContext){
+		byte[] refBytes = new byte[3];
+		for(int i=-1, index=0; i <= 1; i++, index++){
+			GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), refContext.getLocus().getStart() + i );
+			if( !refContext.getWindow().containsP(loc) ){
+				refBytes[index]=BaseUtils.NO_CALL_INDEX;
+				continue;
+			}
+				
+			
+			ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+			refBytes[index] = tmpRef.getBase();
+		}
+		if(BaseUtils.basesAreEqual(refBytes[1], BaseUtils.G) && (!BaseUtils.basesAreEqual(refBytes[0], BaseUtils.C) && !BaseUtils.basesAreEqual(refBytes[0], BaseUtils.N) && !BaseUtils.basesAreEqual(refBytes[0], BaseUtils.NO_CALL_INDEX))){
+			//System.err.println(refContext.getLocus().getStart() + "\tneg:" + new String(refBytes));
+			return true;
+		}	
+		else if(BaseUtils.basesAreEqual(refBytes[1], BaseUtils.C) && (!BaseUtils.basesAreEqual(refBytes[2], BaseUtils.G) && !BaseUtils.basesAreEqual(refBytes[2], BaseUtils.N) && !BaseUtils.basesAreEqual(refBytes[2], BaseUtils.NO_CALL_INDEX))){
+			//System.err.println(refContext.getLocus().getStart() + "\tpos:" + new String(refBytes));
+			return true;
+		}
+		else{
+			//System.err.println(refContext.getLocus().getStart() + "\tnot:" + new String(refBytes));
+			return false;
+		}
+	}
 }

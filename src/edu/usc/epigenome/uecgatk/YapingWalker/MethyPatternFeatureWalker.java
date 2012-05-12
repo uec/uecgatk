@@ -1,30 +1,38 @@
 /**
- * 
+ * maybe it is better to write rodWlker rather than Locus walker for this kind of alignment..
  */
 package edu.usc.epigenome.uecgatk.YapingWalker;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.biojava.bio.program.gff.SimpleGFFRecord;
+import org.broad.tribble.Feature;
 import org.broad.tribble.annotation.Strand;
+import org.broad.tribble.bed.BEDFeature;
 import org.broad.tribble.bed.FullBEDFeature;
 import org.broad.tribble.bed.SimpleBEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -41,16 +49,22 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypePriors;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteArgumentCollection;
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums;
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteGenotyperEngine;
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVariantCallContext;
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRCallContext;
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRdetectWalker.windowsObject;
 import edu.usc.epigenome.uecgatk.YapingWriter.GetCytosineContext.contextStatus;
+import edu.usc.epigenome.uecgatk.YapingWriter.SortingBedObjectWriter;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObject;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisSNPUtils;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteArgumentCollection;
-import edu.usc.epigenome.uecgatk.bisulfitesnpmodel.BisulfiteDiploidSNPGenotypePriors;
+
 import edu.usc.epigenome.uecgatk.YapingWriter.GetCytosineContext;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
+import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 
 /**
  * @author yaping
@@ -58,8 +72,8 @@ import edu.usc.epigenome.uecgatk.YapingWriter.GetCytosineContext;
  */
 
 // require input bam file, reference sequence, dbSNP rod, -L interval list bed file, -B feature list bed file
-@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@ReadFilters( {UnmappedReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class, DuplicateReadFilter.class} ) // Filter out all reads with zero mapping quality
+@BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_INPUT)
+@ReadFilters( {UnmappedReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.NONE)
@@ -68,17 +82,20 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 
 	@ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
 	
-	@Argument(fullName = "gch_file_name", shortName = "gchFile", doc = "Output GCH files name", required = true)
+	@Input(fullName="aligned_feature", shortName = "feature" , doc="Input feature location to align", required=false)
+	public RodBinding<BEDFeature> feature;
+	
+	@Output(fullName = "gch_file_name", shortName = "gchFile", doc = "Output GCH files name", required = true)
     public String gchFile = null;
 	
-	@Argument(fullName = "wcg_file_name", shortName = "wcgFile", doc = "Output WCG files name", required = true)
+	@Output(fullName = "wcg_file_name", shortName = "wcgFile", doc = "Output WCG files name", required = true)
     public String wcgFile = null;
 	
-	@Argument(fullName = "hcg_file_name", shortName = "hcgFile", doc = "Output HCG files name", required = true)
+	@Output(fullName = "hcg_file_name", shortName = "hcgFile", doc = "Output HCG files name", required = true)
     public String hcgFile = null;
 	
-	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
-    public String feature = null;
+//	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
+ //   public String feature = null;
 	
 	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature", required = false)
     public int distance = 2000;
@@ -103,6 +120,12 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	private bedObjectWriterImp wcgWriter = null;
 	private bedObjectWriterImp hcgWriter = null;
 	
+//	private SortingBedObjectWriter gchMultiWriter = null;
+//	private SortingBedObjectWriter wcgMultiWriter = null;
+//	private SortingBedObjectWriter hcgMultiWriter = null;
+	
+	
+	
 	private boolean inFeature = false;
 	private boolean writtenObject = false;
 	
@@ -112,13 +135,14 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	
 	private ReferenceOrderedDataSource rodIt = null;
 	
+	private BisulfiteGenotyperEngine BG_engine = null;
+	
 	private String chr = null;
 	private int bedStart = 0;
 	private int bedEnd = 0;
 	private SimpleBEDFeature bed = null;
 	private Strand strand = null;
 
-	private GenotypePriors genotypePriors;
 	
 	public void initialize(){
 		 File fn1 = new File(gchFile);
@@ -127,11 +151,13 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		 gchWriter = new bedObjectWriterImp(fn1);
 		 wcgWriter = new bedObjectWriterImp(fn2);
 		 hcgWriter = new bedObjectWriterImp(fn3);
-		 genotypePriors = new BisulfiteDiploidSNPGenotypePriors();
+		 //genotypePriors = new BisulfiteDiploidSNPGenotypePriors();
 		 tmpMethyValueListGch = new LinkedList<Double>();
 		 tmpMethyValueListWcg = new LinkedList<Double>();
 		 tmpMethyValueListHcg = new LinkedList<Double>();
 		 rodIt = getToolkit().getRodDataSources().get(0);
+		 BAC.sequencingMode = BisulfiteEnums.MethylSNPModel.GM;
+		 BAC.makeCytosine();
 	}
 	
 	@Override
@@ -162,36 +188,41 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 
     		 if(!inFeature){
     			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
+    			// System.err.println(rodList.get(0).getUnderlyingObject());
+    			 //rodList.get(0).getUnderlyingObject()
+    			// for(Object it : rodList){
+    				 if(rodList.get(0).getUnderlyingObject() instanceof SimpleBEDFeature){
+    					 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
+    					 System.err.println(rodList.get(0).getUnderlyingObject());
+        				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
+                			 bed = bedTmp;
+                			// strand = bedTmp.getStrand();
+            	    		 chr = bedTmp.getChr();
+            	    		 bedStart = bedTmp.getStart();
+            	    		 bedEnd = bedTmp.getEnd();
+            	    		 inFeature = true;
+            	    		 writtenObject = false;
+            	    	//	 System.err.println(bed.getStart());
+            	    		// break;
+            	    	 }
+        			// }
+        			 
+        			 }
+        			 
+    			 //} 
+    		}
+    		else{
+     			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)));
+     				 if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
 
-    			// if(rodList.size() > 1){
-    			//	 
-    			// }
-    		//	 else{
-    				 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
-            		 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
-            			 bed = bedTmp;
-            			 strand = bedTmp.getStrand();
-        	    		 chr = bedTmp.getChr();
-        	    		 bedStart = bedTmp.getStart();
-        	    		 bedEnd = bedTmp.getEnd();
-        	    		 inFeature = true;
-        	    		 writtenObject = false;
-        	    	//	 System.err.println(bed.getStart());
-        	    		// break;
-        	    	 }
-    			// }
+     	    		 inFeature = false;
+     	    		 writtenObject = false;
+     	    	//	 System.err.println(bed.getStart());
+     	    		// break;
+     				 }
+     		}
     			 
-    		 }
-    		 else{
-    			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)));
-    			 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
-
-    	    		 inFeature = false;
-    	    		 writtenObject = false;
-    	    	//	 System.err.println(bed.getStart());
-    	    		// break;
-    	    	 }
-    		 }
+            
     	 }
     	 
     	// System.err.println(loc.toString());
@@ -261,17 +292,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    	 return null;
 	     }
 	     else{
-	    	 String cytosinePatternGch = "GCH-2";
-	 		String cytosinePatternWcg = "WCG-2";
-	 		String cytosinePatternHcg = "HCG-2";
-	 		double methyStatusGch = BAC.forceGch; //H1: 0.36; imr90:0.45
-	 		double methyStatusCpg =BAC.forceCpg; //0.80
 
-	 		
-	 		BisSNPUtils it = new BisSNPUtils(BAC);
-	 		AlignmentContext stratifiedContexts = it.getFilteredAndStratifiedContexts(BAC, ref, context);
-	 		
-	 		if(stratifiedContexts == null){
+	 		if(context == null){
 	 			
 	 				addContextToList(null, strand, tmpMethyValueListGch);
 	 				addContextToList(null, strand, tmpMethyValueListWcg);
@@ -280,16 +302,33 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 				
 	 			return null;
 	 		}
+	 		boolean isGch =false;
+	 		boolean isWcg = false;
+	 		boolean isHcg = false;
+	 		BG_engine = new BisulfiteGenotyperEngine(tracker, ref, context, BAC, getToolkit());
+	 		BisulfiteVariantCallContext bvc = BG_engine.getBisulfiteVariantCallContext();
+	 		if(bvc == null || bvc.getSummaryAcrossRG().cytosinePatternConfirmedSet ==null)
+	 			return null;
+	 		HashSet<String> cytosinePatternConfirmedList = bvc.getSummaryAcrossRG().cytosinePatternConfirmedSet;
 	 		
-	 		boolean isGch = it.checkCytosineStatus(cytosinePatternGch, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusGch);
-	 		boolean isWcg = it.checkCytosineStatus(cytosinePatternWcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
-	 		boolean isHcg = it.checkCytosineStatus(cytosinePatternHcg, stratifiedContexts.getBasePileup(), tracker, ref, (BisulfiteDiploidSNPGenotypePriors) genotypePriors, BAC, methyStatusCpg);
-	 		GetCytosineContext contextToTest = new GetCytosineContext();
-	 		boolean paired = stratifiedContexts.getBasePileup().getReads().get(0).getReadPairedFlag();
- 			contextStatus status = contextToTest.getContext(stratifiedContexts.getBasePileup(), paired, minCTdepth, minCTdepth);		
+	 		for(String cytosinePattern : cytosinePatternConfirmedList){
+	 			if(cytosinePattern.equalsIgnoreCase("GCH")){
+	 				isGch=true;
+	 			}
+	 			else{
+	 				if(cytosinePattern.equalsIgnoreCase("HCG")){
+	 					isHcg=true;
+		 			}
+		 			if(cytosinePattern.equalsIgnoreCase("WCG")){
+		 				isWcg=true;
+		 			}
+	 			}
+	 				
+	 		}
+	 				
 	 		if(isGch){
 	 			
-	 			addContextToList(status, strand, tmpMethyValueListGch);
+	 			addContextToList(bvc, strand, tmpMethyValueListGch);
 	 			//if positive strand, offerLast(), if negative strand, offerFirst()
 	 			
 	 		}
@@ -298,14 +337,14 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		}
 	 		if(isWcg){
 	 			
-	 			addContextToList(status, strand, tmpMethyValueListWcg);
+	 			addContextToList(bvc, strand, tmpMethyValueListWcg);
 	 		}
 	 		else{
 	 			addContextToList(null, strand, tmpMethyValueListWcg);
 	 		}
 	 		if(isHcg){
 	 			
-	 			addContextToList(status, strand, tmpMethyValueListHcg);
+	 			addContextToList(bvc, strand, tmpMethyValueListHcg);
 	 		}
 	 		else{
 	 			addContextToList(null, strand, tmpMethyValueListHcg);
@@ -344,32 +383,32 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		logger.info("Finished!");
 	}
 	
-	private void addContextToList(contextStatus status, Strand strand, LinkedList<Double> list){
+	private void addContextToList(BisulfiteVariantCallContext bvc, Strand strand, LinkedList<Double> list){
 		if(orientated){
 			if(strand == Strand.NEGATIVE){
-				if(status == null){
+				if(bvc == null){
 					list.offerFirst(Double.NaN);
 				}
 				else{
-					list.offerFirst((double)status.numC/(double)(status.numC + status.numT));
+					list.offerFirst((double)bvc.getSummaryAcrossRG().numC/(double)(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT));
 				}
 			}
 			else{
-				if(status == null){
+				if(bvc == null){
 					list.offerLast(Double.NaN);
 				}
 				else{
-					list.offerLast((double)status.numC/(double)(status.numC + status.numT));
+					list.offerLast((double)bvc.getSummaryAcrossRG().numC/(double)(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT));
 				}
 			}
 			
 		}
 		else{
-			if(status == null){
+			if(bvc == null){
 				list.offerLast(Double.NaN);
 			}
 			else{
-				list.offerLast((double)status.numC/(double)(status.numC + status.numT));
+				list.offerLast((double)bvc.getSummaryAcrossRG().numC/(double)(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT));
 			}
 		}
 	}

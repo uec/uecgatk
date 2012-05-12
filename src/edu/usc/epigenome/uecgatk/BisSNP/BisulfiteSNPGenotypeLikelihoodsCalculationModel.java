@@ -82,7 +82,7 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
 
 	
 	
-	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(BisulfiteArgumentCollection BAC, boolean autoEstimateC, boolean secondIteration, boolean useBAQ) {
+	public BisulfiteSNPGenotypeLikelihoodsCalculationModel(BisulfiteArgumentCollection BAC, boolean useBAQ) {
 	
 		// TODO Auto-generated constructor stub
 		this.BAC = BAC;

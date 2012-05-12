@@ -19,6 +19,8 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
+
 
 /**
  * @author yaping
@@ -110,6 +112,7 @@ public class HomozygousCytosineEvaluation extends VariantEvaluator {
                 SiteStatus evalStatus = calcSiteStatus(eval);
                 SiteStatus compStatus = calcSiteStatus(comp);
                 counts[compStatus.ordinal()][evalStatus.ordinal()]++;
+                System.err.println(comp.getStart() + evalStatus.toString() + "\t" + compStatus.toString());
             }
         }
 
@@ -124,13 +127,22 @@ public class HomozygousCytosineEvaluation extends VariantEvaluator {
         if ( vc.isFiltered() ) return SiteStatus.FILTERED;
         if ( isHomoC(vc) ) return SiteStatus.CYTOSINE;
         if(vc.hasGenotypes()) return SiteStatus.NO_C;
+        
+        return SiteStatus.NO_CALL;// 
+
+    }
+/*
+    public SiteStatus calcSiteStatus(VariantContext vc, boolean bissnp) {
+        if ( vc == null ) return SiteStatus.NO_CALL;
+        if ( vc.isFiltered() ) return SiteStatus.FILTERED;
+        if ( isHomoC(vc, bissnp) ) return SiteStatus.CYTOSINE;
+        if(vc.hasGenotypes()) return SiteStatus.NO_C;
          
         return SiteStatus.NO_CALL;// 
 
     }
 
-
-
+*/
     public boolean haveDifferentAltAlleles(VariantContext eval, VariantContext comp) {
         Collection<Allele> evalAlts = eval.getAlternateAlleles();
         Collection<Allele> compAlts = comp.getAlternateAlleles();
@@ -155,17 +167,30 @@ public class HomozygousCytosineEvaluation extends VariantEvaluator {
    	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
    	   		 while(it.hasNext()){
    	   			Genotype tmp = it.next();
-   	   			if(tmp.isHom()){
-   	   				List<Allele> alleles = tmp.getAlleles();
-   	   				for(Allele a : alleles){
-   	   					if(a.basesMatch("C") || a.basesMatch("G")){
-   	   						return true;
-   	   					}
-   	   				}
+   	   			System.err.println(tmp.getGenotypeString());
+   	   			if(tmp.getGenotypeString().equalsIgnoreCase("C/C") || tmp.getGenotypeString().equalsIgnoreCase("G/G")){
+   	   				return true;
    	   			}
    	   		 }
    	     }
    	     return false;
    	}
-
+    /*
+    public boolean isHomoC(VariantContext vc, boolean bissnp) {
+  	   	 if(vc.hasGenotypes()){
+  	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
+  	   		 while(it.hasNext()){
+  	   			Genotype tmp = it.next();
+  	   		System.err.println(tmp.getGenotypeString());
+  	   			if(tmp.hasAttribute(BisulfiteVCFConstants.CYTOSINE_TYPE)){
+  	   				
+  	   				if(((String)tmp.getAttribute(BisulfiteVCFConstants.CYTOSINE_TYPE)).endsWith("C")){
+  	   					return true;
+  	   				}
+  	   			}
+  	   		 }
+  	     }
+  	     return false;
+  	}
+*/
 }

@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class BedWriterImp extends FormatWriter {

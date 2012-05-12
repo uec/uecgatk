@@ -77,7 +77,7 @@ public class BisSNP extends CommandLineExecutable {
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "BisSNP-0.67.4";
+	private static String BisVersion = "BisSNP-0.67.5";
 	 
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	
@@ -227,7 +227,7 @@ public class BisSNP extends CommandLineExecutable {
         		walker = engine.getWalkerByName(getAnalysisName());
         		if(walker instanceof BisulfiteGenotyper){
         			
-        			((BisulfiteGenotyper) walker).setAutoParameters(argCommandline);
+        			//((BisulfiteGenotyper) walker).setAutoParameters(argCommandline);
         		}
 	
         		engine.setArguments(getArgumentCollection());

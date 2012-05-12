@@ -112,6 +112,18 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 
     @ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
     
+    @Output(fullName = "vcf_file_name_1", shortName = "vfn1", doc = "output Vcf file, when used for [DEFAULT_FOR_TCGA] output mode, it is used to store all CpG sites. While the original vcf file is to store all CpG sites", required = false)
+   	public String vfn1 = null;
+       
+    @Output(fullName = "vcf_file_name_2", shortName = "vfn2", doc = "output Vcf file 2, only used for [DEFAULT_FOR_TCGA] output mode, it is used to store all SNP sites. While the original vcf file is to store all CpG sites", required = false)
+   	public String vfn2 = null;
+    
+    @Output(fullName = "file_name_output_cpg_reads_detail", shortName = "fnocrd", doc = "output CpG reads bed file that contain each CpG's position in reads information, for test only", required = false)
+	public String fnocrd = null;
+    
+    @Output(fullName = "file_name_output_reads_after_downsampling", shortName = "fnorad", doc = "output Bam file's name that after downsapling, for performance test only", required = false)
+   	public String fnorad = null;
+    
     private static boolean autoEstimateC = false;
     private static boolean secondIteration = false;
     
@@ -412,7 +424,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	BAC.makeCytosine();
         	cytosineDefinedMemorizedForSecondRun = new CytosinePatternsUserDefined(BAC.cytosineContextsAcquired, BAC.sequencingMode);
         }
-        
+        /*
         if(BAC.orad){
     		File outputBamFile = new File(BAC.fnorad);
     		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
@@ -420,7 +432,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     		samWriter = samFileWriterFactory.makeBAMWriter(getToolkit().getSAMFileHeader(), false, outputBamFile);
     		downsampleBam = new DownsamplingBAM(BAC,samWriter);
     	}
-        	
+        	*/
         
     }
 
@@ -510,7 +522,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     	if(rawContext.size() > BAC.toCoverage) // get rid of region with abnormal read coverage
     		return null;
     	
-    	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit(),autoEstimateC, secondIteration);
+    	BG_engine = new BisulfiteGenotyperEngine(tracker, refContext, rawContext, BAC, getToolkit());
 
  //       CytosineTypeStatus cts = null;
         
@@ -732,7 +744,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
                 	        			cytosineMethySummaryInEachReadGroup.put(cytosineKeyTmp, sumValueTmp);
             						}
             						else{
-            							if(value.isCph){
+            							if(value.isCpg){   //this is a bug, and now changed to isCpg
             								String cytosineKeyTmp = "CH_reference-CG_ContextPos_hetSnp_sample";
                     						Integer cytosineNumTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getFirst() + 1;
                     	        			Double methyValueTmp = cytosineMethySummaryInEachReadGroup.get(cytosineKeyTmp).getSecond();
@@ -1407,7 +1419,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     }
 
     public void onTraversalDone(ContextCondition sum) {
-    	String fn = BAC.vfn1 + ".BisSNPMethySummarizeList.txt"; //write summarize cytosine methylation pattern information into a file. This is easy for BisSNP API to use.	
+    	String fn = vfn1 + ".BisSNPMethySummarizeList.txt"; //write summarize cytosine methylation pattern information into a file. This is easy for BisSNP API to use.	
     	PrintWriter outWriter = null;
     	String outLine = null;
 		try {
@@ -1489,7 +1501,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
         	writer.close();
         }
         
-        if(BAC.fnocrd != null){
+        if(fnocrd != null){
 
 			if((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration)){
 				if(getToolkit().getArguments().numberOfThreads > 1){
@@ -1542,7 +1554,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
     }
     
     private void initiateVCFInDifferentOutmode(SAMSequenceDictionary refDict){
-    	File outputVcfFile = new File(BAC.vfn1);
+    	File outputVcfFile = new File(vfn1);
 		writer = new TcgaVCFWriter(outputVcfFile,refDict, false);
 		writer.setRefSource(getToolkit().getArguments().referenceFile.toString());
 		
@@ -1560,7 +1572,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		}
 		
 		if(BAC.OutputMode == OUTPUT_MODE.DEFAULT_FOR_TCGA){
-			File outputAdditionalVcfFile = new File(BAC.vfn2);
+			File outputAdditionalVcfFile = new File(vfn2);
 			additionalWriterForDefaultTcgaMode = new TcgaVCFWriter(outputAdditionalVcfFile,refDict, false);
 			additionalWriterForDefaultTcgaMode.setRefSource(getToolkit().getArguments().referenceFile.toString());
 			additionalWriterForDefaultTcgaMode.writeHeader(new VCFHeader(getHeaderInfo(), samples));
@@ -1572,13 +1584,13 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		}
 			
 		if(BAC.orad){
-    		File outputBamFile = new File(BAC.fnorad);
+    		File outputBamFile = new File(fnorad);
     		SAMFileWriterFactory samFileWriterFactory = new SAMFileWriterFactory();
     		samFileWriterFactory.setCreateIndex(true);
     		samWriter = samFileWriterFactory.makeBAMWriter(getToolkit().getSAMFileHeader(), false, outputBamFile);
     	}
-		if(BAC.fnocrd != null){
-			File outputReadsDetailFile = new File(BAC.fnocrd);
+		if(fnocrd != null){
+			File outputReadsDetailFile = new File(fnocrd);
 			if(BAC.sequencingMode == MethylSNPModel.GM){
 				readsWriter = new NOMeSeqReadsWriterImp(outputReadsDetailFile);
 			}
@@ -1765,7 +1777,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
    
     private void readsReport(BisulfiteVariantCallContext value){
     	if(BAC.sequencingMode == MethylSNPModel.GM){
-			if(BAC.fnocrd != null && ((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
+			if(fnocrd != null && ((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
 				boolean positiveStrand = true;
 				String sampleContext = "";
 				for(String key : value.getSummaryAcrossRG().cytosinePatternConfirmedSet){
@@ -1793,7 +1805,7 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		}
         else{
         	if(value.isCpg){
-    			if(BAC.fnocrd != null && ((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
+    			if(fnocrd != null && ((autoEstimateC && secondIteration) || (!autoEstimateC && !secondIteration))){
     	        	if(value.getSummaryAcrossRG().cytosinePatternStrand == '+'){
     	        		readsDetailReport(value, true, getToolkit().getArguments().numberOfThreads > 1);
     	        	}

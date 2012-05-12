@@ -5,16 +5,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import net.sf.samtools.SAMFileWriter;
+
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
 
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.cytosineContextParameters;
+import edu.usc.epigenome.uecgatk.YapingWriter.SortingFormatWriterBase;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 
@@ -113,23 +118,18 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
   //  @Argument(fullName = "vcf_file_name", shortName = "vfn", doc = "output Vcf file", required = true)
 //	public String vfn = null;
     
-    @Argument(fullName = "vcf_file_name_1", shortName = "vfn1", doc = "output Vcf file, when used for [DEFAULT_FOR_TCGA] output mode, it is used to store all CpG sites. While the original vcf file is to store all CpG sites", required = false)
-	public String vfn1 = null;
     
-    @Argument(fullName = "vcf_file_name_2", shortName = "vfn2", doc = "output Vcf file 2, only used for [DEFAULT_FOR_TCGA] output mode, it is used to store all SNP sites. While the original vcf file is to store all CpG sites", required = false)
-	public String vfn2 = null;
 	
     @Argument(fullName = "output_reads_after_downsampling", shortName = "orad", doc = "output Bam file that after downsapling, for performance test only", required = false)
     public boolean orad = false;
     
-    @Argument(fullName = "file_name_output_reads_after_downsampling", shortName = "fnorad", doc = "output Bam file's name that after downsapling, for performance test only", required = false)
-	public String fnorad = null;
+   
     
     @Argument(fullName = "output_reads_coverage_after_downsampling", shortName = "orcad", doc = "define output Bam file's mean coverage that after downsapling, for performance test only", required = false)
 	public int orcad = 1;
     
-    @Argument(fullName = "file_name_output_cpg_reads_detail", shortName = "fnocrd", doc = "output CpG reads bed file that contain each CpG's position in reads information, for test only", required = false)
-	public String fnocrd = null;
+ //   @Output(fullName = "file_name_output_cpg_reads_detail", shortName = "fnocrd", doc = "output CpG reads bed file that contain each CpG's position in reads information, for test only", required = false)
+//	public SortingFormatWriterBase readsWriter = null;
     
     @Argument(fullName = "file_name_output_verbose_detail", shortName = "fnovd", doc = "output file that contain verbose information, for test only", required = false)
 	public String fnovd = null;
@@ -208,12 +208,12 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         bac.tiVsTv = tiVsTv;
         bac.toCoverage = toCoverage;
         
-        bac.orad = orad;
+      //  bac.orad = orad;
         bac.orcad = orcad;
-        bac.fnorad = fnorad;
-        bac.vfn2 = vfn2;
-        bac.fnocrd = fnocrd;
-        bac.vfn1 = vfn1;
+   //     bac.readsWriter = readsWriter;
+      //  bac.vfn2 = vfn2;
+      //  bac.samWriter = samWriter;
+      //  bac.vfn1 = vfn1;
         bac.fnovd = fnovd;
         bac.ovd = ovd;
         bac.lnc = lnc;
