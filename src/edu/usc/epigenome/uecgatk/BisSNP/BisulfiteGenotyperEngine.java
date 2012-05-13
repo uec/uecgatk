@@ -272,7 +272,7 @@ public class BisulfiteGenotyperEngine{
 						//else{
 						//	cType = cType + "," + cytosinePattern;
 						//}
-						if(GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern){
+						if(GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern || GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).isHeterozygousInContextPosition){
 							cytosineConfirmed.add(BaseUtilsMore.makeIupacCodeFrom2String(GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).patternOfAlleleA, GL.getCytosineParameters().get(GL.getBestMatchedCytosinePattern()).patternOfAlleleB));
 						}
 						else{
@@ -573,7 +573,7 @@ public class BisulfiteGenotyperEngine{
                 	
                 	attributes.put(BisulfiteVCFConstants.NUMBER_OF_C_KEY, BCGL.getNumOfCReadsInBisulfiteCStrand());
             		attributes.put(BisulfiteVCFConstants.NUMBER_OF_T_KEY, BCGL.getNumOfTReadsInBisulfiteCStrand());
-                	if(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern){
+                	if(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).isHeterozygousCytosinePattern || BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).isHeterozygousInContextPosition){
                 		attributes.put(BisulfiteVCFConstants.BEST_C_PATTERN, BaseUtilsMore.makeIupacCodeFrom2String(BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleA, BCGL.getCytosineParameters().get(BCGL.getBestMatchedCytosinePattern()).patternOfAlleleB));
                 	}   //bugs here!!!, only output YG, but not CR in the next position!!!
                 	else{

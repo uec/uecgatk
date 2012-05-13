@@ -147,7 +147,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	public int toCoverage = 250;
     
     @Argument(fullName = "maximum_cache_for_output_vcf", shortName = "vcfCache", doc = "maximum cached position for multithreads output of VCF. Default is: 40,000,000", required = false)
-	public int vcfCache = 40000000;
+	public int vcfCache = 10000000;
     
     public CytosinePatternsUserDefined cytosineDefined = null;
     

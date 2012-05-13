@@ -77,7 +77,7 @@ public class BisSNP extends CommandLineExecutable {
     //@Output(doc="File to which variants should be written",required=false)
    // protected SortingVCFWriter writer = null;
  
-	private static String BisVersion = "BisSNP-0.67.9";
+	private static String BisVersion = "BisSNP-0.68";
 	 
 	private final Collection<Object> bisulfiteArgumentSources = new ArrayList<Object>();
 	

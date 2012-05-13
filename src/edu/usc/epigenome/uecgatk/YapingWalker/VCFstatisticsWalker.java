@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.List;
 
+import net.sf.samtools.SAMSequenceDictionary;
+
 import org.apache.commons.math.stat.descriptive.summary.Sum;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
@@ -26,6 +28,8 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import edu.usc.epigenome.uecgatk.BisSNP.BisSNPUtils;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteGenotyper;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
+import edu.usc.epigenome.uecgatk.BisSNP.SortingTcgaVCFWriter;
+import edu.usc.epigenome.uecgatk.BisSNP.TcgaVCFWriter;
 
 /**
  * @author yaping
@@ -45,8 +49,14 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
     @Output(doc="Output summary statistics", required=true)
     public String outFile;
     
-    @Argument(fullName="genotype_qual", shortName = "qual", doc="genotype quality score filter for heterozygous SNP, default: 0", required=false)
-    public double qual=0;
+    @Output(fullName="RefCph", shortName = "RefCph", doc="Output summary statistics", required=false)
+    public String outRefCphFile;
+    
+    @Output(fullName="RefCpg", shortName = "RefCpg", doc="Output summary statistics", required=false)
+    public String outRefCpgFile;
+    
+    @Argument(fullName="genotype_qual", shortName = "qual", doc="genotype quality score filter for heterozygous SNP, default: 20", required=false)
+    public double qual=20;
     
     @Argument(fullName="strand_bias", shortName = "sb", doc="strand bias filter for heterozygous SNP, default: 0", required=false)
     public double sb=0;
@@ -59,8 +69,21 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
     
     @Argument(fullName="mapping_quality_zero", shortName = "mq0", doc="fraction of mapping_quality_zero filter for heterozygous SNP, default: 1.0", required=false)
     public double mq0=1.0;
+    
+    @Argument(fullName="min_ct_coverage", shortName = "minCT", doc="minimum number of CT reads for count methylation level, default: 1", required=false)
+    public int minCT=1;
+    
+    @Argument(fullName="min_bq", shortName = "minBQ", doc="minimum base quality for both of strand, default: 10, not use this option yet", required=false)
+    public int minBQ=10;
 	
     private PrintStream writer = null;
+    protected TcgaVCFWriter refCphWriter = null;
+    protected TcgaVCFWriter refCpgWriter = null;
+    
+    protected SortingTcgaVCFWriter multiThreadRefCphWriter = null;
+    protected SortingTcgaVCFWriter multiThreadRefCpgWriter = null;
+    
+    private int MAXIMUM_CACHE_FOR_OUTPUT_VCF = 10000000;
     
     public static class VCFCondition {
     	long nLociVisited = 0;
@@ -197,6 +220,17 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 	public void initialize() {
 		try {
 			writer = new PrintStream(new File(outFile));
+			if(outRefCphFile != null && outRefCpgFile != null){
+				SAMSequenceDictionary refDict = getToolkit().getMasterSequenceDictionary();
+				refCphWriter = new TcgaVCFWriter(new File(outRefCphFile), refDict);
+				refCpgWriter = new TcgaVCFWriter(new File(outRefCpgFile), refDict);
+				if(getToolkit().getArguments().numberOfThreads>1){
+					multiThreadRefCphWriter = new SortingTcgaVCFWriter(refCphWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
+					multiThreadRefCpgWriter = new SortingTcgaVCFWriter(refCpgWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
+				}
+			}
+			
+			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -272,9 +306,10 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 				
 			if(BisSNPUtils.isHomoC(value.vc)){
 				if(BisSNPUtils.isRefCpg(value.refContext)){
-					String pattern = value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".");
+					//String pattern = value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".");
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
 					//System.err.println(value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
-					if(pattern.equalsIgnoreCase("[CG, C]") || pattern.equalsIgnoreCase("CG")){
+					if(pattern.equalsIgnoreCase("CG")){
 					//	sum.num[0][0][0]++;
 					//	sum.methy[0][0][0] += methyValue;
 						
@@ -286,7 +321,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.sumCpgHomRefCpg += methyValue;
 						
 					}
-					else if(pattern.equalsIgnoreCase("[CH, C]") || pattern.equalsIgnoreCase("CH")){
+					else if(pattern.equalsIgnoreCase("CH") ){
 						
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
@@ -295,11 +330,12 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCphHomRefCpg++;
 						sum.sumCphHomRefCpg += methyValue;
 					}
-					else if(pattern.equalsIgnoreCase(".")){
+					else if(pattern.equalsIgnoreCase(".") || pattern.equalsIgnoreCase("C")){
 						
 					}
 					else{
-						if(BisSNPUtils.isHetCpg_at_G(value.vc)){
+						if(pattern.contains("C")){  //not only C but also contain some other base
+						//if(BisSNPUtils.isHetCpg_at_G(value.vc)){
 							sum.nCpgTotal++;
 							sum.sumCpgTotal += methyValue;
 							sum.nCpgHet++;
@@ -308,14 +344,16 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 							sum.sumCpgHetRefCpg += methyValue;
 							sum.nCpgHetAtG_RefCpg++;
 							sum.sumCpgHetAtG_RefCpg += methyValue;
+							if(outRefCphFile != null && outRefCpgFile != null)
+								refCpgWriter.add(value.vc);
 							//System.err.println(value.refContext.getLocus().toString() + "\t" + value.vc.getGenotype(0) + "\t" + numC + "\t" + numT + "\t" + sum.nCpgHetAtG_RefCpg + "\t" + sum.sumCpgHetAtG_RefCpg);
 						}
 					}
 					
 				}
 				else if(BisSNPUtils.isRefCph(value.refContext)){
-					String pattern = value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".");
-					if(pattern.equalsIgnoreCase("[CG, C]") || pattern.equalsIgnoreCase("CG")){
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
+					if(pattern.equalsIgnoreCase("CG")){
 						sum.nCpgTotal++;
 						sum.sumCpgTotal += methyValue;
 						sum.nCpgHom++;
@@ -324,7 +362,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.sumCpgHomRefCph += methyValue;
 					//	System.err.println(value.refContext.getLocus().toString() + "\t" + value.vc.getGenotype(0) + "\t" + numC + "\t" + numT + "\t" + sum.nCpgHomRefCph + "\t" + sum.sumCpgHomRefCph);
 					}
-					else if(pattern.equalsIgnoreCase("[CH, C]") || pattern.equalsIgnoreCase("CH")){
+					else if(pattern.equalsIgnoreCase("CH") ){
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
 						sum.nCphHom++;
@@ -332,11 +370,11 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCphHomRefCph++;
 						sum.sumCphHomRefCph += methyValue;
 					}
-					else if(pattern.equalsIgnoreCase(".")){
+					else if(pattern.equalsIgnoreCase(".") || pattern.equalsIgnoreCase("C")){
 						
 					}
 					else{
-						if(BisSNPUtils.isHetCpg_at_G(value.vc)){
+						if(pattern.contains("C")){
 							sum.nCpgTotal++;
 							sum.sumCpgTotal += methyValue;
 							sum.nCpgHet++;
@@ -345,12 +383,14 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 							sum.sumCpgHetRefCph += methyValue;
 							sum.nCpgHetAtG_RefCph++;
 							sum.sumCpgHetAtG_RefCph += methyValue;
+							if(outRefCphFile != null && outRefCpgFile != null)
+								refCphWriter.add(value.vc);
 						}
 					}
 				}
 				else{
-					String pattern = value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".");
-					if(pattern.equalsIgnoreCase("[CG, C]") || pattern.equalsIgnoreCase("CG")){
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
+					if(pattern.equalsIgnoreCase("CG")){
 						sum.nCpgTotal++;
 						sum.sumCpgTotal += methyValue;
 						sum.nCpgHom++;
@@ -358,7 +398,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCpgHomRefNotC++;
 						sum.sumCpgHomRefNotC += methyValue;
 					}
-					else if(pattern.equalsIgnoreCase("[CH, C]") || pattern.equalsIgnoreCase("CH")){
+					else if(pattern.equalsIgnoreCase("CH") ){
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
 						sum.nCphHom++;
@@ -366,11 +406,11 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCphHomRefNotC++;
 						sum.sumCphHomRefNotC += methyValue;
 					}
-					else if(pattern.equalsIgnoreCase(".")){
+					else if(pattern.equalsIgnoreCase(".") || pattern.equalsIgnoreCase("C")){
 						
 					}
 					else{
-						if(BisSNPUtils.isHetCpg_at_G(value.vc)){
+						if(pattern.contains("C")){
 							sum.nCpgTotal++;
 							sum.sumCpgTotal += methyValue;
 							sum.nCpgHet++;
@@ -383,9 +423,10 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 					}
 				}
 			}
-			else{
+			else{//exclude C/T SNP at cytosine sites!!
 				if(BisSNPUtils.isRefCpg(value.refContext)){
-					if(BisSNPUtils.isHetCpg_at_C(value.vc)){
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
+					if(pattern.contains("G") && !pattern.contains("Y")){
 						sum.nCpgTotal++;
 						sum.sumCpgTotal += methyValue;
 						sum.nCpgHet++;
@@ -395,7 +436,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCpgHetAtC_RefCpg++;
 						sum.sumCpgHetAtC_RefCpg += methyValue;
 					}
-					else if(BisSNPUtils.isHetCph_at_C(value.vc)){
+					else if(pattern.contains("H") && !pattern.contains("Y")){
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
 						sum.nCphHet++;
@@ -408,7 +449,8 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 					
 				}
 				else if(BisSNPUtils.isRefCph(value.refContext)){
-					if(BisSNPUtils.isHetCpg_at_C(value.vc)){
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
+					if(pattern.contains("G") && !pattern.contains("Y")){
 						sum.nCpgTotal++;
 						sum.sumCpgTotal += methyValue;
 						sum.nCpgHet++;
@@ -418,7 +460,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCpgHetAtC_RefCph++;
 						sum.sumCpgHetAtC_RefCph += methyValue;
 					}
-					else if(BisSNPUtils.isHetCph_at_C(value.vc)){
+					else if(pattern.contains("H") && !pattern.contains("Y")){
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
 						sum.nCphHet++;
@@ -430,7 +472,8 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 					}
 				}
 				else{
-					if(BisSNPUtils.isHetCpg_at_C(value.vc)){
+					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
+					if(pattern.contains("G") && !pattern.contains("Y")){
 						sum.nCpgTotal++;
 						sum.sumCpgTotal += methyValue;
 						sum.nCpgHet++;
@@ -440,7 +483,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						sum.nCpgHetAtC_RefNotC++;
 						sum.sumCpgHetAtC_RefNotC += methyValue;
 					}
-					else if(BisSNPUtils.isHetCph_at_C(value.vc)){
+					else if(pattern.contains("H") && !pattern.contains("Y")){
 						sum.nCphTotal++;
 						sum.sumCphTotal += methyValue;
 						sum.nCphHet++;
@@ -567,11 +610,20 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 		writer.println("nCphHet\t" + result.nCphHet + "\t" + "sumCphHet\t" + 100*result.sumCphHet/result.nCphHet);
 		writer.println("nCphHetRefCpg\t" + result.nCphHetRefCpg + "\t" + "sumCphHetRefCpg\t" + 100*result.sumCphHetRefCpg/result.nCphHetRefCpg);
 		writer.println("nCphHetRefCph\t" + result.nCphHetRefCph + "\t" + "sumCphHetRefCph\t" + 100*result.sumCphHetRefCph/result.nCphHetRefCph);
-		writer.println("nCphHetAtC_RefCpg\t" + result.nCphHetAtC_RefCpg + "\t" + "sumCpgHetAtC_RefCpg\t" + 100*result.sumCpgHetAtC_RefCpg/result.nCphHetAtC_RefCpg);
-		writer.println("nCphHetAtC_RefCph\t" + result.nCphHetAtC_RefCph + "\t" + "sumCpgHetAtC_RefCph\t" + 100*result.sumCpgHetAtC_RefCph/result.nCphHetAtC_RefCph);
-		writer.println("nCphHetAtC_RefNotC\t" + result.nCphHetAtC_RefNotC + "\t" + "sumCpgHetAtC_RefNotC\t" + 100*result.sumCpgHetAtC_RefNotC/result.nCphHetAtC_RefNotC);
+		writer.println("nCphHetAtC_RefCpg\t" + result.nCphHetAtC_RefCpg + "\t" + "sumCphHetAtC_RefCpg\t" + 100*result.sumCphHetAtC_RefCpg/result.nCphHetAtC_RefCpg);
+		writer.println("nCphHetAtC_RefCph\t" + result.nCphHetAtC_RefCph + "\t" + "sumCphHetAtC_RefCph\t" + 100*result.sumCphHetAtC_RefCph/result.nCphHetAtC_RefCph);
+		writer.println("nCphHetAtC_RefNotC\t" + result.nCphHetAtC_RefNotC + "\t" + "sumCphHetAtC_RefNotC\t" + 100*result.sumCphHetAtC_RefNotC/result.nCphHetAtC_RefNotC);
 		
 		writer.close();
+		if(outRefCphFile != null && outRefCpgFile != null){
+			refCphWriter.close();
+			refCpgWriter.close();
+			if(getToolkit().getArguments().numberOfThreads>1){
+				multiThreadRefCphWriter.close();
+				multiThreadRefCpgWriter.close();
+			}
+		}
+		
 		logger.info("Finished!");
 		logger.info(String.format("Visited Loci: %d,\t Filtered Loci: %d", result.nLociVisited, result.nLociFilterOut));
 		
@@ -622,6 +674,19 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 		}
 		if(vc.hasAttribute(BisulfiteVCFConstants.QUAL_BY_DEPTH) && vc.getAttributeAsDouble(BisulfiteVCFConstants.QUAL_BY_DEPTH, 10000.0) < qd){
 			return true;
+		}
+		if(vc.getGenotype(0).hasAttribute(BisulfiteVCFConstants.C_STATUS)){
+			String cytosineStatus = vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.C_STATUS, ".");
+			if(!cytosineStatus.equalsIgnoreCase(".")){
+				String[] tmp = cytosineStatus.split(",");
+				int numC = Integer.parseInt(tmp[0]);
+				int numT = Integer.parseInt(tmp[1]);
+				//System.err.println(cytosineStatus + "\t" + tmp + "\t" + numC+ "\t" + numT);
+				if(numC + numT < minCT){
+					return true;
+				}
+			}
+			
 		}
 		return false;
 	}

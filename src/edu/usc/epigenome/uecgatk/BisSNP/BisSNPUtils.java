@@ -257,7 +257,7 @@ public class BisSNPUtils {
 	   			Genotype tmp = it.next();
 	   			if(tmp.isHom()){
 	   				if(vc.hasAttribute(BisulfiteVCFConstants.CYTOSINE_TYPE)){
-	   					//System.err.println(vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
+	   					System.err.println(vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
 	   					if(vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".").equalsIgnoreCase("[CG, CH, C]"))
 	   						return true;	
 	   				}

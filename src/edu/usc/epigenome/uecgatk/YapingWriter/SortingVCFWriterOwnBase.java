@@ -116,8 +116,8 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
     
 
     private void emitRecords(boolean emitUnsafe) {
-    	if(mostUpstreamWritableLoc != 0 && mostUpstreamWritableLoc % 100000 ==0)
-    		System.err.println(mostUpstreamWritableLoc + "\t" + queue.peek().vc.getStart());
+    	//if(mostUpstreamWritableLoc != 0 && mostUpstreamWritableLoc % 100000 ==0)
+    		//System.err.println(mostUpstreamWritableLoc + "\t" + queue.peek().vc.getStart());
     	while (!queue.isEmpty()) {
             VCFRecord firstRec = queue.peek();
 
