@@ -10,6 +10,8 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BaseUtilsMore;
+
 
 
 public abstract class SortingVCFWriterOwnBase implements VCFWriter {
@@ -43,7 +45,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
      */
     public SortingVCFWriterOwnBase(VCFWriter innerWriter, boolean takeOwnershipOfInner) {
         this.innerWriter = innerWriter;
-        this.queue = new PriorityBlockingQueue<VCFRecord>(100, new VariantContextComparator());
+        this.queue = new PriorityBlockingQueue<VCFRecord>(100000000, new VariantContextComparator());
         this.mostUpstreamWritableLoc = BEFORE_MOST_UPSTREAM_LOC;
         this.finishedChromosomes = new TreeSet<String>();
         this.takeOwnershipOfInner = takeOwnershipOfInner;
@@ -72,7 +74,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
         mostUpstreamWritableLoc = BEFORE_MOST_UPSTREAM_LOC;
     }
 
-    protected void emitSafeRecords() {
+    public void emitSafeRecords() {
         emitRecords(false);
     }
 
@@ -97,8 +99,8 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
     	}
         VCFRecord firstRec = queue.peek();
         if (firstRec != null && !vc.getChr().equals(firstRec.vc.getChr())) { // if we hit a new contig, flush the queue
-            if (finishedChromosomes.contains(vc.getChr()) && !enableDiscreteLoci)
-                throw new IllegalArgumentException("Added a record at " + vc.getChr() + ":" + vc.getStart() + ", but already finished with chromosome" + vc.getChr());
+           // if (finishedChromosomes.contains(vc.getChr()) && !enableDiscreteLoci)
+           //     throw new IllegalArgumentException("Added a record at " + vc.getChr() + ":" + vc.getStart() + ", but already finished with chromosome" + vc.getChr());
 
             finishedChromosomes.add(firstRec.vc.getChr());
             cachedCurrentChr = vc.getChr();
@@ -114,7 +116,9 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
     
 
     private void emitRecords(boolean emitUnsafe) {
-        while (!queue.isEmpty()) {
+    	if(mostUpstreamWritableLoc != 0 && mostUpstreamWritableLoc % 100000 ==0)
+    		System.err.println(mostUpstreamWritableLoc + "\t" + queue.peek().vc.getStart());
+    	while (!queue.isEmpty()) {
             VCFRecord firstRec = queue.peek();
 
             // No need to wait, waiting for nothing, or before what we're waiting for:
@@ -140,7 +144,7 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
     private static class VariantContextComparator implements Comparator<VCFRecord> {
         public int compare(VCFRecord r1, VCFRecord r2) {
             if(!r1.vc.getChr().equalsIgnoreCase(r2.vc.getChr()))
-            	return -1;
+            	return BaseUtilsMore.contigToIndex(r1.vc.getChr())-BaseUtilsMore.contigToIndex(r1.vc.getChr());
         	return r1.vc.getStart() - r2.vc.getStart();
         }
     }
@@ -154,5 +158,5 @@ public abstract class SortingVCFWriterOwnBase implements VCFWriter {
           //  this.refBase = refBase;
         }
     }
-
+  
 }

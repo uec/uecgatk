@@ -543,4 +543,21 @@ public class BaseUtilsMore {
 	 		   
 	 	   }
 	    }
+	    
+	    static public int contigToIndex(String contig){
+	    	byte contigs = (byte)contig.charAt(3);
+	    	switch(contigs){
+	    	case 'X':
+	    	case 'x':
+	    		return 23;
+	    	case 'Y':
+	    	case 'y':
+	    		return 24;
+	    	case 'M':
+	    	case 'm':
+	    		return 25;
+	    	default:
+	    		return Integer.parseInt(Byte.toString(contigs));
+	    	}
+	    }
 }

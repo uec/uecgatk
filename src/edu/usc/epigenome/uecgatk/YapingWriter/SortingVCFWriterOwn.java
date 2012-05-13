@@ -25,7 +25,7 @@ public class SortingVCFWriterOwn extends SortingVCFWriterOwnBase {
     }
 
     protected void noteCurrentRecord(VariantContext vc) {
-        super.noteCurrentRecord(vc); // first, check for errors
+     //   super.noteCurrentRecord(vc); // first, check for errors
 
         // then, update mostUpstreamWritableLoc:
         int mostUpstreamWritableIndex = vc.getStart() - maxCachingStartDistance;
