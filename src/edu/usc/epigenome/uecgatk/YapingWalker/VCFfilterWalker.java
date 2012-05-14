@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
@@ -78,7 +79,8 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	protected int minNumOneStrand = 2;
 	@Argument(shortName="filterSB",doc="filter out loci that have high Strand bias", required=false)
 	protected boolean filterSB = false;
-
+	@Argument(shortName="filterOneAlleleRead",doc="filter out loci that have only one allele's reads(for heterozygous SNPs statistics only)", required=false)
+	protected boolean filterOneAlleleRead = false;
 
 
 //	private int recCounter = 1;
@@ -108,7 +110,7 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 			for ( VariantContext vc_input : tracker.getValues(oldVcf, ref.getLocus()) ) {
 				if ( vc_input != null ) { 
 				//	oldRecord++;
-					if(passFilter(context)){
+					if(passFilter(context, ref)){
 	    			//	newRecord++;
 						
 						
@@ -156,16 +158,21 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 		logger.info("Finished!");
 	}
 	
-	private boolean passFilter(AlignmentContext context){
-		
+	private boolean passFilter(AlignmentContext context, ReferenceContext ref){
+		HashSet<Byte> baseContainer = new HashSet<Byte>();
 		if(context.hasBasePileup()){
 			int coverage = 0;
-			int negStarndCov = 0;
+			int negStarndCovFirstEnd = 0;
+			int posStarndCovFirstEnd = 0;
+			int negStarndCovSecondEnd = 0;
+			int posStarndCovSecondEnd = 0;
+			int negStarndCov=0;
+			boolean paired = false;
 			//System.err.println(context.hasReads() + "\t" + context.getPosition());
 			for(PileupElement p : context.getBasePileup()){
 				
 				SAMRecord samRecord = p.getRead();
-				
+				paired = samRecord.getReadPairedFlag();
 				if(samRecord.getDuplicateReadFlag() || samRecord.getNotPrimaryAlignmentFlag() || samRecord.getReadFailsVendorQualityCheckFlag() || samRecord.getReadUnmappedFlag() || samRecord.getMappingQuality() < minMapQ || p.getQual() < minBaseQ)
 					continue;
 				if(samRecord.getReadPairedFlag()){
@@ -175,17 +182,77 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 					}
 	 					if(!samRecord.getProperPairFlag())
 	 						continue;
+	 				if(samRecord.getReadNegativeStrandFlag()){
+	 					if (samRecord.getSecondOfPairFlag()){
+	 						negStarndCovSecondEnd++;
+	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.C) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.T)){
+	 							baseContainer.add(BaseUtils.C);
+	 						}
+	 						else{
+	 							baseContainer.add(p.getBase());
+	 						}
+	 					}
+	 					else{
+	 						negStarndCovFirstEnd++;
+	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.G) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.A)){
+	 							baseContainer.add(BaseUtils.G);
+	 						}
+	 						else{
+	 							baseContainer.add(p.getBase());
+	 						}
+	 					}
+	 				}
+	 				else{
+	 					if (samRecord.getSecondOfPairFlag()){
+	 						posStarndCovSecondEnd++;
+	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.G) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.A)){
+	 							baseContainer.add(BaseUtils.G);
+	 						}
+	 						else{
+	 							baseContainer.add(p.getBase());
+	 						}
+	 					}
+	 					else{
+	 						posStarndCovFirstEnd++;
+	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.C) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.T)){
+	 							baseContainer.add(BaseUtils.C);
+	 						}
+	 						else{
+	 							baseContainer.add(p.getBase());
+	 						}
+	 					}
+	 				}
+				}
+				else{
+					if(samRecord.getReadNegativeStrandFlag()){
+						negStarndCov++;
+					}
 				}
 				coverage++;
-				if(samRecord.getReadNegativeStrandFlag()){
-					negStarndCov++;
-				}
+				
 			}
 			if(coverage>=minCov && coverage<=maxCov){	
-				if(filterSB){
-					if((coverage>10 && (double)negStarndCov/(double)coverage > minPercentOneStrand && (double)(coverage-negStarndCov)/(double)coverage > minPercentOneStrand) || (coverage<=10 && negStarndCov > minNumOneStrand && (coverage-negStarndCov) > minNumOneStrand)){
-						return true;
+				if(filterOneAlleleRead){
+					if(baseContainer.size()<2){
+						
+						return false;
 					}
+					else{
+						System.err.println(ref.getLocus().getStart());
+					}
+				}
+				if(filterSB){
+					if(paired){
+						if((coverage>10 && (double)(negStarndCovFirstEnd+posStarndCovSecondEnd)/(double)coverage > minPercentOneStrand && (double)(negStarndCovSecondEnd+posStarndCovFirstEnd)/(double)coverage > minPercentOneStrand) || (coverage<=10 && (negStarndCovFirstEnd+posStarndCovSecondEnd) > minNumOneStrand && (negStarndCovSecondEnd+posStarndCovFirstEnd) > minNumOneStrand)){
+							return true;
+						}
+					}
+					else{
+						if((coverage>10 && (double)negStarndCov/(double)coverage > minPercentOneStrand && (double)(coverage-negStarndCov)/(double)coverage > minPercentOneStrand) || (coverage<=10 && negStarndCov > minNumOneStrand && (coverage-negStarndCov) > minNumOneStrand)){
+							return true;
+						}
+					}
+					
 				}
 				else{
 					return true;
