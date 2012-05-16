@@ -6,7 +6,9 @@ package edu.usc.epigenome.uecgatk.YapingWalker;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.samtools.SAMSequenceDictionary;
 
@@ -17,14 +19,25 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.codecs.vcf.SortingVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BaseUtilsMore;
 import edu.usc.epigenome.uecgatk.BisSNP.BisSNPUtils;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteGenotyper;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
@@ -46,6 +59,9 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
     @Input(fullName="eval", shortName = "eval", doc="Input evaluation file(s)", required=true)
     public RodBinding<VariantContext> eval;
     
+    @Input(fullName="snps", shortName = "snps", doc="Input snps file(s) for filter out those homozygous sites with fake adjacent snps", required=true)
+    public RodBinding<VariantContext> snps;
+    
     @Output(doc="Output summary statistics", required=true)
     public String outFile;
     
@@ -59,16 +75,16 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
     public double qual=20;
     
     @Argument(fullName="strand_bias", shortName = "sb", doc="strand bias filter for heterozygous SNP, default: 0", required=false)
-    public double sb=0;
+    public double sb=0.02;
     
     @Argument(fullName="max_coverage", shortName = "maxCov", doc="maximum coverage filter for heterozygous SNP, default: 100000", required=false)
-    public int maxCov=100000;
+    public int maxCov=120;
     
     @Argument(fullName="quality_by_depth", shortName = "qd", doc="quality by depth filter for heterozygous SNP, default: 0", required=false)
-    public double qd=0;
+    public double qd=1.0;
     
     @Argument(fullName="mapping_quality_zero", shortName = "mq0", doc="fraction of mapping_quality_zero filter for heterozygous SNP, default: 1.0", required=false)
-    public double mq0=1.0;
+    public double mq0=0.1;
     
     @Argument(fullName="min_ct_coverage", shortName = "minCT", doc="minimum number of CT reads for count methylation level, default: 1", required=false)
     public int minCT=1;
@@ -77,11 +93,13 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
     public int minBQ=10;
 	
     private PrintStream writer = null;
-    protected TcgaVCFWriter refCphWriter = null;
-    protected TcgaVCFWriter refCpgWriter = null;
+    protected StandardVCFWriter refCphWriter = null;
+    protected StandardVCFWriter refCpgWriter = null;
     
-    protected SortingTcgaVCFWriter multiThreadRefCphWriter = null;
-    protected SortingTcgaVCFWriter multiThreadRefCpgWriter = null;
+    protected SortingVCFWriter multiThreadRefCphWriter = null;
+    protected SortingVCFWriter multiThreadRefCpgWriter = null;
+    
+    private ReferenceOrderedDataSource rodIt = null;
     
     private int MAXIMUM_CACHE_FOR_OUTPUT_VCF = 10000000;
     
@@ -220,13 +238,30 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 	public void initialize() {
 		try {
 			writer = new PrintStream(new File(outFile));
+			rodIt = getToolkit().getRodDataSources().get(1);
 			if(outRefCphFile != null && outRefCpgFile != null){
 				SAMSequenceDictionary refDict = getToolkit().getMasterSequenceDictionary();
-				refCphWriter = new TcgaVCFWriter(new File(outRefCphFile), refDict);
-				refCpgWriter = new TcgaVCFWriter(new File(outRefCpgFile), refDict);
+				refCphWriter = new StandardVCFWriter(new File(outRefCphFile), refDict);
+				refCpgWriter = new StandardVCFWriter(new File(outRefCpgFile), refDict);
+			//	refCphWriter.setRefSource(getToolkit().getArguments().referenceFile.toString());
+			//	refCpgWriter.setRefSource(getToolkit().getArguments().referenceFile.toString());
 				if(getToolkit().getArguments().numberOfThreads>1){
-					multiThreadRefCphWriter = new SortingTcgaVCFWriter(refCphWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
-					multiThreadRefCpgWriter = new SortingTcgaVCFWriter(refCpgWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
+					multiThreadRefCphWriter = new SortingVCFWriter(refCphWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
+					multiThreadRefCpgWriter = new SortingVCFWriter(refCpgWriter, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
+				}
+				List<RodBinding<VariantContext>> evals = new ArrayList<RodBinding<VariantContext>>();
+				evals.add(eval);
+				Map<String, VCFHeader> headers = VCFUtils.getVCFHeadersFromRods(getToolkit(), evals);
+				for(VCFHeader header : headers.values()){
+					if(getToolkit().getArguments().numberOfThreads>1){
+						multiThreadRefCphWriter.writeHeader(header);
+						multiThreadRefCpgWriter.writeHeader(header);
+					}
+					else{
+						refCphWriter.writeHeader(header);
+						refCpgWriter.writeHeader(header);
+					}
+					
 				}
 			}
 			
@@ -250,12 +285,13 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 		if(tracker==null)
 			return null;
 		List<VariantContext> eval_bindings = tracker.getValues(eval);
+
 		if(!eval_bindings.isEmpty()){
 			
 			
 			VariantContext vc_eval = eval_bindings.get(0); 
 			
-			 return new VCFplusRef(ref, vc_eval);
+			 return new VCFplusRef(ref, vc_eval, tracker);
 		}
 		
 		return null;
@@ -303,9 +339,13 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 			//	System.err.println(value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
 		//		return sum;
 		//	}
-				
+			String strand = value.vc.getAttributeAsString(BisulfiteVCFConstants.C_STRAND_KEY, ".");
+			GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1, value.refContext.getLocus().getLocation().getStart()+1);
+			GenomeLoc searchLocPre = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1);
+			GenomeLoc searchLocPost = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()+1);
+			LocationAwareSeekableRODIterator locRodIt = rodIt.seek(searchLoc);
 			if(BisSNPUtils.isHomoC(value.vc)){
-				if(BisSNPUtils.isRefCpg(value.refContext)){
+				if(BisSNPUtils.isRefCpg(value.refContext)){ // ref cpg
 					//String pattern = value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, ".");
 					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
 					//System.err.println(value.vc.getAttributeAsString(BisulfiteVCFConstants.CYTOSINE_TYPE, "."));
@@ -322,44 +362,217 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						
 					}
 					else if(pattern.equalsIgnoreCase("CH") ){
+						if(strand.equalsIgnoreCase("+")){
+							
+						//	List<VariantContext> snp_bindings = value.track.getValues(snps, searchLoc);
+							
+						//	if(snp_bindings.isEmpty()){
+						//		System.err.println("empty:" + searchLoc.toString() + "\t" + value.vc.getStart());
+						//	}
+							if(!locRodIt.hasNext())	{
+								//System.err.println("empty:" + strand + "\t" + searchLoc.toString() + "\t" + value.vc.getStart());
+								rodIt.close(locRodIt);
+								return sum;
+							}
+							else{
+								RODRecordList rodList = locRodIt.seekForward(searchLocPost);
+								if(rodList==null){
+									rodIt.close(locRodIt);
+									return sum;
+								}
+									
+								VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+								//System.err.println("post:" + snp.toString() + "\t" + searchLocPost.toString() + "\t" + value.vc.getStart() + "\t" + locRodIt.seekForward(searchLocPost).size());
+						//		VariantContext snp = snp_bindings.get(0);
+								if(snp.getGenotype(0).isHomVar() && !islociFilterOut(snp)){
+									sum.nCphTotal++;
+									sum.sumCphTotal += methyValue;
+									sum.nCphHom++;
+									sum.sumCphHom += methyValue;
+									sum.nCphHomRefCpg++;
+									sum.sumCphHomRefCpg += methyValue;
+								}
+								else{
+									//System.err.println(snp.toString());
+								}
+							}
+						}
+						else if(strand.equalsIgnoreCase("-")){
+							//GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1);
+							if(!locRodIt.hasNext())	{	
+								rodIt.close(locRodIt);
+								return sum;
+							}
+							else{
+								RODRecordList rodList = locRodIt.seekForward(searchLocPre);
+								if(rodList==null){
+									rodIt.close(locRodIt);
+									return sum;
+								}
+									
+								VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+								//System.err.println("pre:" + snp.toString() + "\t" + searchLocPre.toString() + "\t" + value.vc.getStart() + "\t" + locRodIt.seekForward(searchLocPre).size());
+								if(snp.getGenotype(0).isHomVar() && !islociFilterOut(snp)){
+									sum.nCphTotal++;
+									sum.sumCphTotal += methyValue;
+									sum.nCphHom++;
+									sum.sumCphHom += methyValue;
+									sum.nCphHomRefCpg++;
+									sum.sumCphHomRefCpg += methyValue;
+								}
+								else{
+									
+								}
+							}
+						}
 						
-						sum.nCphTotal++;
-						sum.sumCphTotal += methyValue;
-						sum.nCphHom++;
-						sum.sumCphHom += methyValue;
-						sum.nCphHomRefCpg++;
-						sum.sumCphHomRefCpg += methyValue;
 					}
 					else if(pattern.equalsIgnoreCase(".") || pattern.equalsIgnoreCase("C")){
 						
 					}
 					else{
-						if(pattern.contains("C")){  //not only C but also contain some other base
+						byte[] bases = pattern.getBytes();
+						if(BaseUtils.basesAreEqual(bases[0], BaseUtilsMore.C) && BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[1], BaseUtilsMore.G)){  //not only C but also contain some other base
 						//if(BisSNPUtils.isHetCpg_at_G(value.vc)){
-							sum.nCpgTotal++;
-							sum.sumCpgTotal += methyValue;
-							sum.nCpgHet++;
-							sum.sumCpgHet += methyValue;
-							sum.nCpgHetRefCpg++;
-							sum.sumCpgHetRefCpg += methyValue;
-							sum.nCpgHetAtG_RefCpg++;
-							sum.sumCpgHetAtG_RefCpg += methyValue;
-							if(outRefCphFile != null && outRefCpgFile != null)
-								refCpgWriter.add(value.vc);
+							if(strand.equalsIgnoreCase("+")){
+								//GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()+1);
+								if(!locRodIt.hasNext())	{	
+									rodIt.close(locRodIt);
+									return sum;
+								}
+								else{
+									RODRecordList rodList = locRodIt.seekForward(searchLocPost);
+									if(rodList==null){
+										rodIt.close(locRodIt);
+										return sum;
+									}
+										
+									VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+									if(snp.getGenotype(0).isHet() && !islociFilterOut(snp)){
+										sum.nCpgTotal++;
+										sum.sumCpgTotal += methyValue;
+										sum.nCpgHet++;
+										sum.sumCpgHet += methyValue;
+										sum.nCpgHetRefCpg++;
+										sum.sumCpgHetRefCpg += methyValue;
+										sum.nCpgHetAtG_RefCpg++;
+										sum.sumCpgHetAtG_RefCpg += methyValue;
+										if(outRefCphFile != null && outRefCpgFile != null){
+											if(getToolkit().getArguments().numberOfThreads>1){
+												multiThreadRefCpgWriter.add(value.vc);
+											}
+											else{
+												refCpgWriter.add(value.vc);
+											}
+										}
+									}
+									else{
+										
+									}
+								}
+							}
+							else if(strand.equalsIgnoreCase("-")){
+							//	GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1);
+								if(!locRodIt.hasNext())	{	
+									rodIt.close(locRodIt);
+									return sum;
+								}
+								else{
+									RODRecordList rodList = locRodIt.seekForward(searchLocPre);
+									if(rodList==null){
+										rodIt.close(locRodIt);
+										return sum;
+									}
+										
+									VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+									if(snp.getGenotype(0).isHet() && !islociFilterOut(snp)){
+										sum.nCpgTotal++;
+										sum.sumCpgTotal += methyValue;
+										sum.nCpgHet++;
+										sum.sumCpgHet += methyValue;
+										sum.nCpgHetRefCpg++;
+										sum.sumCpgHetRefCpg += methyValue;
+										sum.nCpgHetAtG_RefCpg++;
+										sum.sumCpgHetAtG_RefCpg += methyValue;
+										if(outRefCphFile != null && outRefCpgFile != null){
+											if(getToolkit().getArguments().numberOfThreads>1){
+												multiThreadRefCpgWriter.add(value.vc);
+											}
+											else{
+												refCpgWriter.add(value.vc);
+											}
+										}
+									}
+									else{
+										
+									}
+								}
+							}
+							
+								
 							//System.err.println(value.refContext.getLocus().toString() + "\t" + value.vc.getGenotype(0) + "\t" + numC + "\t" + numT + "\t" + sum.nCpgHetAtG_RefCpg + "\t" + sum.sumCpgHetAtG_RefCpg);
 						}
 					}
 					
 				}
-				else if(BisSNPUtils.isRefCph(value.refContext)){
+				else if(BisSNPUtils.isRefCph(value.refContext)){  //ref cph
 					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
 					if(pattern.equalsIgnoreCase("CG")){
-						sum.nCpgTotal++;
-						sum.sumCpgTotal += methyValue;
-						sum.nCpgHom++;
-						sum.sumCpgHom += methyValue;
-						sum.nCpgHomRefCph++;
-						sum.sumCpgHomRefCph += methyValue;
+						if(strand.equalsIgnoreCase("+")){
+						//	GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()+1);
+							if(!locRodIt.hasNext())	{	
+								rodIt.close(locRodIt);
+								return sum;
+							}
+							else{
+								RODRecordList rodList = locRodIt.seekForward(searchLocPost);
+								if(rodList==null){
+									rodIt.close(locRodIt);
+									return sum;
+								}
+									
+								VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+								if(snp.getGenotype(0).isHomVar() && !islociFilterOut(snp)){
+									sum.nCpgTotal++;
+									sum.sumCpgTotal += methyValue;
+									sum.nCpgHom++;
+									sum.sumCpgHom += methyValue;
+									sum.nCpgHomRefCph++;
+									sum.sumCpgHomRefCph += methyValue;
+								}
+								else{
+									
+								}
+							}
+						}
+						else if(strand.equalsIgnoreCase("-")){
+						//	GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1);
+							if(!locRodIt.hasNext())	{	
+								rodIt.close(locRodIt);
+								return sum;
+							}
+							else{
+								RODRecordList rodList = locRodIt.seekForward(searchLocPre);
+								if(rodList==null){
+									rodIt.close(locRodIt);
+									return sum;
+								}
+									
+								VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+								if(snp.getGenotype(0).isHomVar() && !islociFilterOut(snp)){
+									sum.nCpgTotal++;
+									sum.sumCpgTotal += methyValue;
+									sum.nCpgHom++;
+									sum.sumCpgHom += methyValue;
+									sum.nCpgHomRefCph++;
+									sum.sumCpgHomRefCph += methyValue;
+								}
+								else{
+									
+								}
+							}
+						}
+						
 					//	System.err.println(value.refContext.getLocus().toString() + "\t" + value.vc.getGenotype(0) + "\t" + numC + "\t" + numT + "\t" + sum.nCpgHomRefCph + "\t" + sum.sumCpgHomRefCph);
 					}
 					else if(pattern.equalsIgnoreCase("CH") ){
@@ -374,21 +587,88 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						
 					}
 					else{
-						if(pattern.contains("C")){
-							sum.nCpgTotal++;
-							sum.sumCpgTotal += methyValue;
-							sum.nCpgHet++;
-							sum.sumCpgHet += methyValue;
-							sum.nCpgHetRefCph++;
-							sum.sumCpgHetRefCph += methyValue;
-							sum.nCpgHetAtG_RefCph++;
-							sum.sumCpgHetAtG_RefCph += methyValue;
-							if(outRefCphFile != null && outRefCpgFile != null)
-								refCphWriter.add(value.vc);
+						byte[] bases = pattern.getBytes();
+						if(BaseUtils.basesAreEqual(bases[0], BaseUtilsMore.C) && BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[1], BaseUtilsMore.G)){
+							if(strand.equalsIgnoreCase("+")){
+						//		GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()+1);
+								if(!locRodIt.hasNext())	{	
+									rodIt.close(locRodIt);
+									return sum;
+								}
+								else{
+									RODRecordList rodList = locRodIt.seekForward(searchLocPost);
+									if(rodList==null){
+										rodIt.close(locRodIt);
+										return sum;
+									}
+										
+									VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+									if(snp.getGenotype(0).isHet() && !islociFilterOut(snp)){
+										sum.nCpgTotal++;
+										sum.sumCpgTotal += methyValue;
+										sum.nCpgHet++;
+										sum.sumCpgHet += methyValue;
+										sum.nCpgHetRefCph++;
+										sum.sumCpgHetRefCph += methyValue;
+										sum.nCpgHetAtG_RefCph++;
+										sum.sumCpgHetAtG_RefCph += methyValue;
+										if(outRefCphFile != null && outRefCpgFile != null){
+											if(getToolkit().getArguments().numberOfThreads>1){
+												multiThreadRefCphWriter.add(value.vc);
+											}
+											else{
+												refCphWriter.add(value.vc);
+											}
+										}
+									}
+									else{
+										
+									}
+								}
+							}
+							else if(strand.equalsIgnoreCase("-")){
+							//	GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(value.refContext.getLocus().getLocation().getContig(), value.refContext.getLocus().getLocation().getStart()-1);
+								if(!locRodIt.hasNext())	{	
+									rodIt.close(locRodIt);
+									return sum;
+								}
+								else{
+									RODRecordList rodList = locRodIt.seekForward(searchLocPre);
+									if(rodList==null){
+										rodIt.close(locRodIt);
+										return sum;
+									}
+										
+									VariantContext snp = (VariantContext) rodList.get(0).getUnderlyingObject();
+									if(snp.getGenotype(0).isHet() && !islociFilterOut(snp)){
+										sum.nCpgTotal++;
+										sum.sumCpgTotal += methyValue;
+										sum.nCpgHet++;
+										sum.sumCpgHet += methyValue;
+										sum.nCpgHetRefCph++;
+										sum.sumCpgHetRefCph += methyValue;
+										sum.nCpgHetAtG_RefCph++;
+										sum.sumCpgHetAtG_RefCph += methyValue;
+										if(outRefCphFile != null && outRefCpgFile != null){
+											if(getToolkit().getArguments().numberOfThreads>1){
+												multiThreadRefCphWriter.add(value.vc);
+											}
+											else{
+												refCphWriter.add(value.vc);
+											}
+										}
+									}
+									else{
+										
+									}
+								}
+							}
+							
+								
 						}
 					}
 				}
-				else{
+				else{  //ref not C
 					String pattern = value.vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".");
 					if(pattern.equalsIgnoreCase("CG")){
 						sum.nCpgTotal++;
@@ -410,7 +690,8 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 						
 					}
 					else{
-						if(pattern.contains("C")){
+						byte[] bases = pattern.getBytes();
+						if(BaseUtils.basesAreEqual(bases[0], BaseUtilsMore.C) && BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[1], BaseUtilsMore.G)){
 							sum.nCpgTotal++;
 							sum.sumCpgTotal += methyValue;
 							sum.nCpgHet++;
@@ -495,6 +776,7 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 					}
 				}
 			}
+			rodIt.close(locRodIt);
 		}
 		
 		return sum;
@@ -616,11 +898,14 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 		
 		writer.close();
 		if(outRefCphFile != null && outRefCpgFile != null){
-			refCphWriter.close();
-			refCpgWriter.close();
+			
 			if(getToolkit().getArguments().numberOfThreads>1){
 				multiThreadRefCphWriter.close();
 				multiThreadRefCpgWriter.close();
+			}
+			else{
+				refCphWriter.close();
+				refCpgWriter.close();
 			}
 		}
 		
@@ -632,9 +917,11 @@ public class VCFstatisticsWalker extends RodWalker<VCFstatisticsWalker.VCFplusRe
 	public class VCFplusRef{
 		public ReferenceContext refContext;
 		public VariantContext vc;
-		public VCFplusRef(ReferenceContext ref, VariantContext vc_eval){
+		public RefMetaDataTracker track;
+		public VCFplusRef(ReferenceContext ref, VariantContext vc_eval, RefMetaDataTracker tracker){
 			refContext = ref;
 			vc = vc_eval;
+			track = tracker;
 		}
 		
 	}

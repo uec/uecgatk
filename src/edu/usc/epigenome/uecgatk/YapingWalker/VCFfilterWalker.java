@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
@@ -64,6 +65,9 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	@Output(fullName="new_vcf", shortName = "newVcf", doc="filtered vcf file", required=true)
 	public VCFWriter newVcf = null;
 	
+	@Output(fullName="filteredMinorAllele", shortName = "filteredMinorAllele", doc="output filtered Minor Allele", required=false)
+	public PrintStream filteredMinorAllele = null;
+	
 	
 	@Argument(shortName="minCov",doc="minimum covergae required for the position in VCF file, default:1", required=false)
 	protected int minCov = 1;
@@ -81,6 +85,9 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	protected boolean filterSB = false;
 	@Argument(shortName="filterOneAlleleRead",doc="filter out loci that have only one allele's reads(for heterozygous SNPs statistics only)", required=false)
 	protected boolean filterOneAlleleRead = false;
+	
+	@Argument(shortName="minReadsMinorAllele",doc="minimum number of reads in minor allele, default:1", required=false)
+	protected int minReadsMinorAllele = 1;
 
 
 //	private int recCounter = 1;
@@ -110,7 +117,7 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 			for ( VariantContext vc_input : tracker.getValues(oldVcf, ref.getLocus()) ) {
 				if ( vc_input != null ) { 
 				//	oldRecord++;
-					if(passFilter(context, ref)){
+					if(passFilter(context, ref, vc_input)){
 	    			//	newRecord++;
 						
 						
@@ -158,8 +165,8 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 		logger.info("Finished!");
 	}
 	
-	private boolean passFilter(AlignmentContext context, ReferenceContext ref){
-		HashSet<Byte> baseContainer = new HashSet<Byte>();
+	private boolean passFilter(AlignmentContext context, ReferenceContext ref, VariantContext vc){
+		HashMap<Byte,Integer> baseContainer = new HashMap<Byte,Integer>();
 		if(context.hasBasePileup()){
 			int coverage = 0;
 			int negStarndCovFirstEnd = 0;
@@ -186,19 +193,36 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	 					if (samRecord.getSecondOfPairFlag()){
 	 						negStarndCovSecondEnd++;
 	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.C) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.T)){
-	 							baseContainer.add(BaseUtils.C);
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(BaseUtils.C))
+	 								num = baseContainer.get(BaseUtils.C);
+	 							num++;
+	 							baseContainer.put(BaseUtils.C, num);
+	 							
 	 						}
 	 						else{
-	 							baseContainer.add(p.getBase());
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(p.getBase()))
+	 								num = baseContainer.get(p.getBase());
+	 							num++;
+	 							baseContainer.put(p.getBase(), num);
 	 						}
 	 					}
 	 					else{
 	 						negStarndCovFirstEnd++;
 	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.G) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.A)){
-	 							baseContainer.add(BaseUtils.G);
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(BaseUtils.G))
+	 								num = baseContainer.get(BaseUtils.G);
+	 							num++;
+	 							baseContainer.put(BaseUtils.G, num);
 	 						}
 	 						else{
-	 							baseContainer.add(p.getBase());
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(p.getBase()))
+	 								num = baseContainer.get(p.getBase());
+	 							num++;
+	 							baseContainer.put(p.getBase(), num);
 	 						}
 	 					}
 	 				}
@@ -206,19 +230,35 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	 					if (samRecord.getSecondOfPairFlag()){
 	 						posStarndCovSecondEnd++;
 	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.G) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.A)){
-	 							baseContainer.add(BaseUtils.G);
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(BaseUtils.G))
+	 								num = baseContainer.get(BaseUtils.G);
+	 							num++;
+	 							baseContainer.put(BaseUtils.G, num);
 	 						}
 	 						else{
-	 							baseContainer.add(p.getBase());
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(p.getBase()))
+	 								num = baseContainer.get(p.getBase());
+	 							num++;
+	 							baseContainer.put(p.getBase(), num);
 	 						}
 	 					}
 	 					else{
 	 						posStarndCovFirstEnd++;
 	 						if(BaseUtils.basesAreEqual(ref.getBase(), BaseUtils.C) && BaseUtils.basesAreEqual(p.getBase(), BaseUtils.T)){
-	 							baseContainer.add(BaseUtils.C);
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(BaseUtils.C))
+	 								num = baseContainer.get(BaseUtils.C);
+	 							num++;
+	 							baseContainer.put(BaseUtils.C, num);
 	 						}
 	 						else{
-	 							baseContainer.add(p.getBase());
+	 							Integer num=0;
+	 							if(baseContainer.containsKey(p.getBase()))
+	 								num = baseContainer.get(p.getBase());
+	 							num++;
+	 							baseContainer.put(p.getBase(), num);
 	 						}
 	 					}
 	 				}
@@ -233,12 +273,33 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 			}
 			if(coverage>=minCov && coverage<=maxCov){	
 				if(filterOneAlleleRead){
-					if(baseContainer.size()<2){
+					if(baseContainer.keySet().size()<2){
 						
 						return false;
 					}
 					else{
-						System.err.println(ref.getLocus().getStart());
+						int tmpNum = Integer.MAX_VALUE;
+						byte minorAllele = BaseUtils.NO_CALL_INDEX;
+						int totalCoverage = 0;
+						for(Byte base : baseContainer.keySet()){
+							if(baseContainer.get(base) <= tmpNum){
+								minorAllele = base;
+								tmpNum = baseContainer.get(base);
+							}
+							totalCoverage+=baseContainer.get(base);
+								
+						}
+					//	if(ref.getLocus().getStart() == 7001200)
+					//		System.err.println(baseContainer.keySet().toString() + "\t" + baseContainer.values().toString());
+						if(tmpNum <= minReadsMinorAllele){
+							if(filteredMinorAllele != null){
+								filteredMinorAllele.println(ref.getLocus().getContig() + "\t" + ref.getLocus().getStart() + "\t" + (char)ref.getBase() + "\t" + (char)minorAllele + "\t" + tmpNum + "\t" + totalCoverage + "\t" + vc.toString());
+							}
+							return false;
+						}
+						
+						
+					//	System.err.println(ref.getLocus().getStart());
 					}
 				}
 				if(filterSB){
