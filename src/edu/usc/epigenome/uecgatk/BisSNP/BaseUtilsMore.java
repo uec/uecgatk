@@ -153,6 +153,132 @@ public class BaseUtilsMore {
 		
 	}
 	
+	static public boolean iupacCodeEqualNotConsiderMethyStatus(String pattern, String observe){
+		byte[] patterns = pattern.getBytes();
+		byte[] observes = observe.getBytes();
+		if(patterns.length!=observes.length)
+			return false;
+		for(int i=0;i<observes.length; i++){
+			if(!iupacCodeEqualNotConsiderMethyStatus(patterns[i],observes[i])){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	static public boolean iupacCodeOverlap(String pattern, String observe){
+		byte[] patterns = pattern.getBytes();
+		byte[] observes = observe.getBytes();
+		if(patterns.length!=observes.length)
+			return false;
+		for(int i=0;i<observes.length; i++){
+			if(!iupacCodeOverlap(patterns[i],observes[i])){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	
+	static public boolean iupacCodeOverlap(byte pattern, byte observe){ //observed pattern and search pattern has some overlap, like 'H' overlapped with 'B'
+		pattern = toUpperCase(pattern);
+		observe = toUpperCase(observe);
+		if(observe == BaseUtils.N || pattern == BaseUtils.N){
+				return true;
+		}
+		else if(pattern == observe){
+			return true;
+		}	
+		else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.R)){
+					switch(observe){
+					case 'C':
+					case 'T':
+					case 'Y':
+						return false;	
+					default:
+						return true;
+					}
+		}
+		else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.Y)){
+			switch(observe){
+			case 'A':
+			case 'G':
+			case 'R':
+				return false;	
+			default:
+				return true;
+			}
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.S)){
+			switch(observe){
+			case 'A':
+			case 'T':
+			case 'W':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.W)){
+			switch(observe){
+			case 'G':
+			case 'C':
+			case 'S':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.K)){
+			switch(observe){
+			case 'A':
+			case 'C':
+			case 'M':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.M)){
+			switch(observe){
+			case 'G':
+			case 'T':
+			case 'K':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.B)){
+			switch(observe){
+			case 'A':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.H)){
+			switch(observe){
+			case 'G':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.V)){
+			switch(observe){
+			case 'T':
+				return false;	
+			default:
+				return true;
+			}	
+		}else if(BaseUtils.basesAreEqual(pattern, BaseUtilsMore.D)){
+			switch(observe){
+			case 'C':
+				return false;	
+			default:
+				return true;
+			}	
+		}
+		else{
+			
+			System.err.println("error! wrong observed base!");
+			return false;
+		}
+	}
 //find the observe base is matched IUPAC code pattern or not, but not consider cytosine methylation. this is the one i use
 	static public boolean iupacCodeEqualNotConsiderMethyStatus(byte pattern, byte observe){
 		pattern = toUpperCase(pattern);

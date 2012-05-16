@@ -112,7 +112,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	//@Argument(fullName = "tcga_format_vcf", shortName = "tcga", doc = "output TCGA specific VCF format or not, not used yet, in test", required = false)
     //public boolean tcga = false;
 	
-    @Argument(fullName = "output_modes", shortName = "out_modes", doc = "Output modes[EMIT_VARIANTS_ONLY,EMIT_ALL_CONFIDENT_SITES,EMIT_ALL_SITES,EMIT_ALL_CPG, EMIT_ALL_CYTOSINES,EMIT_HET_SNPS_ONLY, DEFAULT_FOR_TCGA]", required = false)
+    @Argument(fullName = "output_modes", shortName = "out_modes", doc = "Output modes[EMIT_VARIANTS_ONLY,EMIT_ALL_CONFIDENT_SITES,EMIT_ALL_SITES,EMIT_ALL_CPG, EMIT_ALL_CYTOSINES,EMIT_HET_SNPS_ONLY, DEFAULT_FOR_TCGA, EMIT_VARIANT_AND_CYTOSINES]", required = false)
     public BisulfiteEnums.OUTPUT_MODE OutputMode = BisulfiteEnums.OUTPUT_MODE.DEFAULT_FOR_TCGA;
     
   //  @Argument(fullName = "vcf_file_name", shortName = "vfn", doc = "output Vcf file", required = true)

@@ -227,7 +227,7 @@ public class BisSNPUtils {
  	     }
  	     return false;
  	}
-	
+	/*
 	public static boolean isHetCpg_at_C(VariantContext vc) {
 	   	 if(vc.hasGenotypes()){
 	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
@@ -249,7 +249,8 @@ public class BisSNPUtils {
 	     }
 	     return false;
 	}
-	
+	*/
+	/*
 	public static boolean isHetCpg_at_G(VariantContext vc) {
 	   	 if(vc.hasGenotypes()){
 	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
@@ -266,8 +267,8 @@ public class BisSNPUtils {
 	     }
 	     return false;
 	}
+	*/
 	
-	/* After fix bugs in BisulfiteGenotyperEngine, the following two should works correct!!
 	public static boolean isHetCpg_at_C(VariantContext vc) {
  	   	 if(vc.hasGenotypes()){
  	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
@@ -310,7 +311,7 @@ public class BisSNPUtils {
 	     }
 	     return false;
 	}
-	*/
+	
 	public static boolean isHetCph_at_C(VariantContext vc) {
 	   	 if(vc.hasGenotypes()){
 	   		Iterator<Genotype> it = vc.getGenotypes().iterator();
@@ -334,7 +335,63 @@ public class BisSNPUtils {
 	}
 	
 	
+	public static boolean isRefCytosinePattern(ReferenceContext refContext, String cytosinePattern){
+		if(isRefCytosinePattern(refContext, cytosinePattern, false) || isRefCytosinePattern(refContext, cytosinePattern, true))
+			return true;
+		return false;
+	}
 	
+	public static boolean isRefCytosinePattern(ReferenceContext refContext, String cytosinePattern, boolean negStrand){
+		
+		byte[] bases = cytosinePattern.getBytes();
+		int matches=0;
+		if(negStrand){
+			byte[] refBytesRev = new byte[cytosinePattern.length()];
+			
+			for(int i=0; i < cytosinePattern.length(); i++){
+				GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), refContext.getLocus().getStart() - i );
+				if( !refContext.getWindow().containsP(loc) ){
+					refBytesRev[i]=BaseUtils.NO_CALL_INDEX;
+					continue;
+				}
+
+				ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+				refBytesRev[i] = tmpRef.getBase();
+			}
+			refBytesRev = BaseUtils.simpleReverseComplement(refBytesRev);
+			for(int i=0; i<bases.length; i++){
+				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[i], refBytesRev[i])){
+					matches++;
+				}
+			}
+			if(matches == bases.length)
+				return true;
+		}
+		else{
+			byte[] refBytesFwd = new byte[cytosinePattern.length()];
+			for(int i=0; i < cytosinePattern.length(); i++){
+				GenomeLoc loc = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), refContext.getLocus().getStart() + i );
+				if( !refContext.getWindow().containsP(loc) ){
+					refBytesFwd[i]=BaseUtils.NO_CALL_INDEX;
+					continue;
+				}
+					
+				
+				ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
+				refBytesFwd[i] = tmpRef.getBase();
+			}
+			
+			for(int i=0; i<bases.length; i++){
+				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[i], refBytesFwd[i])){
+					matches++;
+				}
+			}
+			if(matches == bases.length)
+				return true;
+		}
+		
+		return false;
+	}
 	
 	public static boolean isRefCpg(ReferenceContext refContext){
 		byte[] refBytes = new byte[3];
