@@ -77,8 +77,8 @@ import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.NONE)
-public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
-		implements TreeReducible<Boolean> {
+public class MethyPatternFeatureWalker extends LocusWalker<Boolean, MethyPatternFeatureWalker.FeatureCondition>
+		implements TreeReducible<MethyPatternFeatureWalker.FeatureCondition> {
 
 	@ArgumentCollection private static BisulfiteArgumentCollection BAC = new BisulfiteArgumentCollection();
 	
@@ -100,6 +100,9 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature", required = false)
     public int distance = 2000;
 	
+	@Argument(fullName = "bin_size", shortName = "binSize", doc = "define the bin size when sliding window. default: 1", required = false)
+    public int binSize = 1;
+	
 	@Argument(fullName = "minium_CT_reads_count", shortName = "minCTdepth", doc = "minium number of CT reads should contained to calculate methylation value", required = false)
     public int minCTdepth = 1;
 	
@@ -120,12 +123,6 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	private bedObjectWriterImp wcgWriter = null;
 	private bedObjectWriterImp hcgWriter = null;
 	
-//	private SortingBedObjectWriter gchMultiWriter = null;
-//	private SortingBedObjectWriter wcgMultiWriter = null;
-//	private SortingBedObjectWriter hcgMultiWriter = null;
-	
-	
-	
 	private boolean inFeature = false;
 	private boolean writtenObject = false;
 	
@@ -141,7 +138,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	private int bedStart = 0;
 	private int bedEnd = 0;
 	private SimpleBEDFeature bed = null;
-	private Strand strand = null;
+	private Strand strand = Strand.NONE;
 
 	
 	public void initialize(){
@@ -151,7 +148,6 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		 gchWriter = new bedObjectWriterImp(fn1);
 		 wcgWriter = new bedObjectWriterImp(fn2);
 		 hcgWriter = new bedObjectWriterImp(fn3);
-		 //genotypePriors = new BisulfiteDiploidSNPGenotypePriors();
 		 tmpMethyValueListGch = new LinkedList<Double>();
 		 tmpMethyValueListWcg = new LinkedList<Double>();
 		 tmpMethyValueListHcg = new LinkedList<Double>();
@@ -163,16 +159,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	@Override
 	public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref,
 			AlignmentContext context) {
-		// TODO Auto-generated method stub
-		// List<Object> featureList = tracker.getReferenceMetaData(feature);
-		// System.err.println(tracker.hasROD(feature) + feature + "\t" + featureList.size());
-	 //    if ( featureList.size() < 1 || ! (featureList.get(0) instanceof SimpleBEDFeature)) {
-	    	
-	  //  	 throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", feature));
-	   //  }
-	    // Iterator<Object> iter = featureList.iterator();
-	     
-	     
+
 	     GenomeLoc loc = ref.getLocus().getLocation();
     	 GenomeLoc searchLoc = getToolkit().getGenomeLocParser().createGenomeLoc(ref.getLocus().getLocation().getContig(), ref.getLocus().getLocation().getStart()-distance-10, ref.getLocus().getLocation().getStart()+distance+10);
     	 
@@ -188,7 +175,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 
     		 if(!inFeature){
     			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
-    		//	 System.err.println(rodList.get(0).getUnderlyingObject());
+    			// System.err.println(rodList.get(0).getUnderlyingObject());
     			 //rodList.get(0).getUnderlyingObject()
     			// for(Object it : rodList){
     				 if(rodList.get(0).getUnderlyingObject() instanceof SimpleBEDFeature){
@@ -212,12 +199,12 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     			 //} 
     		}
     		else{
-     			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)));
+     			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) + "\t" + bed.toString());
      				 if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
 
      	    		 inFeature = false;
      	    		 writtenObject = false;
-     	    	//	 System.err.println(bed.getStart());
+     	    		// System.err.println(bed.getStart());
      	    		// break;
      				 }
      		}
@@ -225,60 +212,24 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
             
     	 }
     	 
-    	// System.err.println(loc.toString());
-    	// System.err.println(searchLoc.toString());
-    	 //locRodIt.close();
+    	
     	 rodIt.close(locRodIt);
-    	// System.err.println(getToolkit().getRodDataSources().get(0).seek(searchLoc).seekForward(searchLoc).getLocation().toString());
-    	// System.err.println(getToolkit().getRodDataSources().get(0).seek(searchLoc).seekForward(searchLoc).get(0).getLocation().toString());
-    	// System.err.println(getToolkit().getRodDataSources().get(0).seek(searchLoc).peekNextLocation().getLocation().toString());
-    	 /*
-	     while(iter.hasNext()){
-	    	 SimpleBEDFeature bed = (SimpleBEDFeature)iter.next();
-	    	 
-	    	 int motifCenter = 0;
-				if(alignmentType == MotifAlignmentType.Center){
-					motifCenter = (bed.getEnd() + bed.getStart())/2;
-				}
-				else if(alignmentType == MotifAlignmentType.ThreeEnd){
-					motifCenter = bed.getEnd();
-				}
-				else if(alignmentType ==MotifAlignmentType.FiveEnd){
-					motifCenter = bed.getStart();
-				}
-				else{
-					System.err.println("alignment type error!");
-				}
-	    
-	    	 if(ref.getLocus().getLocation().distance(loc) <= distance) {
-	    		 strand = bed.getStrand();
-	    		 chr = bed.getChr();
-	    		 bedStart = bed.getStart();
-	    		 bedEnd = bed.getEnd();
-	    		 inFeature = true;
-	    		 writtenObject = false;
-	    		 break;
-	    	 }
-	    	 else{
-	    		 inFeature = false; 
-	    	 }
-	    	 
-	     }
-	     */
+    	
 	     if(!inFeature){
 	    	 if(!writtenObject && (!tmpMethyValueListGch.isEmpty() || !tmpMethyValueListWcg.isEmpty() || !tmpMethyValueListHcg.isEmpty())){
+	    		 System.err.println(tmpMethyValueListGch.size() + "\t" + tmpMethyValueListWcg.size());
 	    		 if(tmpMethyValueListGch.size() == distance * 2 + 1){
-	    			 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListGch); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+	    			 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpMethyValueListGch); //chr, start, end, strand, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
 		    		 gchWriter.add(bedLineGch);
 	    		 }
 	    		
 	    		 if(tmpMethyValueListWcg.size() == distance * 2 + 1){
-	    			 bedObject bedLineWcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListWcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+	    			 bedObject bedLineWcg = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpMethyValueListWcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
 		    		 wcgWriter.add(bedLineWcg);
 	    		 }
 	    		 
 	    		 if(tmpMethyValueListHcg.size() == distance * 2 + 1){
-	    			 bedObject bedLineHcg = new bedObject(chr, bedStart, bedEnd, (List)tmpMethyValueListHcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
+	    			 bedObject bedLineHcg = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpMethyValueListHcg); //chr, start, end, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
 		    		 hcgWriter.add(bedLineHcg);
 	    		 }
 
@@ -307,8 +258,14 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		boolean isHcg = false;
 	 		BG_engine = new BisulfiteGenotyperEngine(tracker, ref, context, BAC, getToolkit());
 	 		BisulfiteVariantCallContext bvc = BG_engine.getBisulfiteVariantCallContext();
-	 		if(bvc == null || bvc.getSummaryAcrossRG().cytosinePatternConfirmedSet ==null)
-	 			return null;
+	 		if(bvc == null || bvc.getSummaryAcrossRG().cytosinePatternConfirmedSet ==null){
+	 			addContextToList(null, strand, tmpMethyValueListGch);
+ 				addContextToList(null, strand, tmpMethyValueListWcg);
+ 				addContextToList(null, strand, tmpMethyValueListHcg);
+ 				return null;
+	 			
+	 		}
+	 		//	return null;
 	 		HashSet<String> cytosinePatternConfirmedList = bvc.getSummaryAcrossRG().cytosinePatternConfirmedSet;
 	 		
 	 		for(String cytosinePattern : cytosinePatternConfirmedList){
@@ -358,24 +315,45 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	}
 
 	@Override
-	public Boolean reduceInit() {
+	public FeatureCondition reduceInit() {
 		// TODO Auto-generated method stub
-		return null;
+		return new FeatureCondition();
 	}
 
 	@Override
-	public Boolean reduce(Boolean value, Boolean sum) {
+	public FeatureCondition reduce(Boolean value, FeatureCondition sum) {
 		// TODO Auto-generated method stub
-		return null;
+		return new FeatureCondition();
 	}
 	
 	@Override
-	public Boolean treeReduce(Boolean lhs, Boolean rhs) {
+	public FeatureCondition treeReduce(FeatureCondition lhs, FeatureCondition rhs) {
 		// TODO Auto-generated method stub
-		return null;
+		lhs.visitedFeatures += rhs.visitedFeatures;
+		lhs.nNoGchValueFeatures += rhs.nNoGchValueFeatures;
+		lhs.nNoHcgValueFeatures += rhs.nNoHcgValueFeatures;
+		lhs.nNoWcgValueFeatures += rhs.nNoWcgValueFeatures;
+		
+		lhs.nGchConfidantlyCalled += rhs.nGchConfidantlyCalled;
+		lhs.nHcgConfidantlyCalled += rhs.nHcgConfidantlyCalled;
+		lhs.nWcgConfidantlyCalled += rhs.nWcgConfidantlyCalled;
+		
+		lhs.sumCTReadsGchConfidantlyCalled += rhs.sumCTReadsGchConfidantlyCalled;
+		lhs.sumCTReadsHcgConfidantlyCalled += rhs.sumCTReadsGchConfidantlyCalled;
+		lhs.sumCTReadsWcgConfidantlyCalled += rhs.sumCTReadsGchConfidantlyCalled;
+		
+		lhs.sumReadsGchConfidantlyCalled += rhs.sumReadsGchConfidantlyCalled;
+		lhs.sumReadsHcgConfidantlyCalled += rhs.sumReadsHcgConfidantlyCalled;
+		lhs.sumReadsWcgConfidantlyCalled += rhs.sumReadsWcgConfidantlyCalled;
+		
+		lhs.sumMethyReadsGchConfidantlyCalled += rhs.sumMethyReadsGchConfidantlyCalled;
+		lhs.sumMethyReadsHcgConfidantlyCalled += rhs.sumMethyReadsHcgConfidantlyCalled;
+		lhs.sumMethyReadsWcgConfidantlyCalled += rhs.sumMethyReadsWcgConfidantlyCalled;
+		
+		return lhs;
 	}
 	
-	public void onTraversalDone(Boolean over) {
+	public void onTraversalDone(FeatureCondition result) {
 		
 		gchWriter.close();
 		wcgWriter.close();
@@ -419,4 +397,44 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		Center
 	}
 
+	public static class FeatureCondition{
+		public long visitedFeatures = 0;
+		public long nNoHcgValueFeatures = 0; //number of feature with not even one value of HCG (all are NA..)
+		public long nNoWcgValueFeatures = 0; //number of feature with not even one value of WCG
+		public long nNoGchValueFeatures = 0; //number of feature with not even one value of GCH
+		
+		public long nHcgConfidantlyCalled = 0;
+		public long nWcgConfidantlyCalled = 0;
+		public long nGchConfidantlyCalled = 0;
+		
+		public long sumReadsHcgConfidantlyCalled = 0;
+		public long sumReadsWcgConfidantlyCalled = 0;
+		public long sumReadsGchConfidantlyCalled = 0;
+		
+		public long sumCTReadsHcgConfidantlyCalled = 0;
+		public long sumCTReadsWcgConfidantlyCalled = 0;
+		public long sumCTReadsGchConfidantlyCalled = 0;
+		
+		public double sumMethyReadsHcgConfidantlyCalled = 0;
+		public double sumMethyReadsWcgConfidantlyCalled = 0;
+		public double sumMethyReadsGchConfidantlyCalled = 0;
+		
+		public double averageOfReadsCoveredHcg(){return (double)sumReadsHcgConfidantlyCalled/(double)nHcgConfidantlyCalled;}
+		public double averageOfReadsCoveredWcg(){return (double)sumReadsWcgConfidantlyCalled/(double)nWcgConfidantlyCalled;}
+		public double averageOfReadsCoveredGch(){return (double)sumReadsGchConfidantlyCalled/(double)nGchConfidantlyCalled;}
+		
+		public double averageOfCTReadsCoveredHcg(){return (double)sumCTReadsHcgConfidantlyCalled/(double)nHcgConfidantlyCalled;}
+		public double averageOfCTReadsCoveredWcg(){return (double)sumCTReadsWcgConfidantlyCalled/(double)nWcgConfidantlyCalled;}
+		public double averageOfCTReadsCoveredGch(){return (double)sumCTReadsGchConfidantlyCalled/(double)nGchConfidantlyCalled;}
+		
+		public double averageOfMethyCoveredHcg(){return sumMethyReadsHcgConfidantlyCalled/(double)nHcgConfidantlyCalled;}
+		public double averageOfMethyCoveredWcg(){return sumMethyReadsWcgConfidantlyCalled/(double)nWcgConfidantlyCalled;}
+		public double averageOfMethyCoveredGch(){return sumMethyReadsGchConfidantlyCalled/(double)nGchConfidantlyCalled;}
+		
+	}
+	
+	public class returenObjectForStat{
+		
+	}
+	
 }
