@@ -155,7 +155,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		 tmpMethyValueListGch = new LinkedList<Double>();
 		 tmpMethyValueListWcg = new LinkedList<Double>();
 		 tmpMethyValueListHcg = new LinkedList<Double>();
-		 rodIt = getToolkit().getRodDataSources().get(0);
+		 rodIt = getToolkit().getRodDataSources().get(1);
 		 BAC.sequencingMode = BisulfiteEnums.MethylSNPModel.GM;
 		 BAC.makeCytosine();
 	}
@@ -188,12 +188,12 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 
     		 if(!inFeature){
     			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
-    			// System.err.println(rodList.get(0).getUnderlyingObject());
+    		//	 System.err.println(rodList.get(0).getUnderlyingObject());
     			 //rodList.get(0).getUnderlyingObject()
     			// for(Object it : rodList){
     				 if(rodList.get(0).getUnderlyingObject() instanceof SimpleBEDFeature){
     					 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
-    					 System.err.println(rodList.get(0).getUnderlyingObject());
+    					// System.err.println(rodList.get(0).getUnderlyingObject());
         				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
                 			 bed = bedTmp;
                 			// strand = bedTmp.getStrand();
@@ -202,7 +202,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
             	    		 bedEnd = bedTmp.getEnd();
             	    		 inFeature = true;
             	    		 writtenObject = false;
-            	    	//	 System.err.println(bed.getStart());
+            	    		// System.err.println(bed.getStart());
             	    		// break;
             	    	 }
         			// }
