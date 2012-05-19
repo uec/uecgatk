@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
+import edu.usc.epigenome.uecgatk.YapingWriter.SortingBedObjectWriter;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObject;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
 
@@ -58,15 +59,27 @@ public class BamAnalysisWalker extends LocusWalker<Long, Long> implements
     public String file = null;
 	
 	private bedObjectWriterImp writer = null;
+	private SortingBedObjectWriter multiThreadWriter = null;
+	private static int MAXIMUM_CACHE_FOR_OUTPUT = 100000;
+	
 	private double IN_ELEMENT = 1.0;
 	private double NO_ELEMENT = 0.0;
 	private double NO_VALUE = Double.NaN;
 	
 	public void initialize(){
 		writer = new bedObjectWriterImp(new File(file));
+		if(getToolkit().getArguments().numberOfThreads > 1){
+			multiThreadWriter = new SortingBedObjectWriter(writer, MAXIMUM_CACHE_FOR_OUTPUT);
+		}
 		String header = "chr\tstart\tend\tstrand\tcoverage\tcgi\tref_cg\tc_reads\tt_reads\t1st_end_reads\t2nd_end_reads\tfwd_strand\trev_strand\tproper_paired\t" +
 				"not_primary_aligned\tunmapped\tduplicated\tfailed_vender_checked\tinverse_duplicated\tpass_filter_coverage\tpass_filter_c_reads\tpass_filter_t_reads\tpass_filter_1st_end_reads\tpass_filter_2nd_end_reads\tpass_filter_fwd_reads\tpass_filter_rev_reads\n";
-		writer.addHeader(header);
+		if(getToolkit().getArguments().numberOfThreads > 1){
+			multiThreadWriter.writeHeader(header);
+		}
+		else{
+			writer.addHeader(header);
+		}
+		
 	}
 
 	/* (non-Javadoc)
@@ -80,8 +93,8 @@ public class BamAnalysisWalker extends LocusWalker<Long, Long> implements
 		int bedStart = ref.getLocus().getStart()-1;
 		int bedEnd = ref.getLocus().getStart();
 		stats.addLast((double)context.size());
-		if(ref.getLocus().getStart()==7000000)
-		System.err.println(context.size());
+		//if(ref.getLocus().getStart()==7000000)
+		//System.err.println(context.size());
 		if(tracker.hasValues(cgi) && tracker.getValues(cgi).get(0) instanceof BEDFeature){
 			stats.addLast(IN_ELEMENT);
 		}
@@ -96,7 +109,13 @@ public class BamAnalysisWalker extends LocusWalker<Long, Long> implements
 			statsOnPileup(null,stats);
 		}
 		bedObject bedLine = new bedObject(chr, bedStart, bedEnd, (List)stats);
-		writer.add(bedLine);
+		if(getToolkit().getArguments().numberOfThreads > 1){
+			multiThreadWriter.add(bedLine);
+		}
+		else{
+			writer.add(bedLine);
+		}
+		
 		return null;
 	}
 
@@ -128,6 +147,12 @@ public class BamAnalysisWalker extends LocusWalker<Long, Long> implements
 	}
 	
 	public void onTraversalDone(Boolean result) {
+		if(getToolkit().getArguments().numberOfThreads > 1){
+			multiThreadWriter.close();
+		}
+		else{
+			writer.close();
+		}
 		writer.close();
 		logger.info("Finished!");
 	}
@@ -158,8 +183,8 @@ public class BamAnalysisWalker extends LocusWalker<Long, Long> implements
 		double PassFilterRevReads = 0;
 		
 		for(PileupElement p : pileup){
-			if(pileup.getLocation().getStart()==7000000)
-				System.err.println((char)p.getBase());
+			//if(pileup.getLocation().getStart()==7000000)
+			//	System.err.println((char)p.getBase());
 			if(p.getRead().getReadPairedFlag() && p.getRead().getSecondOfPairFlag()){
 				if(p.getRead().getReadNegativeStrandFlag()){
 					cReads += BaseUtils.basesAreEqual(BaseUtils.C, p.getBase()) ? IN_ELEMENT : NO_ELEMENT;
