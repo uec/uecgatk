@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 //import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -101,7 +102,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     	Integer[] result = new Integer[NUMTRIALS * 2];
     	for(int i = 0; i < result.length; i++)
     		result[i] = 0;
-    	List<SAMRecord> coveringReads = context.getReads();
+    	List<GATKSAMRecord> coveringReads = context.getReads();
     	ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
     	
     	//Get only +,reads that start here

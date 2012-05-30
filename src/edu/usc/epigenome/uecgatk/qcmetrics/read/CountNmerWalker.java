@@ -31,9 +31,9 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import net.sf.samtools.SAMRecord;
 import java.util.*;
 import java.io.*;
 
@@ -64,7 +64,7 @@ public class CountNmerWalker extends ReadWalker<HashMap<String,Long>,HashMap<Str
     }
 
 
-    public HashMap<String,Long> map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) 
+    public HashMap<String,Long> map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
     {
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) return null;
         

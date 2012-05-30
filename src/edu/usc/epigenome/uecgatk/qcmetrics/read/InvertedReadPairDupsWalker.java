@@ -32,9 +32,9 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import net.sf.samtools.SAMRecord;
 import java.io.*;
 
 /**
@@ -64,7 +64,7 @@ public class InvertedReadPairDupsWalker extends ReadWalker <Long[],Long[]> imple
     }
 
 
-    public Long[] map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) 
+    public Long[] map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
     {
     	Long[] result = new Long[arrayLen];
     	result[0] = result[1] = 0L;

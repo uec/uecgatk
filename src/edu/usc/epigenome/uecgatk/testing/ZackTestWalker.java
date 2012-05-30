@@ -32,7 +32,7 @@ public class ZackTestWalker extends LocusWalker<Integer,Long> {
     	
     	if ((counter % 50000)==0)
     	{
-    		out.printf("Hello %d  locus %s; your ref base is %c and you have %d reads%n", counter, context.getLocation(), ref.getBase(), context.getBasePileup().size() );
+    		out.printf("Hello %d  locus %s; your ref base is %c and you have %d reads%n", counter, context.getLocation(), ref.getBase(), context.getBasePileup().getBases().length );
     	}
         counter++;
         return 1;        

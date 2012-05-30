@@ -33,11 +33,11 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.Argument;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import java.util.*;
 import java.io.*;
 
@@ -78,7 +78,7 @@ public class ReadLengthWalker extends ReadWalker<ReadLengthWalker.ReadLenInfo,In
         int readLength, nClippingEvents, nClippedBases;
     }
 
-    public ReadLenInfo map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) 
+    public ReadLenInfo map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
     {
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY)
             return null;

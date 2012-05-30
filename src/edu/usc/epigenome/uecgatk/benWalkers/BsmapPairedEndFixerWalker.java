@@ -16,11 +16,12 @@ import java.util.regex.Pattern;
 
 import net.sf.samtools.*;
 
-import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.commandline.*;
 
@@ -120,7 +121,7 @@ public class BsmapPairedEndFixerWalker extends ReadWalker<SAMRecord, SAMFileWrit
      * @param read The read to be recalibrated
      * @return The read with quality scores replaced
      */
-    public SAMRecord map( ReferenceContext refBases, SAMRecord read, ReadMetaDataTracker metaDataTracker  ) 
+    public SAMRecord map( ReferenceContext refBases, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker  ) 
     {
     	// Only do it for paired end
     	if (!read.getReadPairedFlag())

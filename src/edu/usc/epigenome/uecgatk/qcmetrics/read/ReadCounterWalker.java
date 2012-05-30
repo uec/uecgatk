@@ -28,13 +28,13 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import net.sf.samtools.SAMRecord;
+
 import java.io.*;
 
 /**
@@ -64,7 +64,7 @@ public class ReadCounterWalker extends ReadWalker <Long,Long> implements TreeRed
     }
 
 
-    public Long map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) 
+    public Long map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
     {
     	return ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) ? 0L : 1L;
     }

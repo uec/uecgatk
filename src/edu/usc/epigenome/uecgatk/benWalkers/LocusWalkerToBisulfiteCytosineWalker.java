@@ -10,8 +10,8 @@ import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContext;
 import edu.usc.epigenome.uecgatk.BaseUtilsMore;
 
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
@@ -44,7 +44,7 @@ import java.util.List;
  * 
  * Must implement tree-reducible to get parallel execution.
  */
-@ReadFilters( {MappingQualityReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters( {MappingQualityFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> extends LocusWalker<MapType,ReduceType> implements TreeReducible<ReduceType> {
 

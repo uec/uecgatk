@@ -3,8 +3,8 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityReadFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
@@ -26,7 +26,7 @@ import org.apache.commons.math.stat.descriptive.*;
  * that it's on the same chromosome.
  */
 @By(DataSource.REFERENCE)
-@ReadFilters( {MappingQualityReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters( {MappingQualityFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
 public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>  
 {
     @Output

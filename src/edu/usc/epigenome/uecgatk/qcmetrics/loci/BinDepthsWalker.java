@@ -1,5 +1,5 @@
 package edu.usc.epigenome.uecgatk.qcmetrics.loci;
-import net.sf.samtools.SAMRecord;
+
 
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -9,14 +9,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 //import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.commons.math.stat.descriptive.*;
