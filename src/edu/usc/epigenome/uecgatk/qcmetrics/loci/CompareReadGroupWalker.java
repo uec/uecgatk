@@ -4,12 +4,10 @@ import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -40,8 +38,8 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
 {
     @Output
     PrintStream out;
-    HashMap<String,String> readgroups = new HashMap<String,String>();
-    
+    HashMap<String,Double> readgroups = new HashMap<String,Double>();
+    String currentContig = "chr0";
    
 
     public void initialize() 
@@ -56,10 +54,10 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     	String desc ="";
     	for(int i = 0; i< rgs.size(); i++)
     	{
-    		readgroups.put(rgs.get(i),"" + Math.pow(-1,(i+1)) * (10 * (i+1)));
+    		readgroups.put(rgs.get(i), Math.pow(-1,(i+1)));
     		desc += rgs.get(i) + "=" + readgroups.get(rgs.get(i)) + ", ";
     	}
-    	out.println("type=bedGraph description=\"" + desc + "\"");
+    	out.println("#type=wiggle_0 description=\"" + desc + "\"");
     }
     
     /**
@@ -77,6 +75,11 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
+    	if(!context.getContig().equals(currentContig))
+    	{
+    		out.println("variableStep chrom=" + context.getContig());
+    		currentContig = context.getContig();
+    	}
     	    	
     	HashSet<String> foundReadgroups = new HashSet<String>();
     	
@@ -88,7 +91,7 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
 	    }
     
 	    if(foundReadgroups.iterator().hasNext())
-	    	out.println(context.getContig() + "\t" + context.getPosition() + "\t" + (context.getPosition()+1) + "\t" + readgroups.get(foundReadgroups.iterator().next()));
+	    	out.println(context.getPosition() + "\t" + (readgroups.get(foundReadgroups.iterator().next()) * context.getBasePileup().getNumberOfElements()));
 	    
 	    return true;
     }
