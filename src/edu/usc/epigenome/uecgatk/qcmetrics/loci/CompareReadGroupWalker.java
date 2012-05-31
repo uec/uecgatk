@@ -8,12 +8,14 @@ import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+
 
 
 
@@ -32,8 +34,8 @@ import java.util.HashSet;
  * NOTE BadMateFilter.  Looks like this doesn't use properly paired flag, but just checks
  * that it's on the same chromosome.
  */
-@By(DataSource.REFERENCE)
-@ReadFilters( {MappingQualityFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
+@By(DataSource.READS)
+@ReadFilters( {NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
 public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>   
 {
     @Output
@@ -47,14 +49,17 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     	ArrayList<String> rgs = new ArrayList<String>();
     	for (SAMReadGroupRecord s : this.getToolkit().getSAMFileHeader().getReadGroups())
     	{
+    		System.err.println("found RG: " + s.getId());
     		rgs.add(s.getId());
     	}  
     	
+    	String desc ="";
     	for(int i = 0; i< rgs.size(); i++)
     	{
-    		readgroups.put(rgs.get(0),"" + (1000/(i+1)));
+    		readgroups.put(rgs.get(i),"" + Math.pow(-1,(i+1)) * (10 * (i+1)));
+    		desc += rgs.get(i) + "=" + readgroups.get(rgs.get(i)) + ", ";
     	}
-    	
+    	out.println("type=bedGraph description=\"" + desc + "\"");
     }
     
     /**
@@ -72,16 +77,19 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
+    	    	
     	HashSet<String> foundReadgroups = new HashSet<String>();
-	    for (GATKSAMRecord s : context.getReads())
-	    {
-	    	foundReadgroups.add(s.getReadGroup().getId());
-	    }
     	
-	    if(foundReadgroups.size() != readgroups.size())
+	    for (PileupElement s : context.getBasePileup())
 	    {
-	    	out.println(context.getContig() + "\t" + context.getPosition() + "\t" + (context.getPosition()+1) + "\t" + foundReadgroups.iterator().next() + "\t" + readgroups.get(foundReadgroups.iterator().next()));
+	    	foundReadgroups.add(s.getRead().getReadGroup().getId());
+	    	if(foundReadgroups.size() == readgroups.size())
+	    		return true;
 	    }
+    
+	    if(foundReadgroups.iterator().hasNext())
+	    	out.println(context.getContig() + "\t" + context.getPosition() + "\t" + (context.getPosition()+1) + "\t" + readgroups.get(foundReadgroups.iterator().next()));
+	    
 	    return true;
     }
 
