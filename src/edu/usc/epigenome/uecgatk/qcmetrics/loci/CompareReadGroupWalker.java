@@ -1,6 +1,7 @@
 package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 import net.sf.samtools.SAMReadGroupRecord;
 
+import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -39,9 +40,9 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     @Output
     PrintStream out;
     HashMap<String,Double> readgroups = new HashMap<String,Double>();
+    HashMap<String,DescriptiveStatistics> stats = new  HashMap<String,DescriptiveStatistics>();
     String currentContig = "chr0";
    
-
     public void initialize() 
     {
     	ArrayList<String> rgs = new ArrayList<String>();
@@ -55,6 +56,7 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     	for(int i = 0; i< rgs.size(); i++)
     	{
     		readgroups.put(rgs.get(i), Math.pow(-1,(i+1)));
+    		stats.put(rgs.get(i), new DescriptiveStatistics());
     		desc += rgs.get(i) + "=" + readgroups.get(rgs.get(i)) + ", ";
     	}
     	out.println("#type=wiggle_0 description=\"" + desc + "\"");
@@ -75,12 +77,6 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
-    	if(!context.getContig().equals(currentContig))
-    	{
-    		out.println("variableStep chrom=" + context.getContig());
-    		currentContig = context.getContig();
-    	}
-    	    	
     	HashSet<String> foundReadgroups = new HashSet<String>();
     	
 	    for (PileupElement s : context.getBasePileup())
@@ -89,9 +85,19 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
 	    	if(foundReadgroups.size() == readgroups.size())
 	    		return true;
 	    }
+	    
+	    if(!context.getContig().equals(currentContig))
+    	{
+    		out.println("variableStep chrom=" + context.getContig());
+    		currentContig = context.getContig();
+    	}
     
 	    if(foundReadgroups.iterator().hasNext())
-	    	out.println(context.getPosition() + "\t" + (readgroups.get(foundReadgroups.iterator().next()) * context.getBasePileup().getNumberOfElements()));
+	    {
+	    	String foundGroup = foundReadgroups.iterator().next();
+	    	stats.get(foundGroup).addValue(context.getBasePileup().getNumberOfElements());
+	    	out.println(context.getPosition() + "\t" + (readgroups.get(foundGroup) * context.getBasePileup().getNumberOfElements()));
+	    }
 	    
 	    return true;
     }
@@ -116,8 +122,8 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
      * @return always truen true.
      */
     @Override
-    public Boolean reduce(Boolean value, Boolean val2) {
-        
+    public Boolean reduce(Boolean value, Boolean val2) 
+    {
     	return true;
     }
 
@@ -128,10 +134,10 @@ public class CompareReadGroupWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public void onTraversalDone(Boolean t) 
     {
-    
-    	//#this take too long
-    	//for(double i=10.0; i<=100.0; i+=10.0)
-    	//	out.println(i + " percentile=" + stats.getPercentile(i));    	
+    	for (String key : stats.keySet())
+    	{
+    		System.out.println(key + "\t exclusively covered loci: " + stats.get(key).getN() + "\t avg coverage on those exclusive loci: " + stats.get(key).getMean());
+    	}
     }
 
 	
