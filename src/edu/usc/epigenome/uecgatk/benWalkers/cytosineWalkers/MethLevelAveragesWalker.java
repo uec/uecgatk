@@ -5,8 +5,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.utils.collections.Pair;
 
+import edu.usc.epigenome.genomeLibs.IupacPatterns;
 import edu.usc.epigenome.genomeLibs.ListUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
@@ -22,7 +25,12 @@ import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker
 public class MethLevelAveragesWalker 
 	extends LocusWalkerToBisulfiteCytosineWalker<Pair<String,Double>, Map<String,CpgMethLevelSummarizer>> {
 
+    @Argument(fullName = "iupacPatterns", shortName = "pats", doc = "A list of IUPAC contexts to interrogate", required = false)
+    public String[] iupacPatterns = new String[]{"HCG","GCH","HCA", "HCT","HCC"};
 
+    protected static IupacPatterns patternMap = null;
+
+    
 //	public MethLevelAveragesWalker() {
 //		super();
 //	}
@@ -31,6 +39,18 @@ public class MethLevelAveragesWalker
 	/**
 	 * locus walker overrides
 	 */
+
+    
+    @Override
+    public void initialize() {
+    	super.initialize();
+
+		patternMap = new IupacPatterns();
+    	for (String pat : this.iupacPatterns)
+    	{
+    		patternMap.register(pat);
+    	}
+    }
 
 
 	/**
@@ -101,9 +121,13 @@ public class MethLevelAveragesWalker
 	{
 		for (String key : result.keySet())
 		{
-			CpgMethLevelSummarizer summarizer = result.get(key);
-			out.printf("%s:\t%d\t%.2f%%\n",key,(int)summarizer.getNumVals(), summarizer.getValMean()*100);
+			if (key != null)
+			{
+				CpgMethLevelSummarizer summarizer = result.get(key);
+				out.printf("%s:\t%d\t%.2f%%\n",key,(int)summarizer.getNumVals(), summarizer.getValMean()*100);
+			}
 		}
+
 	}
 
 	
@@ -120,7 +144,20 @@ public class MethLevelAveragesWalker
 	@Override
 	protected Pair<String,Double> processCytosine(CpgBackedByGatk thisC)
 	{
-		String context = thisC.context(this.minContextFracReadsMatching);
+		
+		String context = null;
+		String contextString = thisC.context(this.minContextFracReadsMatching);
+		try 
+		{
+			// The input parameter sets whether we demand matching sequence in the reads
+			context = patternMap.firstMatch(contextString);
+		}
+		catch (Exception e)
+		{
+//			System.err.printf("Found unknown context: %s\n", cytosine.context());
+		}
+		
+		
 		double meth = thisC.fracMeth(false);
 		return new Pair<String,Double>(context, meth);
 	}
