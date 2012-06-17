@@ -141,29 +141,29 @@ public class OpdfBeta implements Opdf<ObservationReal> {
 		// Compute alpha
 		double alpha = 0.;
 		double logP = 0.;
-
+		int i = 0;
 		for (ObservationReal o : co){
 			
-			logP += Math.log(o.value);
+			logP += Math.log(o.value) * weights[i++];
 		//	System.err.println(logP + "\tvalue: " + o.value);
 		//	System.err.println(weights[i-1] + "\t" + d  + "\t" + o.value + "\t" + mean);
 			
 		}
-		logP /= co.size();
+		//logP /= co.size();
 		logP += digammaFunction(distribution.getAlpha() + distribution.getBeta());
 		alpha = bisectionToFindFunctionRoot(logP);
 	//	System.err.println(logP + "\talpha: " + alpha);
 		// Compute beta
 		double beta = 0.;
 		double log1minusP = 0.;
-
+		i=0;
 		for (ObservationReal o : co) {
-			log1minusP += Math.log(1-o.value);
+			log1minusP += Math.log(1-o.value) * weights[i++];
 		//	System.err.println("log1minusP: " + log1minusP + "\tvalue: " + o.value);
 			if(Double.isNaN(log1minusP))
 				System.exit(1);
 		}
-		log1minusP /= co.size();
+		//log1minusP /= co.size();
 		log1minusP += digammaFunction(distribution.getAlpha() + distribution.getBeta());
 		beta = bisectionToFindFunctionRoot(log1minusP);
 	//	System.err.println(co.size() + "\t" + log1minusP + "\tbeta: " + beta);
@@ -183,24 +183,24 @@ public class OpdfBeta implements Opdf<ObservationReal> {
 			// Compute alpha
 			double alpha = 0.;
 			double logP = 0.;
-
+			int i = 0;
 			for (ObservationReal o : co){
 				
-				logP += Math.log(o.value);
+				logP += Math.log(o.value)  * weights[i++];
 			//	System.err.println(weights[i-1] + "\t" + d  + "\t" + o.value + "\t" + mean);
 				
 			}
-			logP /= co.size();
+			//logP /= co.size();
 			alpha = bisectionToFindFunctionRoot(logP);
 			
 			// Compute beta
 			double beta = 0.;
 			double log1minusP = 0.;
-
+			i = 0;
 			for (ObservationReal o : co) {
-				log1minusP += Math.log(1-o.value);
+				log1minusP += Math.log(1-o.value) * weights[i++];
 			}
-			log1minusP /= co.size();
+			//log1minusP /= co.size();
 			beta = bisectionToFindFunctionRoot(log1minusP);
 			
 			distribution = new BetaDistribution(alpha, beta);

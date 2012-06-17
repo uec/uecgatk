@@ -32,19 +32,22 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObject;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
+import edu.usc.epigenome.uecgatk.distribution.OpdfBeta;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaBinomialFactory;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaFactory;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
+import edu.usc.epigenome.uecgatk.NOMeSeqWalker.OpdfBetaWriter;
+import edu.usc.epigenome.uecgatk.NOMeSeqWalker.OpdfBetaReader;
 
 import be.ac.ulg.montefiore.run.jahmm.Hmm;
+import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.ObservationReal;
 import be.ac.ulg.montefiore.run.jahmm.Opdf;
+import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
+import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
 import be.ac.ulg.montefiore.run.jahmm.OpdfGaussianFactory;
+import be.ac.ulg.montefiore.run.jahmm.apps.sample.SimpleExample.Packet;
 import be.ac.ulg.montefiore.run.jahmm.io.FileFormatException;
-import be.ac.ulg.montefiore.run.jahmm.io.HmmReader;
-import be.ac.ulg.montefiore.run.jahmm.io.HmmWriter;
-import be.ac.ulg.montefiore.run.jahmm.io.OpdfBetaReader;
-import be.ac.ulg.montefiore.run.jahmm.io.OpdfBetaWriter;
 import be.ac.ulg.montefiore.run.jahmm.io.OpdfGaussianReader;
 import be.ac.ulg.montefiore.run.jahmm.io.OpdfGaussianWriter;
 import be.ac.ulg.montefiore.run.jahmm.io.OpdfReader;
@@ -76,15 +79,24 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	@Argument(fullName = "hmm_file", shortName = "hmm", doc = "read/write HMM model from/to a file, default: read HMM parameters from a file", required = true)
 	public String hmmFile = null;
 	
-	private static int STATES=2;
+	@Argument(fullName = "max_gap_size", shortName = "gap", doc = "max gap size, default: 1000", required = false)
+	public int gap = 1000;
+	
+	@Argument(fullName = "min_data_point", shortName = "dataP", doc = "minimum data point, default: 5", required = false)
+	public int dataP = 5;
+	
+	@Argument(fullName = "num_of_states", shortName = "states", doc = "number of states, default: 2", required = false)
+	public static int states = 2;
+	
+	private static int STATES=states;
 	
 	private double TOLERENCE=1e-5;
 	
-	private int MAXIMUM_GAP_SIZE=2000000000; // maximum gap allowed for split different sequence for training & decoding
+	private int MAXIMUM_GAP_SIZE=gap; // maximum gap allowed for split different sequence for training & decoding
 	
 	private int MAXIMUM_DATA_POINTS=1000000000;
 	
-	private int MINIMUM_DATA_POINTS=2;
+	private int MINIMUM_DATA_POINTS=dataP;
 	
 	private Hmm<ObservationReal> hmm = null;
 	
@@ -221,7 +233,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			double distance = Double.MAX_VALUE;
 			int i = 0;
 			// Incrementally improve the solution
-			while(distance >= TOLERENCE){
+			while(Math.abs(distance) >= TOLERENCE){
 				i++;
 				
 				try {
@@ -237,7 +249,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				System.out.println("Distance at iteration " + i + ": " +
 						distance);
 			}  
-			System.out.println("???????:\n"  );
+
 			System.out.println("Resulting HMM:\n" + hmm);
 			try {
 				FileWriter writer = new FileWriter(hmmFile);
@@ -311,6 +323,49 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				seqs);
 		System.out.println("KMeansLearner...");
 		Hmm<ObservationReal> hmm = kl.learn();
+		return hmm;
+	}
+	
+	private static Hmm<ObservationReal> buildInitHmmRandomlyByBeta(ArrayList<LinkedList<ObservationReal>> seqs)
+	{	
+
+	//	KMeansLearner<ObservationReal> kl = new KMeansLearner<ObservationReal>(STATES, new OpdfBetaFactory(),
+		//		seqs);
+	//	System.out.println("KMeansLearner...");
+	//	Hmm<ObservationReal> hmm = kl.learn();
+		
+		/*
+		Hmm<ObservationReal> hmm = 
+				new Hmm<ObservationReal>(2,new OpdfBetaFactory());
+		double tmp3 = Math.random();
+			hmm.setPi(0, tmp3);
+			hmm.setPi(1, 1-tmp3);
+			
+			hmm.setOpdf(0, new OpdfBeta(Math.random(),Math.random()));
+			hmm.setOpdf(1, new OpdfBeta(Math.random(),Math.random()));
+			double tmp1 = Math.random();
+			
+			hmm.setAij(0, 1, tmp1);
+			hmm.setAij(0, 0, 1-tmp1);
+			double tmp2 = Math.random();
+			hmm.setAij(1, 0, tmp1);
+			hmm.setAij(1, 1, 1-tmp1);
+		*/
+		Hmm<ObservationReal> hmm = 
+				new Hmm<ObservationReal>(2,new OpdfBetaFactory());
+		double tmp3 = Math.random();
+			hmm.setPi(0, 0.7);
+			hmm.setPi(1, 0.3);
+			
+			hmm.setOpdf(0, new OpdfBeta(0.3,1.1));
+			hmm.setOpdf(1, new OpdfBeta(1.0,0.3));
+			double tmp1 = Math.random();
+			
+			hmm.setAij(0, 1, 0.2);
+			hmm.setAij(0, 0, 0.8);
+			double tmp2 = Math.random();
+			hmm.setAij(1, 0, 0.1);
+			hmm.setAij(1, 1, 0.9);
 		return hmm;
 	}
 	
