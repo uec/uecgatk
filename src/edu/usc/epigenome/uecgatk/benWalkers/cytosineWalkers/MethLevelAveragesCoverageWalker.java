@@ -56,17 +56,21 @@ public class MethLevelAveragesCoverageWalker extends MethLevelAveragesWalker {
 		list.add(String.format("%.2f", (double)this.numGCs / (double)depthSummarizer.getNumVals()));
 		
 		
-		for (String key : result.keySet())
+		for (String key : iupacPatterns)
 		{
-			if (key != null)
+			double numVals = Double.NaN;
+			double valMean = Double.NaN;
+			if (result.containsKey(key))
 			{
 				CpgMethLevelSummarizer summarizer = result.get(key);
-				header.add(String.format("pct_%s", key));
-				list.add(String.format("%.3f", summarizer.getNumVals() / (double)depthSummarizer.getNumVals()));
-				header.add(String.format("meth_%s", key));
-				list.add(String.format("%.3f", summarizer.getValMean()));
-
+				numVals = summarizer.getNumVals();
+				valMean = summarizer.getValMean();
 			}
+			header.add(String.format("pct_%s", key));
+			header.add(String.format("meth_%s", key));
+			list.add(String.format("%.3f", numVals / (double)depthSummarizer.getNumVals()));
+			list.add(String.format("%.3f", valMean));		
+
 		}
 		
 		if (includeHeader) out.println(ListUtils.excelLine(header));
