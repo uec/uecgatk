@@ -45,8 +45,6 @@ import edu.usc.epigenome.genomeLibs.FisherExactTest;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteGenotyper.ContextCondition;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObject;
 import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
-import jsc.contingencytables.FishersExactTest;
-import jsc.contingencytables.ContingencyTable2x2;
 /**
  * @author yaping
  * @contact lyping1986@gmail.com

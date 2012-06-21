@@ -47,7 +47,7 @@ public class NOMeSeqReadsWriterImp extends FormatWriterBase {
 	public void add(genomeObject obj) {
 		// TODO Auto-generated method stub
 		//String readsLine = String.format("%s\t%d\t%c\t%d\t%c\t%s\t%d\n",obj.getChr(), obj.getStart(), ((cpgReads) obj).getMethyStatus(), ((cpgReads) obj).getbaseQ(), ((cpgReads) obj).getstrand(), ((cpgReads) obj).getReadID(), ((cpgReads) obj).getEncryptID());
-		String readsLine = String.format("%s\t%d\t%s\t%s\t%c\t%d\t%c\t%d\n",obj.getChr(), obj.getStart(), ((NOMeSeqReads) obj).getRefContext(), ((NOMeSeqReads) obj).getSampleContext(), ((NOMeSeqReads) obj).getMethyStatus(), ((NOMeSeqReads) obj).getbaseQ(), ((NOMeSeqReads) obj).getstrand(), ((NOMeSeqReads) obj).getEncryptID());
+		String readsLine = String.format("%s\t%d\t%s\t%s\t%c\t%d\t%c\t%d\n",obj.getChr(), obj.getStart(), ((NOMeSeqReads) obj).getRefContext(), ((NOMeSeqReads) obj).getSampleContext(), ((NOMeSeqReads) obj).getMethyStatus(), ((NOMeSeqReads) obj).getbaseQ(), ((NOMeSeqReads) obj).getstrand(), ((NOMeSeqReads) obj).getEncryptID64Ascii());
 
 		try {
 			mWriter.write(readsLine);

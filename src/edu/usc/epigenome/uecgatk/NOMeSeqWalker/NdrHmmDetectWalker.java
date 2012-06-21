@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Iterator;
@@ -67,8 +68,11 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	@Input(fullName = "vcf", shortName = "vcf", doc = "input vcf file for detection", required = true)
 	public RodBinding<VariantContext> vcf;
 	
-	@Output(fullName = "states_sequence", shortName = "result", doc = "write hidden states of a sequence to a file", required = false)
+	@Output(fullName = "states_sequence", shortName = "result", doc = "write hidden states of a sequence to a file (no training mode)", required = false)
 	public String resultFile = null;
+	
+	@Output(fullName = "segment_file", shortName = "segment", doc = "write segment of NDR region into a file (no training mode)", required = false)
+	public String segmentFile = null;
 	
 	@Argument(fullName = "min_ct_coverage", shortName = "minCT", doc = "minimum number of CT reads for count methylation level, default: 1", required = false)
 	public int minCT = 1;
@@ -83,10 +87,10 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	public int gap = 1000;
 	
 	@Argument(fullName = "min_data_point", shortName = "dataP", doc = "minimum data point, default: 5", required = false)
-	public int dataP = 5;
+	public int dataP = 2;
 	
 	@Argument(fullName = "num_of_states", shortName = "states", doc = "number of states, default: 2", required = false)
-	public static int states = 2;
+	public static int states = 4;
 	
 	private static int STATES=states;
 	
@@ -102,11 +106,16 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	
 	private bedObjectWriterImp bedWriter = null;
 	
+	private bedObjectWriterImp segWriter = null;
+	
 	
 	
 	public void initialize(){
-		if(!train)
+		if(!train){
 			bedWriter = new bedObjectWriterImp(new File(resultFile));
+			segWriter = new bedObjectWriterImp(new File(segmentFile));
+		}
+			
 	}
 
 	/* (non-Javadoc)
@@ -274,9 +283,23 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			int ndrState = 0;
+			double maxMean = 0;
+			//suppose NDR region have the highest mean GCH methyation value
+			for(int m = 0; m < hmm.nbStates(); m++){
+				if(((OpdfBeta)hmm.getOpdf(m)).mean() > maxMean){
+					maxMean = ((OpdfBeta)hmm.getOpdf(m)).mean();
+					ndrState = m;
+				}
+			}
+			
+			double[] randomSeqs = getPermutatedSeqs(result.value, hmm, ndrState);
+			
 			int j=0;
-			for(List<ObservationReal> value : result.value){
+			
+			for(LinkedList<ObservationReal> value : result.value){
 				int[] hiddenState = hmm.mostLikelyStateSequence(value);
+				
 				GenomeLoc[] loci = new GenomeLoc[result.position.get(j).size()];
 				Iterator<GenomeLoc> it = result.position.get(j).iterator();
 				int ii=0;
@@ -284,6 +307,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					loci[ii] = it.next();
 					ii++;
 				}
+				
 				ii=0;
 				double[] methyState = new double[value.size()];
 				Iterator<ObservationReal> it2 = value.iterator();
@@ -291,7 +315,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					methyState[ii] = it2.next().value;
 					ii++;
 				}
-				
+				getNDRSegment(hiddenState, methyState, loci, randomSeqs, ndrState);
 				for(int i = 0; i < hiddenState.length; i++){
 					List<Object> tmp = new LinkedList<Object>();
 					tmp.add(hiddenState[i]);
@@ -303,6 +327,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			}
 
 			bedWriter.close();
+			segWriter.close();
 		}
 	}
 	
@@ -392,6 +417,129 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			this.position = position;
 			this.value = value;
 		}
+	}
+	
+	private double[] getPermutatedSeqs(ArrayList<LinkedList<ObservationReal>> seqs, Hmm<ObservationReal> hmm, int ndrState){
+		ArrayList<ObservationReal> randomValueList = new ArrayList<ObservationReal>();
+		
+		Iterator<LinkedList<ObservationReal>> it = seqs.iterator();
+		while(it.hasNext()){
+			randomValueList.addAll(it.next());
+		}
+		Collections.shuffle(randomValueList);
+		int[] hiddenState = hmm.mostLikelyStateSequence(randomValueList);
+		double[] score = getNDRSegment(hiddenState, randomValueList, ndrState);
+		return score;
+	}
+	
+	private double[] getNDRSegment(int[] hiddenState, ArrayList<ObservationReal> randomValueList, int ndrState){
+		ArrayList<Double> scoreList = new ArrayList<Double>();
+		double score = 0;
+		int preState = -1;
+		int i = 0;
+		Iterator<ObservationReal> it = randomValueList.iterator();
+		while(it.hasNext()){
+			double methyState = it.next().value;
+			if(preState == -1){
+				preState = hiddenState[i];
+				if(preState == ndrState){
+					
+					score += methyState;
+				}
+				i++;
+				continue;
+			}
+			if(preState != ndrState && hiddenState[i] == ndrState){
+
+				score += methyState;
+				preState = hiddenState[i];
+			}
+			else if(preState == ndrState){
+				if(hiddenState[i] != ndrState){
+					preState = hiddenState[i];
+					scoreList.add(score);
+					score = 0;
+				}
+				else{
+					preState = hiddenState[i];
+					score += methyState;
+				}
+				
+			}
+			i++;
+		}
+		double[] scoreCollection = new double[scoreList.size()];
+		Iterator<Double> it2 = scoreList.iterator();
+		i = 0;
+		while(it2.hasNext()){
+			scoreCollection[i++] = it2.next();
+		}
+		return scoreCollection;
+	}
+	
+	private void getNDRSegment(int[] hiddenState, double[] methyState, GenomeLoc[] loci, double[] randomSeqs, int ndrState){
+		String chr = null;
+		int start = -1;
+		int end = -1;
+		double score = 0;
+		int preState = -1;
+		GenomeLoc preLoc = null;
+		int dataPoint = 0;
+		for(int i=0; i < hiddenState.length; i++){
+			if(preState == -1){
+				preState = hiddenState[i];
+				preLoc = loci[i]; 
+				if(preState == ndrState){
+					chr = loci[i].getContig();
+					start = loci[i].getStart()-1;
+					score += methyState[i];
+					dataPoint++;
+				}	
+				continue;
+			}
+			if(preState != ndrState && hiddenState[i] == ndrState){
+				chr = loci[i].getContig();
+				start = loci[i].getStart()-1;
+				score += methyState[i];
+				dataPoint++;
+				preState = hiddenState[i];
+				preLoc = loci[i];
+			}
+			else if(preState == ndrState){
+				if(hiddenState[i] != ndrState){
+					end = preLoc.getStart();
+					preState = hiddenState[i];
+					List<Object> tmp = new LinkedList<Object>();
+					tmp.add(score);
+					tmp.add(dataPoint);
+					tmp.add(end-start);
+					tmp.add(getPvalue(score, randomSeqs));
+					bedObject bedLine = new bedObject(chr, start, end, Strand.NONE, (List)tmp);
+					segWriter.add(bedLine);
+					score = 0;
+					dataPoint = 0;
+					preLoc = loci[i];
+				}
+				else{
+					preState = hiddenState[i];
+					preLoc = loci[i];
+					score += methyState[i];
+					dataPoint++;
+				}
+				
+			}
+			
+		}
+	}
+	
+	private double getPvalue(double value, double[] distribution){
+		int rank = 0;
+		for(int i = 0; i < distribution.length; i++){
+			if(distribution[i] > value){
+				rank++;
+			}
+		}
+		return (double)rank/(double)distribution.length;
 	}
 	
 }

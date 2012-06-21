@@ -135,11 +135,11 @@ public class CytosinePatternsUserDefined {
 			cp1.cytosineMethylation = 0.5;
 			cp1.methylationAutoestimated = true;
 			contexts.put("HCG", cp1);
-			CytosineParameters cp2 = new CytosineParameters();
-			cp2.cytosinePosition = 2;
-			cp2.cytosineMethylation = 0.5;
-			cp2.methylationAutoestimated = true;
-			contexts.put("WCG", cp2);
+		//	CytosineParameters cp2 = new CytosineParameters();
+		//	cp2.cytosinePosition = 2;
+		//	cp2.cytosineMethylation = 0.5;
+		//	cp2.methylationAutoestimated = true;
+		//	contexts.put("WCG", cp2);
 			CytosineParameters cp3 = new CytosineParameters();
 			cp3.cytosinePosition = 2;
 			cp3.cytosineMethylation = 0.5;
@@ -155,16 +155,16 @@ public class CytosinePatternsUserDefined {
 			cp5.cytosineMethylation = 0.5;
 			cp5.methylationAutoestimated = true;
 			contexts.put("HCH", cp5);
-			CytosineParameters cp6 = new CytosineParameters();
-			cp6.cytosinePosition = 2;
-			cp6.cytosineMethylation = 0.5;
-			cp6.methylationAutoestimated = true;
-			contexts.put("WCH", cp6);
-			CytosineParameters cp7 = new CytosineParameters();
-			cp7.cytosinePosition = 1;
-			cp7.cytosineMethylation = 0.5;
-			cp7.methylationAutoestimated = true;
-			contexts.put("C", cp7);
+		//	CytosineParameters cp6 = new CytosineParameters();
+		//	cp6.cytosinePosition = 2;
+		//	cp6.cytosineMethylation = 0.5;
+		//	cp6.methylationAutoestimated = true;
+		//	contexts.put("WCH", cp6);
+		//	CytosineParameters cp7 = new CytosineParameters();
+		//	cp7.cytosinePosition = 1;
+		//	cp7.cytosineMethylation = 0.5;
+		//	cp7.methylationAutoestimated = true;
+		//	contexts.put("C", cp7);
 		}
 
 	}

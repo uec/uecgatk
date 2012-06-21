@@ -94,6 +94,9 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	@Output(fullName = "hcg_file_name", shortName = "hcgFile", doc = "Output HCG files name", required = true)
     public String hcgFile = null;
 	
+	@Output(fullName = "gch_datapoint_file_name", shortName = "gchDataPoint", doc = "Output GCH data point files name", required = false)
+    public String gchDataPoint = null;
+	
 //	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
  //   public String feature = null;
 	
@@ -123,12 +126,16 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	private bedObjectWriterImp wcgWriter = null;
 	private bedObjectWriterImp hcgWriter = null;
 	
+	private bedObjectWriterImp gchDataWriter = null;
+	
 	private boolean inFeature = false;
 	private boolean writtenObject = false;
 	
 	private LinkedList<Double> tmpMethyValueListGch = null;
 	private LinkedList<Double> tmpMethyValueListWcg = null;
 	private LinkedList<Double> tmpMethyValueListHcg = null;
+	
+	private LinkedList<Integer> tmpDataPointListGch = null;
 	
 	private ReferenceOrderedDataSource rodIt = null;
 	
@@ -145,18 +152,22 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		 File fn1 = new File(gchFile);
 		 File fn2 = new File(wcgFile);
 		 File fn3 = new File(hcgFile);
+		 File fn4 = new File(gchDataPoint);
 		 gchWriter = new bedObjectWriterImp(fn1);
 		 wcgWriter = new bedObjectWriterImp(fn2);
 		 hcgWriter = new bedObjectWriterImp(fn3);
+		 gchDataWriter = new bedObjectWriterImp(fn4);
+		 
 		 tmpMethyValueListGch = new LinkedList<Double>();
 		 tmpMethyValueListWcg = new LinkedList<Double>();
 		 tmpMethyValueListHcg = new LinkedList<Double>();
+		 tmpDataPointListGch = new LinkedList<Integer>();
 		 rodIt = getToolkit().getRodDataSources().get(1);
 		 BAC.sequencingMode = BisulfiteEnums.MethylSNPModel.GM;
 		 BAC.makeCytosine();
 		 summary = new FeatureCondition();
 	}
-	
+	   
 	@Override
 	public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref,
 			AlignmentContext context) {
@@ -173,7 +184,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		 return null;
     	 }
     	 else{
-    		 
+    		   
     		 if(!inFeature){
     			 RODRecordList rodList = locRodIt.seekForward(searchLoc);
     			// System.err.println(rodList.get(0).getUnderlyingObject());
@@ -218,11 +229,13 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     	
 	     if(!inFeature){
 	    	 if(!writtenObject && (!tmpMethyValueListGch.isEmpty() || !tmpMethyValueListWcg.isEmpty() || !tmpMethyValueListHcg.isEmpty())){
-	    		 System.err.println(tmpMethyValueListGch.size() + "\t" + tmpMethyValueListWcg.size());
+	    		// System.err.println(tmpMethyValueListGch.size() + "\t" + tmpMethyValueListWcg.size());
 	    		 if(tmpMethyValueListGch.size() == distance * 2 + 1){
 	    			 
 	    			 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpMethyValueListGch); //chr, start, end, strand, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
 		    		 gchWriter.add(bedLineGch);
+		    		 bedObject bedLineGch2 = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpDataPointListGch);
+		    		 gchDataWriter.add(bedLineGch2);
 	    		 }
 	    		
 	    		 if(tmpMethyValueListWcg.size() == distance * 2 + 1){
@@ -238,6 +251,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    		 tmpMethyValueListGch.clear();
 	    		 tmpMethyValueListWcg.clear();
 	    		 tmpMethyValueListHcg.clear();
+	    		 tmpDataPointListGch.clear();
+	    		 
 	    		 writtenObject = true;
 	    		 logger.info(chr + "\t" + bedStart + "\t" + bedEnd);
 	    	 }
@@ -251,6 +266,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 				addContextToList(null, strand, tmpMethyValueListGch);
 	 				addContextToList(null, strand, tmpMethyValueListWcg);
 	 				addContextToList(null, strand, tmpMethyValueListHcg);
+	 				
+	 				addCoverageToList(null, strand, tmpDataPointListGch);
 	 			
 	 				
 	 			return null;
@@ -264,6 +281,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 			addContextToList(null, strand, tmpMethyValueListGch);
  				addContextToList(null, strand, tmpMethyValueListWcg);
  				addContextToList(null, strand, tmpMethyValueListHcg);
+ 				
+ 				addCoverageToList(null, strand, tmpDataPointListGch);
  				return null;
 	 			
 	 		}
@@ -288,11 +307,13 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		if(isGch){
 	 			
 	 			addContextToList(bvc, strand, tmpMethyValueListGch);
+	 			addCoverageToList(bvc, strand, tmpDataPointListGch);
 	 			//if positive strand, offerLast(), if negative strand, offerFirst()
 	 			
 	 		}
 	 		else{
 	 			addContextToList(null, strand, tmpMethyValueListGch);
+	 			addCoverageToList(null, strand, tmpDataPointListGch);
 	 		}
 	 		if(isWcg){
 	 			
@@ -364,6 +385,7 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		gchWriter.close();
 		wcgWriter.close();
 		hcgWriter.close();
+		gchDataWriter.close();
 		logger.info("Finished!");
 	}
 	
@@ -393,6 +415,36 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 			}
 			else{
 				list.offerLast((double)bvc.getSummaryAcrossRG().numC/(double)(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT));
+			}
+		}
+	}
+	
+	private void addCoverageToList(BisulfiteVariantCallContext bvc, Strand strand, LinkedList<Integer> list){
+		if(orientated){
+			if(strand == Strand.NEGATIVE){
+				if(bvc == null){
+					list.offerFirst(0);
+				}
+				else{
+					list.offerFirst(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT);
+				}
+			}
+			else{
+				if(bvc == null){
+					list.offerLast(0);
+				}
+				else{
+					list.offerLast(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT);
+				}
+			}
+			
+		}
+		else{
+			if(bvc == null){
+				list.offerLast(0);
+			}
+			else{
+				list.offerLast(bvc.getSummaryAcrossRG().numC + bvc.getSummaryAcrossRG().numT);
 			}
 		}
 	}

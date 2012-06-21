@@ -25,7 +25,7 @@ public class bedObjectWriterImp extends FormatWriterBase {
 	@Override
 	public void add(genomeObject obj) {
 		// TODO Auto-generated method stub
-		String readsLine = String.format("%s\t%d\t%d",obj.getChr(), obj.getStart(), ((bedObject) obj).getEnd());
+		String readsLine = String.format("%s\t%d\t%d\t%s",obj.getChr(), obj.getStart(), ((bedObject) obj).getEnd(), ((bedObject) obj).getStrandAsString());
 		
 		try {
 			mWriter.write(readsLine);

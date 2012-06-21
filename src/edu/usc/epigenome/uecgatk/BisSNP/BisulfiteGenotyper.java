@@ -2,15 +2,10 @@ package edu.usc.epigenome.uecgatk.BisSNP;
 
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -18,10 +13,9 @@ import java.util.TreeSet;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.SortingVCFWriter;
+
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFilterHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
@@ -32,18 +26,13 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.commandline.Argument;
+
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.DownsampleType;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Downsample;
@@ -51,25 +40,14 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.gatk.walkers.annotator.HaplotypeScore;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper.UGStatistics;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.MethylSNPModel;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.OUTPUT_MODE;
-import edu.usc.epigenome.uecgatk.YapingWalker.verboseWriter;
 import edu.usc.epigenome.uecgatk.YapingWriter.FormatWriterBase;
 import edu.usc.epigenome.uecgatk.YapingWriter.NOMeSeqReads;
 import edu.usc.epigenome.uecgatk.YapingWriter.SortingCpgReadsWriter;
@@ -670,7 +648,9 @@ public class BisulfiteGenotyper extends LocusWalker<BisulfiteVariantCallContext,
 		writer.setRefSource(getToolkit().getArguments().referenceFile.toString());
 		
 		writer.writeHeader(new VCFHeader(getHeaderInfo(), samples));
-		
+		for(SAMSequenceRecord record : refDict.getSequences()){
+			System.err.println(record.getSequenceName() + "\t" + record.getAssembly() + "\t"  + record.getSequenceLength() + "\t"  + record.getId() + "\t"  + record.getSequenceIndex() + "\t"  + record.getAttributes().toString());
+		}
 		if(getToolkit().getArguments().numberOfThreads > 1){
 			multiThreadWriter = new SortingTcgaVCFWriter(writer, MAXIMUM_CACHE_FOR_OUTPUT_VCF);
 			multiThreadWriter.enableDiscreteLoci(BAC.lnc);

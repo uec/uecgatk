@@ -41,8 +41,17 @@ public class TcgaVCFWriter extends StandardVCFWriter {
 	//store reference file path and name
 	protected String ref = null;
 	
+	private boolean useOriginalHeader = false;
+	
 	public TcgaVCFWriter(File location,SAMSequenceDictionary refDict) {
 		super(location, refDict);
+		// TODO Auto-generated constructor stub
+	}
+	
+	public TcgaVCFWriter(File location,SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing, boolean useOriginalHeader) {
+		
+		super(location, refDict, enableOnTheFlyIndexing);
+		this.useOriginalHeader = useOriginalHeader;
 		// TODO Auto-generated constructor stub
 	}
 

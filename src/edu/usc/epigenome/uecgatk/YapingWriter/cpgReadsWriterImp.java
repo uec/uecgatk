@@ -25,7 +25,7 @@ public class cpgReadsWriterImp extends FormatWriterBase {
 	public void add(genomeObject obj) {
 		// TODO Auto-generated method stub
 		//String readsLine = String.format("%s\t%d\t%c\t%d\t%c\t%s\t%d\n",obj.getChr(), obj.getStart(), ((cpgReads) obj).getMethyStatus(), ((cpgReads) obj).getbaseQ(), ((cpgReads) obj).getstrand(), ((cpgReads) obj).getReadID(), ((cpgReads) obj).getEncryptID());
-		String readsLine = String.format("%s\t%d\t%c\t%d\t%c\t%d\n",obj.getChr(), obj.getStart(), ((cpgReads) obj).getMethyStatus(), ((cpgReads) obj).getbaseQ(), ((cpgReads) obj).getstrand(), ((cpgReads) obj).getEncryptID());
+		String readsLine = String.format("%s\t%d\t%c\t%d\t%c\t%s\n",obj.getChr(), obj.getStart(), ((cpgReads) obj).getMethyStatus(), ((cpgReads) obj).getbaseQ(), ((cpgReads) obj).getstrand(), ((cpgReads) obj).getEncryptID64Ascii());
 
 		try {
 			mWriter.write(readsLine);

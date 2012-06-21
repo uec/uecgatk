@@ -31,7 +31,7 @@ public class BetaDistribution implements RandomDistribution {
     
     
 	public BetaDistribution() {
-		this(0.2, 0.8);
+		this(0.5, 0.5);
 	}
 	
 	public BetaDistribution(double a, double b) {

@@ -160,8 +160,8 @@ public class OpdfBeta implements Opdf<ObservationReal> {
 		for (ObservationReal o : co) {
 			log1minusP += Math.log(1-o.value) * weights[i++];
 		//	System.err.println("log1minusP: " + log1minusP + "\tvalue: " + o.value);
-			if(Double.isNaN(log1minusP))
-				System.exit(1);
+			//if(Double.isNaN(log1minusP))
+		//		System.exit(1);
 		}
 		//log1minusP /= co.size();
 		log1minusP += digammaFunction(distribution.getAlpha() + distribution.getBeta());

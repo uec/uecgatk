@@ -41,7 +41,6 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.kohsuke.args4j.Option;
 
 /**
  * @author yaping
@@ -62,12 +61,20 @@ public class VCFfilterWalker extends LocusWalker<Integer, Integer> implements
 	@Input(fullName="old_vcfs", shortName = "oldVcfs", doc="input vcf file", required=true)
 	 public List<RodBinding<VariantContext>> oldVcfs;
 	
+	@Input(fullName="snp_vcfs", shortName = "snpVcf", doc="input SNP vcf file, used to filter out adjacent SNP files", required=true) //used to filter SNP clustered
+	 public RodBinding<VariantContext> snpVcf;
+	
 	@Output(fullName="new_vcf", shortName = "newVcf", doc="filtered vcf file", required=true)
 	public VCFWriter newVcf = null;
 	
 	@Output(fullName="filteredMinorAllele", shortName = "filteredMinorAllele", doc="output filtered Minor Allele", required=false)
 	public PrintStream filteredMinorAllele = null;
 	
+	@Argument(shortName="minSNPinWind",doc="minimum number of SNPs in the window, default:2", required=false)
+	protected int minSNPinWind = 2;
+	
+	@Argument(shortName="windSizeForSNPfilter",doc="window size for detect SNP cluster, default:10, means +/- 10bp distance, no second SNP there", required=false)
+	protected int windSizeForSNPfilter = 10;
 	
 	@Argument(shortName="minCov",doc="minimum covergae required for the position in VCF file, default:1", required=false)
 	protected int minCov = 1;
