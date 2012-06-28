@@ -152,11 +152,14 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		 File fn1 = new File(gchFile);
 		 File fn2 = new File(wcgFile);
 		 File fn3 = new File(hcgFile);
-		 File fn4 = new File(gchDataPoint);
+		 File fn4= null;
+		 if(gchDataPoint != null)
+			fn4 = new File(gchDataPoint);
 		 gchWriter = new bedObjectWriterImp(fn1);
 		 wcgWriter = new bedObjectWriterImp(fn2);
 		 hcgWriter = new bedObjectWriterImp(fn3);
-		 gchDataWriter = new bedObjectWriterImp(fn4);
+		 if(gchDataPoint != null)
+			 gchDataWriter = new bedObjectWriterImp(fn4);
 		 
 		 tmpMethyValueListGch = new LinkedList<Double>();
 		 tmpMethyValueListWcg = new LinkedList<Double>();
@@ -234,8 +237,11 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    			 
 	    			 bedObject bedLineGch = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpMethyValueListGch); //chr, start, end, strand, aveMethyNDR, gchNumNDR, gchDepthNDR, gchCTdepthNDR, aveMethyLinker, gchNumLinker, gchDepthLinker, gchCTdepthLinker
 		    		 gchWriter.add(bedLineGch);
-		    		 bedObject bedLineGch2 = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpDataPointListGch);
-		    		 gchDataWriter.add(bedLineGch2);
+		    		 if(gchDataPoint != null){
+		    			 bedObject bedLineGch2 = new bedObject(chr, bedStart, bedEnd, strand, (List)tmpDataPointListGch);
+			    		 gchDataWriter.add(bedLineGch2);
+		    		 }
+		    		 
 	    		 }
 	    		
 	    		 if(tmpMethyValueListWcg.size() == distance * 2 + 1){
@@ -251,7 +257,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	    		 tmpMethyValueListGch.clear();
 	    		 tmpMethyValueListWcg.clear();
 	    		 tmpMethyValueListHcg.clear();
-	    		 tmpDataPointListGch.clear();
+	    		 if(gchDataPoint != null)
+	    			 tmpDataPointListGch.clear();
 	    		 
 	    		 writtenObject = true;
 	    		 logger.info(chr + "\t" + bedStart + "\t" + bedEnd);
@@ -266,8 +273,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 				addContextToList(null, strand, tmpMethyValueListGch);
 	 				addContextToList(null, strand, tmpMethyValueListWcg);
 	 				addContextToList(null, strand, tmpMethyValueListHcg);
-	 				
-	 				addCoverageToList(null, strand, tmpDataPointListGch);
+	 				if(gchDataPoint != null)
+	 					addCoverageToList(null, strand, tmpDataPointListGch);
 	 			
 	 				
 	 			return null;
@@ -281,8 +288,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 			addContextToList(null, strand, tmpMethyValueListGch);
  				addContextToList(null, strand, tmpMethyValueListWcg);
  				addContextToList(null, strand, tmpMethyValueListHcg);
- 				
- 				addCoverageToList(null, strand, tmpDataPointListGch);
+ 				if(gchDataPoint != null)
+ 					addCoverageToList(null, strand, tmpDataPointListGch);
  				return null;
 	 			
 	 		}
@@ -307,13 +314,15 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 	 		if(isGch){
 	 			
 	 			addContextToList(bvc, strand, tmpMethyValueListGch);
-	 			addCoverageToList(bvc, strand, tmpDataPointListGch);
+	 			if(gchDataPoint != null)
+	 				addCoverageToList(bvc, strand, tmpDataPointListGch);
 	 			//if positive strand, offerLast(), if negative strand, offerFirst()
 	 			
 	 		}
 	 		else{
 	 			addContextToList(null, strand, tmpMethyValueListGch);
-	 			addCoverageToList(null, strand, tmpDataPointListGch);
+	 			if(gchDataPoint != null)
+	 				addCoverageToList(null, strand, tmpDataPointListGch);
 	 		}
 	 		if(isWcg){
 	 			
@@ -385,7 +394,8 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 		gchWriter.close();
 		wcgWriter.close();
 		hcgWriter.close();
-		gchDataWriter.close();
+		if(gchDataPoint != null)
+			gchDataWriter.close();
 		logger.info("Finished!");
 	}
 	
