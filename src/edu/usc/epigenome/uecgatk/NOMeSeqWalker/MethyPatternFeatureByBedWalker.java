@@ -69,13 +69,13 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 //	@Argument(fullName = "feature_name", shortName = "feature", doc = "Feature name provide in -B:<name>,<type> <filename> option", required = false)
  //   public String feature = null;
 	
-	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature", required = false)
+	@Argument(fullName = "search_distance_to_feature", shortName = "distance", doc = "define the distance before or after feature, default: 2000", required = false)
     public int distance = 2000;
 	
 	@Argument(fullName = "bin_size", shortName = "binSize", doc = "define the bin size when sliding window. default: 1", required = false)
     public int binSize = 1;
 	
-	@Argument(fullName = "minium_CT_reads_count", shortName = "minCTdepth", doc = "minium number of CT reads should contained to calculate methylation value", required = false)
+	@Argument(fullName = "minium_CT_reads_count", shortName = "minCTdepth", doc = "minium number of CT reads should contained to calculate methylation value, default: 1", required = false)
     public int minCTdepth = 1;
 	
 	//@Argument(fullName = "space_before_feature", shortName = "before", doc = "define the space before feature to detect", required = false)
@@ -84,13 +84,16 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 	///@Argument(fullName = "space_after_feature", shortName = "after", doc = "define the space after feature to detect", required = false)
    // public int after = 2000;
 	
-	@Argument(fullName = "enable_orientation", shortName = "orientated", doc = "orientated by strand or not", required = false)
+	@Argument(fullName = "enable_orientation", shortName = "orientated", doc = "orientated by strand or not, default: not orientated", required = false)
     public boolean orientated = false;
 	
-	@Argument(fullName = "encode_format", shortName = "encode", doc = "get methylation value from ENCODE bed format", required = false)
-    public boolean encode = false;
+	@Argument(fullName = "bed_format", shortName = "bedFormat", doc = "define the bed format of input methylation value: " +
+			"[BED6PLUS2: TCGA bed 6+2 format, whose score column is 0-1000 to represent methylation value, this is default option;" +
+			"BED3PLUS2: bed 3+2 format, whose score column is 0-100 to represent methylation value;" +
+			"ENCODE: Encode bed 9 format, whose score column is 0-1000 to represent methylation value]", required = false)
+    public BedFormat bedFormat = BedFormat.BED6PLUS2;
 	
-	@Argument(fullName = "motif_alignment_type", shortName = "alignmentType", doc = "motif aligned at FiveEnd, ThreeEnd or Center", required = false)
+	@Argument(fullName = "motif_alignment_type", shortName = "alignmentType", doc = "motif aligned at FiveEnd, ThreeEnd or Center, default: align to center", required = false)
     public MotifAlignmentType alignmentType = MotifAlignmentType.Center;
 	
 	//output three files matrix file, contained GCH, WCG and HCG
@@ -177,7 +180,22 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
    				 if(rodList.get(0).getUnderlyingObject() instanceof SimpleBEDFeature){
    					 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
    					// System.err.println(rodList.get(0).getUnderlyingObject());
-       				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
+   					int featureAlignStart = (bedTmp.getStart() + bedTmp.getEnd())/2;
+					 
+					 if(alignmentType == MotifAlignmentType.FiveEnd){
+						 featureAlignStart = bedTmp.getStart();
+						 if(bedTmp.getStrand() == Strand.NEGATIVE){
+							 featureAlignStart = bedTmp.getEnd();
+						 }
+					 }
+					 else if(alignmentType == MotifAlignmentType.ThreeEnd){
+						 featureAlignStart = bedTmp.getEnd();
+						 if(bedTmp.getStrand() == Strand.NEGATIVE){
+							 featureAlignStart = bedTmp.getStart();
+						 }
+					 }
+					 
+       				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), featureAlignStart, featureAlignStart)) <= distance){
                			 bed = bedTmp;
                			 strand = bedTmp.getStrand();
            	    		 chr = bedTmp.getChr();
@@ -196,7 +214,22 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
    		}
    		else{
     			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) + "\t" + bed.toString());
-    				 if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
+   				int featureAlignStart = (bed.getStart() + bed.getEnd())/2;
+			 
+   				if(alignmentType == MotifAlignmentType.FiveEnd){
+   					featureAlignStart = bed.getStart();
+   					if(bed.getStrand() == Strand.NEGATIVE){
+   						featureAlignStart = bed.getEnd();
+   					}
+   				}
+   				else if(alignmentType == MotifAlignmentType.ThreeEnd){
+   					featureAlignStart = bed.getEnd();
+   					if(bed.getStrand() == Strand.NEGATIVE){
+   						featureAlignStart = bed.getStart();
+   					}
+   				}	 
+			 
+   					if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), featureAlignStart, featureAlignStart)) > distance){
 
     	    		 inFeature = false;
     	    		 writtenObject = false;
@@ -242,14 +275,31 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 	     else{
 
 	    	 List<BEDFeature> bedValues = tracker.getValues(values);
-	    	 double methy;
+	    	 double methy = Double.NaN;
 	    	 int cov;
 	    	 if(bedValues.isEmpty()){
 	    		 methy = Double.NaN;
 	    		 cov = -1;
 	    	 }
 	    	 else{
-	    		 methy = (double)bedValues.get(0).getScore()/(double)1000;
+	    		 if(bedFormat == BedFormat.BED6PLUS2){
+	    			 methy = (double)bedValues.get(0).getScore()/(double)1000;
+	    		 }
+	    		 else if(bedFormat == BedFormat.ENCODE){
+	    			 methy = (double)bedValues.get(0).getScore()/(double)1000;
+	    		 }
+	    		 else if(bedFormat == BedFormat.BED3PLUS2){
+	    			 methy = (double)bedValues.get(0).getScore()/(double)100;
+	    		 }
+	    		 else{
+	    			 try {
+						throw new Exception("not recognized bed file format");
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    		 }
+	    		 
 	    		 cov = 1;
 	    	 }
 	    	 if(gchFile != null)
@@ -350,6 +400,12 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 		FiveEnd,
 		ThreeEnd,
 		Center
+	}
+	
+	private enum BedFormat{
+		ENCODE, //score is 0-100%, but a little different..
+		BED6PLUS2, // score is 0-1000%
+		BED3PLUS2 // score is 0-100%
 	}
 
 }
