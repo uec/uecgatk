@@ -1,5 +1,6 @@
 /**
- * 
+ * it output segement with following column: chr, start, end, strand, score, number of GCH, number of CT reads, segment length, p value. after R deal with it, then
+ * 2 more column, FDR, GCH methylation value
  */
 package edu.usc.epigenome.uecgatk.NOMeSeqWalker;
 
@@ -16,6 +17,8 @@ import java.util.List;
 import java.util.Iterator;
 
 
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.distribution.BinomialDistributionImpl;
 import org.broad.tribble.annotation.Strand;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
@@ -74,6 +77,9 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	@Output(fullName = "segment_file", shortName = "segment", doc = "write segment of NDR region into a file (no training mode)", required = false)
 	public String segmentFile = null;
 	
+	@Output(fullName = "MPR_segment_file", shortName = "mprSeg", doc = "write segment of MPR/NPR region into a file (no training mode)", required = false)
+	public String mprSegFile = null;
+	
 	@Argument(fullName = "min_ct_coverage", shortName = "minCT", doc = "minimum number of CT reads for count methylation level, default: 1", required = false)
 	public int minCT = 1;
 	
@@ -90,7 +96,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	public int dataP = 2;
 	
 	@Argument(fullName = "num_of_states", shortName = "states", doc = "number of states, default: 2", required = false)
-	public static int states = 4;
+	public static int states = 2;
 	
 	private static int STATES=states;
 	
@@ -108,12 +114,15 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	
 	private bedObjectWriterImp segWriter = null;
 	
+	private bedObjectWriterImp nprSegWriter = null;
+	
 	
 	
 	public void initialize(){
 		if(!train){
 			bedWriter = new bedObjectWriterImp(new File(resultFile));
 			segWriter = new bedObjectWriterImp(new File(segmentFile));
+			nprSegWriter = new bedObjectWriterImp(new File(mprSegFile));
 		}
 			
 	}
@@ -143,7 +152,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 							//double methyValue =(double) numC / (double) (numC + numT);
 							//System.err.println(ref.getLocus());
 							//System.err.println(new ObservationReal(methyValue));
-							Datapoint dat = new Datapoint(ref.getLocus(),new ObservationReal(methyValue));
+							Datapoint dat = new Datapoint(ref.getLocus(),new ObservationReal(methyValue), numC + numT);
 							//dat.value.setCoverage((numC + numT));
 							return dat;
 						}
@@ -166,10 +175,13 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		Datum tmp = new Datum();
 		LinkedList<GenomeLoc> position = new LinkedList<GenomeLoc>();
 		LinkedList<ObservationReal> value = new LinkedList<ObservationReal>();
+		LinkedList<Integer> numCT = new LinkedList<Integer>();
 		tmp.position = new ArrayList<LinkedList<GenomeLoc>>();
 		tmp.value = new ArrayList<LinkedList<ObservationReal>>();
+		tmp.numCT = new ArrayList<LinkedList<Integer>>();
 		tmp.position.add(position);
 		tmp.value.add(value);
+		tmp.numCT.add(numCT);
 		return tmp;
 	}
 
@@ -182,27 +194,33 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			return sum;
 		LinkedList<GenomeLoc> position = sum.position.remove(sum.position.size()-1);
 		LinkedList<ObservationReal> data = sum.value.remove(sum.value.size()-1);
+		LinkedList<Integer> numCT = sum.numCT.remove(sum.numCT.size()-1);
 		if(!position.isEmpty()){
 			if( position.size() >= MAXIMUM_DATA_POINTS|| position.peekLast().distance(value.position) >= MAXIMUM_GAP_SIZE || !position.peekLast().onSameContig(value.position)){
 				if(position.size() >= MINIMUM_DATA_POINTS){
 					sum.position.add(position);
 					sum.value.add(data);
+					sum.numCT.add(numCT);
 				}
 				
 				LinkedList<GenomeLoc> newPosition = new LinkedList<GenomeLoc>();
 				LinkedList<ObservationReal> newValue = new LinkedList<ObservationReal>();
+				LinkedList<Integer> newNumCT = new LinkedList<Integer>();
 				newPosition.offerLast(value.position);
 				newValue.offerLast(value.value);
+				newNumCT.offerLast(value.numCT);
 				sum.position.add(newPosition);
 				sum.value.add(newValue);
+				sum.numCT.add(newNumCT);
 				return sum;
 			}
 		}
 		position.offerLast(value.position);
 		data.offerLast(value.value);
+		numCT.offerLast(value.numCT);
 		sum.position.add(position);
 		sum.value.add(data);
-		
+		sum.numCT.add(numCT);
 		return sum;
 	}
 
@@ -218,8 +236,15 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	public void onTraversalDone(Datum result) {
 	//	ArrayList<List<ObservationReal>> values = new ArrayList<List<ObservationReal>>();
 		System.out.println("sequence data size: " + result.value.size());
+		int z = 0;
 		for(LinkedList<ObservationReal> tmp : result.value){
 			System.out.println("size: " + tmp.size());
+			if(tmp.size() < dataP){
+				result.value.remove(z);
+				result.position.remove(z);
+				result.numCT.remove(z);
+			}	
+			z++;
 		}
 	//	values.add(result.value);
 		if(train){
@@ -285,11 +310,17 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			}
 			int ndrState = 0;
 			double maxMean = 0;
-			//suppose NDR region have the highest mean GCH methyation value
+			int nprState = 1;
+			double minMean = 1.1;
+			//suppose NDR region have the highest mean GCH methyation value, NPR region have lowest mean GCH methylation value
 			for(int m = 0; m < hmm.nbStates(); m++){
 				if(((OpdfBeta)hmm.getOpdf(m)).mean() > maxMean){
 					maxMean = ((OpdfBeta)hmm.getOpdf(m)).mean();
 					ndrState = m;
+				}
+				if(((OpdfBeta)hmm.getOpdf(m)).mean() < minMean){
+					minMean = ((OpdfBeta)hmm.getOpdf(m)).mean();
+					nprState = m;
 				}
 			}
 			
@@ -315,11 +346,22 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					methyState[ii] = it2.next().value;
 					ii++;
 				}
-				getNDRSegment(hiddenState, methyState, loci, randomSeqs, ndrState);
+				
+				ii=0;
+				int[] numCTState = new int[result.numCT.get(j).size()];
+				Iterator<Integer> it3 = result.numCT.get(j).iterator();
+				while(it3.hasNext()){
+					numCTState[ii] = it3.next();
+					ii++;
+				}
+				//getNDRSegment(hiddenState, methyState, loci, numCTState, randomSeqs, ndrState);
+				getNPRSegmentByLocalCompar(hiddenState, methyState, loci, numCTState, ndrState, segWriter);
+				getNPRSegmentByLocalCompar(hiddenState, methyState, loci, numCTState, nprState, nprSegWriter);
 				for(int i = 0; i < hiddenState.length; i++){
 					List<Object> tmp = new LinkedList<Object>();
 					tmp.add(hiddenState[i]);
 					tmp.add(methyState[i]);
+					tmp.add(numCTState[i]);
 					bedObject bedLine = new bedObject(loci[i].getContig(), loci[i].getStart()-1, loci[i].getStop(), Strand.NONE, (List)tmp);
 					bedWriter.add(bedLine);
 				}
@@ -328,6 +370,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 
 			bedWriter.close();
 			segWriter.close();
+			nprSegWriter.close();
 		}
 	}
 	
@@ -405,20 +448,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		return hmm;
 	}
 	
-	public class Datum{
-		public ArrayList<LinkedList<ObservationReal>> value;
-		public ArrayList<LinkedList<GenomeLoc>> position;
-	}
-	
-	public class Datapoint{
-		public ObservationReal value;
-		public GenomeLoc position;
-		public Datapoint(GenomeLoc position, ObservationReal value){
-			this.position = position;
-			this.value = value;
-		}
-	}
-	
+
 	private double[] getPermutatedSeqs(ArrayList<LinkedList<ObservationReal>> seqs, Hmm<ObservationReal> hmm, int ndrState){
 		ArrayList<ObservationReal> randomValueList = new ArrayList<ObservationReal>();
 		
@@ -477,7 +507,8 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		return scoreCollection;
 	}
 	
-	private void getNDRSegment(int[] hiddenState, double[] methyState, GenomeLoc[] loci, double[] randomSeqs, int ndrState){
+	//NDR segement: chr, start, end, strand, score(methylation sum of this segment), GCH_number, numCT (total number of CT in this segment), seg_length, raw_p_value 
+	private void getNDRSegment(int[] hiddenState, double[] methyState, GenomeLoc[] loci, int[] numCTState, double[] randomSeqs, int ndrState){
 		String chr = null;
 		int start = -1;
 		int end = -1;
@@ -485,6 +516,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		int preState = -1;
 		GenomeLoc preLoc = null;
 		int dataPoint = 0;
+		int numCT = 0;
 		for(int i=0; i < hiddenState.length; i++){
 			if(preState == -1){
 				preState = hiddenState[i];
@@ -494,6 +526,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					start = loci[i].getStart()-1;
 					score += methyState[i];
 					dataPoint++;
+					numCT += numCTState[i];
 				}	
 				continue;
 			}
@@ -501,6 +534,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				chr = loci[i].getContig();
 				start = loci[i].getStart()-1;
 				score += methyState[i];
+				numCT += numCTState[i];
 				dataPoint++;
 				preState = hiddenState[i];
 				preLoc = loci[i];
@@ -512,11 +546,14 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					List<Object> tmp = new LinkedList<Object>();
 					tmp.add(score);
 					tmp.add(dataPoint);
+					tmp.add(numCT);
 					tmp.add(end-start);
+					
 					tmp.add(getPvalue(score, randomSeqs));
 					bedObject bedLine = new bedObject(chr, start, end, Strand.NONE, (List)tmp);
 					segWriter.add(bedLine);
 					score = 0;
+					numCT = 0;
 					dataPoint = 0;
 					preLoc = loci[i];
 				}
@@ -524,6 +561,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					preState = hiddenState[i];
 					preLoc = loci[i];
 					score += methyState[i];
+					numCT += numCTState[i];
 					dataPoint++;
 				}
 				
@@ -532,14 +570,164 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		}
 	}
 	
+	//output NPR segment format: chr, start, end, strand, score(methylation sum of this segment), GCH_number, numC (total number of C in this segment),
+	//numT (total number of T in this segment), numC_adj (total number of C in the adjacent segment), numT_adj (total number of T in the adjacent segment),seg_length, raw_p_value
+		private void getNPRSegmentByLocalCompar(int[] hiddenState, double[] methyState, GenomeLoc[] loci, int[] numCTState, int nprState, bedObjectWriterImp writer){
+			String chr = null;
+			int start = -1;
+			int end = -1;
+			double score = 0;
+			int preState = -1; //record the previous loci's state
+			boolean passNprSeg = false;
+			int dataPoint = 0; //number of GCH in the segments
+
+			int numC_pre = 0;
+			int numT_pre = 0;
+			int numC_after = 0;
+			int numT_after = 0;
+			int numC_npr = 0;
+			int numT_npr = 0;
+			
+			for(int i=0; i < hiddenState.length; i++){
+				if(preState == -1){
+					preState = hiddenState[i]; 
+					if(preState == nprState){
+						chr = loci[i].getContig();
+						start = loci[i].getStart()-1;
+						score = methyState[i];
+						dataPoint=1;
+						numC_npr = (int)(numCTState[i] * methyState[i]);
+						numT_npr = (int)(numCTState[i] * (1-methyState[i]));
+
+					}	
+					else{
+						numC_pre = (int)(numCTState[i] * methyState[i]);
+						numT_pre = (int)(numCTState[i] * (1-methyState[i]));
+					}
+					continue;
+				}
+				else{
+					if(preState != nprState){
+						if(hiddenState[i] == nprState){
+							if(passNprSeg){
+								double pSuccess = (double)(numC_pre + numT_pre)/(double)(numC_pre + numT_pre + numC_after + numT_after);
+								double pValue = getBinomialSigTest(numC_npr, (numC_npr+numT_npr), pSuccess);
+								List<Object> tmp = new LinkedList<Object>();
+								tmp.add(score);
+								tmp.add(dataPoint);
+								tmp.add(numC_npr);
+								tmp.add(numT_npr);
+								tmp.add((numC_pre + numC_after));
+								tmp.add((numT_pre + numT_after));
+								tmp.add(end-start);
+								
+								tmp.add(pValue);
+								bedObject bedLine = new bedObject(chr, start, end, Strand.NONE, (List)tmp);
+								writer.add(bedLine);
+								chr = loci[i].getContig();
+								start = loci[i].getStart()-1;
+								end = loci[i].getStart();
+								score = methyState[i];
+								dataPoint = 1;
+								numC_npr = (int)(numCTState[i] * methyState[i]);
+								numT_npr = (int)(numCTState[i] * (1-methyState[i]));
+								numC_pre = numC_after;
+								numT_pre = numT_after;
+								numC_after = 0;
+								numT_after = 0;
+								
+							}
+							else{
+								chr = loci[i].getContig();
+								start = loci[i].getStart()-1;
+								numC_npr += (int)(numCTState[i] * methyState[i]);
+								numT_npr += (int)(numCTState[i] * (1-methyState[i]));
+								score += methyState[i];
+								dataPoint++;
+							}
+						}
+						else{
+							if(passNprSeg){
+								numC_after += (int)(numCTState[i] * methyState[i]);
+								numT_after += (int)(numCTState[i] * (1-methyState[i]));
+							}
+							else{
+								numC_pre += (int)(numCTState[i] * methyState[i]);
+								numT_pre += (int)(numCTState[i] * (1-methyState[i]));
+							}
+						}
+						
+					}
+					else{
+						if(hiddenState[i] == nprState){
+							numC_npr += (int)(numCTState[i] * methyState[i]);
+							numT_npr += (int)(numCTState[i] * (1-methyState[i]));
+							score += methyState[i];
+							dataPoint++;
+						}
+						else{
+							passNprSeg = true;
+							end = loci[i].getStart();
+							numC_after += (int)(numCTState[i] * methyState[i]);
+							numT_after += (int)(numCTState[i] * (1-methyState[i]));
+							
+						}
+					}
+				}
+			}
+		}
+	
 	private double getPvalue(double value, double[] distribution){
 		int rank = 0;
 		for(int i = 0; i < distribution.length; i++){
-			if(distribution[i] > value){
+			if(distribution[i] >= value){
 				rank++;
 			}
 		}
 		return (double)rank/(double)distribution.length;
 	}
+	
+	private double getBinomialSigTest(int k, int n, double pSucess){
+		
+		//double p;
+		//if(k==0){
+		//	p = Probability.binomial(k,n,pValue);
+		//}
+		//else{
+		//	p = Probability.binomial(k,n,pValue)-Probability.binomial(k-1,n,pValue);
+		//}
+		//System.err.println(k + "\t" + n + "\t" + pValue + "\t" + p);
+		BinomialDistributionImpl binomial = new BinomialDistributionImpl(n, pSucess);
+		
+		//return binomial.probability(k);
+		 double p = Double.NaN;
+		try {
+			p = binomial.cumulativeProbability(k); //p(X<= x)
+		} catch (MathException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return p;
+		//
+		
+	}
+	
+	public class Datum{
+		public ArrayList<LinkedList<ObservationReal>> value;
+		public ArrayList<LinkedList<GenomeLoc>> position;
+		public ArrayList<LinkedList<Integer>> numCT;
+	}
+	
+	public class Datapoint{
+		public ObservationReal value;
+		public GenomeLoc position;
+		public int numCT;
+		public Datapoint(GenomeLoc position, ObservationReal value, int numCT){
+			this.position = position;
+			this.value = value;
+			this.numCT = numCT;
+		}
+	}
+	
 	
 }
