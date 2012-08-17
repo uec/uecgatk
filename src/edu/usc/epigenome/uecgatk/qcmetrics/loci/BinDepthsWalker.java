@@ -24,6 +24,7 @@ import org.apache.commons.math.stat.descriptive.*;
  * Zack Ramjan
  * USC Epigenome Center 
  * 06/10/2011
+ * 08/08/2012
  */
 
 /**
@@ -59,6 +60,8 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	 current_window = 0;
     	 count_index = 0;
     	 stats = new DescriptiveStatistics();
+    	 
+    	 out.println("track type=wiggle_0 name=\"coverage\" description=\"winsize=" + WINSIZE + "\"");
     	 
     	if(SAMPLESIZE > 0)
     	{
@@ -125,19 +128,27 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	
     	
     	
-    	if(current_contig != contig || pos % WINSIZE == 0)
+    	if(current_contig != contig)
+    	{
+    		current_contig=contig;
+    		current_contigName = contigName;
+    		if(dump)
+    			out.printf("fixedStep  chrom=%s start=%d step=%d%n", current_contigName, pos, WINSIZE);
+    		
+    	}
+    	
+    	if(pos % WINSIZE == 0)
     	{
     		if(current_contig != -1)
     		{
     			if(dump)
-    				out.printf("contig=%s window=%d count=%f%n", current_contigName, current_window, 1.0 * count / count_index);
+    				out.printf("%f%n", 1.0 * count / count_index);
     			stats.addValue(1.0 * count / count_index);
     		}
     		count=0;
     		count_index=0;
     		current_window = pos;
-    		current_contig=contig;
-    		current_contigName = contigName;
+    		
     		
     	}
     	count += depth;
@@ -177,13 +188,16 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public void onTraversalDone(Boolean t) 
     {
-    	out.println("window size=" + WINSIZE);
-    	out.println("window count=" + stats.getN());
-    	out.println("mean=" + stats.getMean());
-    	out.println("max=" + stats.getMax());
-    	out.println("std dev=" + stats.getStandardDeviation());
-    	for(double i=10.0; i<=100.0; i+=10.0)
-    		out.println(i + " percentile=" + stats.getPercentile(i));
+    	out.println("#window size=" + WINSIZE);
+    	out.println("#window count=" + stats.getN());
+    	out.println("#mean=" + stats.getMean());
+    	out.println("#max=" + stats.getMax());
+    	out.println("#std dev=" + stats.getStandardDeviation());
+    	
+    	//common math takes forever for large data sets.
+    	if(WINSIZE > 4000)
+	    	for(double i=10.0; i<=100.0; i+=10.0)
+	    		out.println("#"+ i + " percentile=" + stats.getPercentile(i));
     	
     }
 
