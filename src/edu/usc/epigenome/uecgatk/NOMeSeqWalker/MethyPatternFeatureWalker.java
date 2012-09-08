@@ -196,7 +196,22 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     				 if(rodList.get(0).getUnderlyingObject() instanceof SimpleBEDFeature){
     					 SimpleBEDFeature bedTmp = (SimpleBEDFeature)rodList.get(0).getUnderlyingObject();
     					// System.err.println(rodList.get(0).getUnderlyingObject());
-        				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), (bedTmp.getStart() + bedTmp.getEnd())/2, (bedTmp.getStart() + bedTmp.getEnd())/2)) <= distance){
+    					 int featureAlignStart = (bedTmp.getStart() + bedTmp.getEnd())/2;
+    					 
+    					 if(alignmentType == MotifAlignmentType.FiveEnd){
+    						 featureAlignStart = bedTmp.getStart();
+    						 if(bedTmp.getStrand() == Strand.NEGATIVE){
+    							 featureAlignStart = bedTmp.getEnd();
+    						 }
+    					 }
+    					 else if(alignmentType == MotifAlignmentType.ThreeEnd){
+    						 featureAlignStart = bedTmp.getEnd();
+    						 if(bedTmp.getStrand() == Strand.NEGATIVE){
+    							 featureAlignStart = bedTmp.getStart();
+    						 }
+    					 }
+    					 
+        				 if(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bedTmp.getChr(), featureAlignStart, featureAlignStart)) <= distance){
                 			 bed = bedTmp;
                 			 strand = bedTmp.getStrand();
             	    		 chr = bedTmp.getChr();
@@ -215,13 +230,28 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
     		}
     		else{
      			// System.err.println(loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) + "\t" + bed.toString());
-     				 if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), (bed.getStart() + bed.getEnd())/2, (bed.getStart() + bed.getEnd())/2)) > distance){
+    			int featureAlignStart = (bed.getStart() + bed.getEnd())/2;
+				 
+				 if(alignmentType == MotifAlignmentType.FiveEnd){
+					 featureAlignStart = bed.getStart();
+					 if(bed.getStrand() == Strand.NEGATIVE){
+						 featureAlignStart = bed.getEnd();
+					 }
+				 }
+				 else if(alignmentType == MotifAlignmentType.ThreeEnd){
+					 featureAlignStart = bed.getEnd();
+					 if(bed.getStrand() == Strand.NEGATIVE){
+						 featureAlignStart = bed.getStart();
+					 }
+				 }	 
+				 
+    			if(bed != null && loc.distance(getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), featureAlignStart, featureAlignStart)) > distance){
 
      	    		 inFeature = false;
      	    		 writtenObject = false;
      	    		// System.err.println(bed.getStart());
      	    		// break;
-     				 }
+     			}
      		}
     			 
             
@@ -458,7 +488,28 @@ public class MethyPatternFeatureWalker extends LocusWalker<Boolean, Boolean>
 			}
 		}
 	}
-	
+/*	
+	private List<Object> smoothList(LinkedList<Object> list, int binSize){
+		if(binSize == 1){
+			return list;
+		}
+		else{
+			
+			LinkedList<Object> returnedList = new LinkedList<Object>();
+			
+			Iterator<Object> it = list.iterator();
+			double sum = 0;
+			int num = 0;
+			while(it.hasNext()){
+				num++;
+				if(num )
+				sum += (Double)it.next();
+			}
+		}
+		return list;
+		
+	}
+*/	
 	private boolean listStatistics(LinkedList<Double> list, String type){
 		boolean filter= true;
 		int numNaElement = 0;

@@ -146,6 +146,9 @@ public class MethyPatternFeatureByBamWalker extends LocusWalker<Boolean, Boolean
 
 		 tmpDataPointList = new LinkedList<Integer>();
 		 rodIt = getToolkit().getRodDataSources().get(1);
+		 if(BAC.cytosineContextsAcquired.isEmpty()){
+			 BAC.cytosineContextsAcquired.add("CG,1");	
+		}
 		 BAC.makeCytosine();
 		 summary = new FeatureCondition();
 	}
