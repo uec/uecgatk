@@ -145,7 +145,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     		{
     			if(dump)
     				out.printf("%f%n", 1.0 * count / count_index);
-    			coverage[(int) (1.0 * count / count_index)]++;
+    			coverage[(int) Math.round((1.0 * count / count_index))]++;
     			statsNoMem.addValue(1.0 * count / count_index);
     		}
     		count=0;
