@@ -202,9 +202,9 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	for(int i = 0; i <  coverage.length; i++)
     	{
     		total += coverage[i];
-    		if(total > (statsNoMem.getN() * percentile))
+    		while(total > (statsNoMem.getN() * percentile))
     		{
-    			out.println("#"+ (percentile * 100) + " percentile=" + i);
+    			out.println("#"+ Math.round(percentile * 100) + " percentile=" + i);
     			percentile += 0.1;
     		}
     	}
