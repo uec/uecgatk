@@ -49,8 +49,10 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     protected int current_contig;
     int count_index;
     protected String current_contigName;
-    DescriptiveStatistics stats;
+    
+    SummaryStatistics statsNoMem;
     protected double PROBABILITY = 1.0;
+    long[] coverage = new long[100000000];
 
     public void initialize() 
     {
@@ -59,7 +61,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	 current_contigName = "";
     	 current_window = 0;
     	 count_index = 0;
-    	 stats = new DescriptiveStatistics();
+    	 statsNoMem = new SummaryStatistics();
     	 
     	 out.println("track type=wiggle_0 name=\"coverage\" description=\"winsize=" + WINSIZE + "\"");
     	 
@@ -143,7 +145,8 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     		{
     			if(dump)
     				out.printf("%f%n", 1.0 * count / count_index);
-    			stats.addValue(1.0 * count / count_index);
+    			coverage[(int) (1.0 * count / count_index)]++;
+    			statsNoMem.addValue(1.0 * count / count_index);
     		}
     		count=0;
     		count_index=0;
@@ -189,17 +192,21 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     public void onTraversalDone(Boolean t) 
     {
     	out.println("#window size=" + WINSIZE);
-    	out.println("#window count=" + stats.getN());
-    	out.println("#mean=" + stats.getMean());
-    	out.println("#max=" + stats.getMax());
-    	out.println("#std dev=" + stats.getStandardDeviation());
+    	out.println("#window count=" + statsNoMem.getN());
+    	out.println("#mean=" + statsNoMem.getMean());
+    	out.println("#max=" + statsNoMem.getMax());
+    	out.println("#std dev=" + statsNoMem.getStandardDeviation());
     	
-    	//common math takes forever for large data sets.
-    	if(WINSIZE > 4000)
-	    	for(double i=10.0; i<=100.0; i+=10.0)
-	    		out.println("#"+ i + " percentile=" + stats.getPercentile(i));
-    	
+    	double percentile = .1;
+    	long total = 0;
+    	for(int i = 0; i <  coverage.length; i++)
+    	{
+    		total += coverage[i];
+    		if(total > (statsNoMem.getN() * percentile))
+    		{
+    			out.println("#"+ (percentile * 100) + " percentile=" + i);
+    			percentile += 0.1;
+    		}
+    	}
     }
-
-
-}
+ }
