@@ -135,7 +135,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     		current_contig=contig;
     		current_contigName = contigName;
     		if(dump)
-    			out.printf("fixedStep  chrom=%s start=%d step=%d%n", current_contigName, pos, WINSIZE);
+    			out.printf("fixedStep  chrom=%s start=%d step=%d span=%d%n", current_contigName, pos, WINSIZE,WINSIZE);
     		
     	}
     	
