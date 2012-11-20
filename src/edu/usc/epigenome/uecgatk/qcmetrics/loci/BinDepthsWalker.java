@@ -145,7 +145,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     		{
     			if(dump)
     				out.printf("%f%n", 1.0 * count / count_index);
-    			coverage[(int) Math.round((1.0 * count / count_index))]++;
+    			coverage[(int) Math.round((10.0 * count / count_index))]++;
     			statsNoMem.addValue(1.0 * count / count_index);
     		}
     		count=0;
@@ -197,15 +197,15 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	out.println("#max=" + statsNoMem.getMax());
     	out.println("#std dev=" + statsNoMem.getStandardDeviation());
     	
-    	double percentile = .1;
+    	double percentile = .02;
     	long total = 0;
     	for(int i = 0; i <  coverage.length; i++)
     	{
     		total += coverage[i];
     		while(total > (statsNoMem.getN() * percentile))
     		{
-    			out.println("#"+ Math.round(percentile * 100) + " percentile=" + i);
-    			percentile += 0.1;
+    			out.println("#"+ Math.round(percentile * 100) + " percentile=" + (1.0 * i / 10.0));
+    			percentile += 0.02;
     		}
     	}
     }
