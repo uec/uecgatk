@@ -87,6 +87,9 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 	@Argument(fullName = "enable_orientation", shortName = "orientated", doc = "orientated by strand or not, default: not orientated", required = false)
     public boolean orientated = false;
 	
+	@Argument(fullName = "avoid_overlap_itself", shortName = "noItself", doc = "when aligned feature are overlapped with input value, avoid the alignment, default: not enabled", required = false)
+    public boolean noItself = false;
+	
 	@Argument(fullName = "bed_format", shortName = "bedFormat", doc = "define the bed format of input methylation value: " +
 			"[BED6PLUS2: TCGA bed 6+2 format, whose score column is 0-1000 to represent methylation value, this is default option;" +
 			"BED3PLUS2: bed 3+2 format, whose score column is 0-100 to represent methylation value;" +
@@ -299,7 +302,9 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 						e.printStackTrace();
 					}
 	    		 }
-	    		 
+	    		 if(noItself && (bedValues.get(0).getChr().equalsIgnoreCase(chr) && bedValues.get(0).getStart()==bedStart)){
+	    			 cov = -1;
+	    		 }
 	    		 cov = 1;
 	    	 }
 	    	 if(gchFile != null)
