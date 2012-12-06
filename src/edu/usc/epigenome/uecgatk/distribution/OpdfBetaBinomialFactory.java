@@ -35,5 +35,17 @@ public class OpdfBetaBinomialFactory implements OpdfFactory<OpdfBetaBinomial> {
 		// TODO Auto-generated method stub
 		return new OpdfBetaBinomial();
 	}
+	
+	public OpdfBetaBinomial factor(int nState) {
+		switch(nState){
+		case 0:
+			return new OpdfBetaBinomial(10, 0.3,2.8);
+		case 1:
+			return new OpdfBetaBinomial(10, 1.5,1.5);
+		default:
+			return new OpdfBetaBinomial(10, 0.75,0.42);
+		}
+		
+	}
 
 }

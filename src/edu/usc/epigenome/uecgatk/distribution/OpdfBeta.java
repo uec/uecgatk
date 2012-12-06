@@ -12,6 +12,8 @@ import edu.usc.epigenome.uecgatk.NOMeSeqWalker.ObservationMethy;
 import be.ac.ulg.montefiore.run.jahmm.ObservationReal;
 import be.ac.ulg.montefiore.run.jahmm.Opdf;
 
+import org.apache.commons.math.special.Gamma;
+
 /**
  * @author yaping
  * @contact lyping1986@gmail.com
@@ -244,7 +246,7 @@ public class OpdfBeta implements Opdf<ObservationReal> {
 	    int k = 0;
 	    while (Math.abs(dx) > epi ) {
 	      x = ((a+b)/2);
-	      if (((digammaFunction(a)-theta)*(digammaFunction(x)-theta)) < 0) {
+	      if (((Gamma.digamma(a)-theta)*(Gamma.digamma(x)-theta)) < 0) {
 	        b  = x;
 	        dx = b-a;
 	      }
