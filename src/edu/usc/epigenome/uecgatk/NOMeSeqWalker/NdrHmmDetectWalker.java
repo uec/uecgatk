@@ -1128,7 +1128,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					else{
 						if(hiddenState[i] == nprState){
 							numC_npr += numCState[i];
-							numT_npr += numCTState[i] - numCState[i];
+							numT_npr += (numCTState[i] - numCState[i]);
 							score += methyState[i];
 							dataPoint++;
 						}
