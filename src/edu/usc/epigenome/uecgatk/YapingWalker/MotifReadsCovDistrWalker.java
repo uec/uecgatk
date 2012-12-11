@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Downsample;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.filters.*;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BaseUtilsMore;
 import edu.usc.epigenome.uecgatk.YapingWalker.MotifFreqInGenomeWalker.Datum;
@@ -56,6 +58,7 @@ import edu.usc.epigenome.uecgatk.YapingWalker.MotifFreqInGenomeWalker.Datum;
 @Requires({DataSource.REFERENCE, DataSource.REFERENCE_BASES, DataSource.READS})
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.NONE)
+@ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class,DuplicateReadFilter.class,FailsVendorQualityCheckFilter.class, InvertedDupsReadFilter.class, NotProperPairedReadFilter.class, BadMateFilter.class})
 public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements TreeReducible<Long> {
 
 	@Input(fullName = "motif_to_search", shortName = "motif", doc = "motif pattern to search in provided genome (only support single motif yet)", required = true)
@@ -115,56 +118,56 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 		}
 		
 		if (checkPattern(motif, ref, false) ){
-			
+			int cov = notOverlappedCoverage(context);
 			value[1]=1;
-			value[2]=context.size();
+			value[2]=cov;
 			if(inCgi){
 				value[4]=1;
-				value[5]=context.size();
+				value[5]=cov;
 			}
 			else{
 				value[4]=0;
-				value[6]=context.size();
+				value[6]=cov;
 			}
 
 			if(context.hasBasePileup() && !context.getBasePileup().isEmpty()){
 				value[9] = 1;
-				double numPos = context.getBasePileup().getPositiveStrandPileup().depthOfCoverage();
-				double numNeg = context.getBasePileup().getNegativeStrandPileup().depthOfCoverage();
+				double numPos = notOverlappedCoverage(context, false);
+				double numNeg = notOverlappedCoverage(context, true);
 				value[7] = numPos/(numNeg+numPos);
 				value[8] = numPos/(numNeg+numPos);
-				value[10] = firstEndFraction(context);
+				value[10] = firstEndNum(context)/(double)cov;
 				if(tracker.getValues(dbsnp).isEmpty()){
 					value[13] = 1;
 					value[11] = Double.compare(value[10], 0.0) == 0 ? 0 : mismatchFraction(ref, context, true) / (value[10] * value[2]);
 					value[12] = Double.compare(value[10], 1.0) == 0 ? 0 : mismatchFraction(ref, context, false) / ((1-value[10]) * value[2]);
 				}
 
-				System.err.println(value[8] + "\t" + numPos + "\t" + numNeg);
+				//System.err.println(value[8] + "\t" + numPos + "\t" + numNeg);
 			}
 			covDistr.println(value[2] + "\t" + value[4]);
 		}
 		else if(checkPattern(motif, ref, true)){
-
+			int cov = notOverlappedCoverage(context);
 			value[1]=1;
-			value[2]=context.size();
+			value[2]=cov;
 			if(inCgi){
 				value[4]=1;
-				value[5]=context.size();
+				value[5]=cov;
 			}
 			else{
 				value[4]=0;
-				value[6]=context.size();
+				value[6]=cov;
 			}
 
 			if(context.hasBasePileup() && !context.getBasePileup().isEmpty()){
 				value[9] = 1;
-				double numPos = context.getBasePileup().getPositiveStrandPileup().depthOfCoverage();
-				double numNeg = context.getBasePileup().getNegativeStrandPileup().depthOfCoverage();
+				double numPos = notOverlappedCoverage(context, false);
+				double numNeg = notOverlappedCoverage(context, true);
 				value[7] = numNeg/(numNeg+numPos);
 				value[8] = numPos/(numNeg+numPos);
-				value[10] = firstEndFraction(context);
-				System.err.println(value[7] + "\t" + numPos + "\t" + numNeg);
+				value[10] = firstEndNum(context)/(double)cov;
+				//System.err.println(value[7] + "\t" + numPos + "\t" + numNeg);
 				if(tracker.getValues(dbsnp).isEmpty()){
 					value[13] = 1;
 					value[11] = Double.compare(value[10], 0.0) == 0 ? 0 : mismatchFraction(ref, context, true) / (value[10] * value[2]);
@@ -199,7 +202,7 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 		logger.info("Motif coverage mean (NOT in CGI) : " + String.format("%.1f", sum[6]/(sum[1] - sum[4])));
 		logger.info("Motif coverage standard deviation (NOT in CGI) : " + sd[6]);
 		
-		logger.info("Motif coverage ratio (in CGI vs. NOT in CGI) : " + String.format("%.3f", (sum[2]/sum[1])/(sum[6]/(sum[1] - sum[4]))));
+		logger.info("Motif coverage ratio (in CGI vs. NOT in CGI) : " + String.format("%.3f", (sum[5]/sum[4])/(sum[6]/(sum[1] - sum[4]))));
 		
 		logger.info("Motif strand bias mean (Pos/Neg strand) : " + String.format("%.3f", sum[8]/sum[9]));
 		logger.info("Motif strand bias standard deviation (Pos/Neg strand) : " + sd[8]);
@@ -270,9 +273,9 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 		return !tracker.getValues(cgi).isEmpty();
 	}
 	
-	private double firstEndFraction(AlignmentContext context){
+	private double firstEndNum(AlignmentContext context){
 		int firstEnd = 0; 
-		for (PileupElement p :  context.getBasePileup()) {
+		for (PileupElement p :  context.getBasePileup().getOverlappingFragmentFilteredPileup()) {
 			if(!p.getRead().getReadPairedFlag()){
 				return 1.0;
 			}
@@ -282,7 +285,27 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 				}
 			}
 		}
-		return (double)firstEnd/(double)context.size();
+		return (double)firstEnd;
+	}
+	
+	private int notOverlappedCoverage(AlignmentContext context){
+		if(context.hasBasePileup() && !context.getBasePileup().isEmpty()){
+			return context.getBasePileup().getOverlappingFragmentFilteredPileup().depthOfCoverage();
+		}
+		return 0;
+	}
+	
+	private int notOverlappedCoverage(AlignmentContext context, boolean negStrand){
+		if(context.hasBasePileup() && !context.getBasePileup().isEmpty()){
+			if(negStrand){
+				return context.getBasePileup().getNegativeStrandPileup().getOverlappingFragmentFilteredPileup().depthOfCoverage();
+			}
+			else{
+				return context.getBasePileup().getPositiveStrandPileup().getOverlappingFragmentFilteredPileup().depthOfCoverage();
+			}
+			
+		}
+		return 0;
 	}
 	
 	private int mismatchFraction(ReferenceContext ref, AlignmentContext context, boolean firstEnd){

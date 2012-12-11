@@ -3,9 +3,11 @@
  */
 package edu.usc.epigenome.uecgatk.YapingWalker;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 
 import org.broadinstitute.sting.commandline.Input;
@@ -24,7 +26,11 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import edu.usc.epigenome.uecgatk.BisSNP.BaseUtilsMore;
 
 /**
  * @author yaping
@@ -42,11 +48,18 @@ public class MotifFreqInGenomeWalker extends LocusWalker<MotifFreqInGenomeWalker
 
 	@Input(fullName = "motif_to_search", shortName = "motifs", doc = "motif pattern to search in provided genome", required = true)
 	public ArrayList<String> motifs = null;
+	
+	private IndexedFastaSequenceFile referenceReader;
 	/**
 	 * 
 	 */
 	public void initialize(){
-
+		try {
+            referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile,ex);
+        }
 	}
 
 	
@@ -101,10 +114,10 @@ public class MotifFreqInGenomeWalker extends LocusWalker<MotifFreqInGenomeWalker
 	}
 	
 	public void onTraversalDone(Datum result) {
-		logger.info("Genome size:" + result.refLoci);
+		logger.info("Genome size: " + result.refLoci);
 		for(String motif : motifs){
-			logger.info("Motif Pattern " + motif + " number:" + result.motifStat.get(motif));
-			logger.info("Motif frequency (%):" + String.format("%.3f", 100*(double)result.motifStat.get(motif)/(double)result.refLoci));
+			logger.info("Motif Pattern " + motif + " number: " + result.motifStat.get(motif));
+			logger.info("Motif frequency (%): " + String.format("%.3f", 100*(double)result.motifStat.get(motif)/(double)result.refLoci));
 		}
 		
 		logger.info("Finished!");
@@ -114,9 +127,16 @@ public class MotifFreqInGenomeWalker extends LocusWalker<MotifFreqInGenomeWalker
 		byte[] refBytes = new byte[motif.length()];
 		byte[] motifSeq = motif.getBytes();
 		if(negStrand)
-			motifSeq = BaseUtils.simpleReverseComplement(motifSeq);
+			motifSeq = BaseUtilsMore.simpleReverseIupacCodeComplement(motifSeq);
 		int start = negStrand? -(motif.length()-1) : 0;
 		int end = negStrand? 0 : motif.length()-1;
+		
+	//	if(ref.getLocus().getStart()+start >= 0 && ref.getLocus().getStart()+end < referenceReader.getSequence(ref.getLocus().getContig()).length()){
+	//		refBytes = referenceReader.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart()+start, ref.getLocus().getStart()+end).getBases();
+	//	}
+	//	else{
+	//		return false;
+	//	}
 	
 		for(int i = start, index = 0; i <= end; i++, index++){
 			GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(), ref.getLocus().getStart()+i );
@@ -125,9 +145,15 @@ public class MotifFreqInGenomeWalker extends LocusWalker<MotifFreqInGenomeWalker
 			
 			ReferenceContext tmpRef = new ReferenceContext(ref.getGenomeLocParser(),loc, ref.getWindow(),ref.getBases());
 			refBytes[index] = tmpRef.getBase();
-			if(!BaseUtils.basesAreEqual(motifSeq[index], refBytes[index]))
+			if( !BaseUtils.isRegularBase(refBytes[index]) || !BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(motifSeq[index], refBytes[index]))
 				return false;
 		}
+		
+	//	System.err.println(ref.getLocus() + "\t" + negStrand);
+	//	for(int i = start, index = 0; i <= end; i++, index++){
+	//		if( !BaseUtils.isRegularBase(refBytes[index]) || !BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(motifSeq[index], refBytes[index]))
+	//			return false;
+	//	}
 	//	System.err.println(new String(refBytes));
 	//	System.err.println(new String(motifSeq));
 	//	System.err.println(ref.getLocus() + "\t" + negStrand);
