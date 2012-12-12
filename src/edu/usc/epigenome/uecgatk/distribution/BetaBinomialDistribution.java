@@ -3,6 +3,9 @@
  */
 package edu.usc.epigenome.uecgatk.distribution;
 
+import cern.jet.random.Beta;
+import cern.jet.random.Binomial;
+import cern.jet.random.engine.MersenneTwister64;
 import be.ac.ulg.montefiore.run.distributions.RandomDistribution;
 
 /**
@@ -40,7 +43,7 @@ public class BetaBinomialDistribution implements RandomDistribution {
 	        // if (a>=b) b=a+1;
 	        trials = n;
 	        alpha = a;
-	        beta=b;
+	        beta = b;
 	}
 
 	/* (non-Javadoc)
@@ -48,8 +51,9 @@ public class BetaBinomialDistribution implements RandomDistribution {
 	 */
 	@Override
 	public double generate() {
-		// TODO Auto-generated method stub
-		return 0;
+		Beta randomBeta =  new Beta(alpha, beta, new MersenneTwister64());
+		Binomial randomBinomial = new Binomial(trials, randomBeta.nextDouble(), new MersenneTwister64());
+		return randomBinomial.nextDouble();
 	}
 
 	/* (non-Javadoc)

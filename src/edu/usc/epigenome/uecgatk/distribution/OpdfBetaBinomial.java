@@ -7,7 +7,7 @@ import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
 
-import edu.usc.epigenome.uecgatk.NOMeSeqWalker.ObservationMethy;
+import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 
 import be.ac.ulg.montefiore.run.distributions.GaussianDistribution;
 import be.ac.ulg.montefiore.run.jahmm.ObservationReal;

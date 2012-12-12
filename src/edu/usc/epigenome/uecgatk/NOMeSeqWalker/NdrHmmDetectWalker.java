@@ -47,6 +47,7 @@ import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBeta;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaBinomialFactory;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaFactory;
+import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
 import edu.usc.epigenome.uecgatk.NOMeSeqWalker.OpdfBetaWriter;
 import edu.usc.epigenome.uecgatk.NOMeSeqWalker.OpdfBetaReader;
@@ -58,6 +59,7 @@ import be.ac.ulg.montefiore.run.jahmm.Opdf;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
 import be.ac.ulg.montefiore.run.jahmm.OpdfGaussianFactory;
+import be.ac.ulg.montefiore.run.jahmm.ViterbiCalculator;
 import be.ac.ulg.montefiore.run.jahmm.apps.sample.SimpleExample.Packet;
 import be.ac.ulg.montefiore.run.jahmm.io.FileFormatException;
 import be.ac.ulg.montefiore.run.jahmm.io.OpdfGaussianReader;
@@ -218,8 +220,12 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		LinkedList<ObservationReal> value = new LinkedList<ObservationReal>();
 		LinkedList<Integer> numCT = new LinkedList<Integer>();
 		LinkedList<Integer> numC = new LinkedList<Integer>();
+		
+		LinkedList<ObservationMethy> methy = new LinkedList<ObservationMethy>();
+		
 		tmp.position = new ArrayList<LinkedList<GenomeLoc>>();
 		tmp.value = new ArrayList<LinkedList<ObservationReal>>();
+		tmp.methy = new ArrayList<LinkedList<ObservationMethy>>();
 		tmp.numCT = new ArrayList<LinkedList<Integer>>();
 		tmp.numC = new ArrayList<LinkedList<Integer>>();
 		//tmp.numCLeftBound = new HashMap<GenomeLoc, Integer>();
@@ -229,6 +235,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		
 		tmp.position.add(position);
 		tmp.value.add(value);
+		tmp.methy.add(methy);
 		tmp.numCT.add(numCT);
 		tmp.numC.add(numC);
 		return tmp;
@@ -245,6 +252,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		
 		LinkedList<GenomeLoc> position = sum.position.remove(sum.position.size()-1);
 		LinkedList<ObservationReal> data = sum.value.remove(sum.value.size()-1);
+		LinkedList<ObservationMethy> methy = sum.methy.remove(sum.methy.size()-1);
 		LinkedList<Integer> numCT = sum.numCT.remove(sum.numCT.size()-1);
 		LinkedList<Integer> numC = null;
 		if(!train && halfLocal)
@@ -332,9 +340,11 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		}
 		position.offerLast(value.position);
 		data.offerLast(value.value);
+		methy.offerLast(value.methy);
 		numCT.offerLast(value.numCT);
 		sum.position.add(position);
 		sum.value.add(data);
+		sum.methy.add(methy);
 		sum.numCT.add(numCT);
 		if(!train && halfLocal){
 			numC.offerLast(value.numC);
@@ -359,6 +369,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			System.out.println("size: " + result.value.get(z).size() + "\tlength: " + result.position.get(z).peekLast().distance(result.position.get(z).peekFirst()));
 			if(result.value.get(z).size() < dataP){
 				result.value.remove(z);
+				result.methy.remove(z);
 				result.position.remove(z);
 				result.numCT.remove(z);
 				z--;
@@ -446,9 +457,9 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			
 			int j=0;
 			
-			for(LinkedList<ObservationReal> value : result.value){
-				int[] hiddenState = hmm.mostLikelyStateSequence(value);
-				
+			for(LinkedList<ObservationMethy> methy : result.methy){
+				//int[] hiddenState = hmm.mostLikelyStateSequence(value);
+				int[] hiddenState = (new ViterbiCalculator(methy, hmm)).stateSequence();
 				GenomeLoc[] loci = new GenomeLoc[result.position.get(j).size()];
 				Iterator<GenomeLoc> it = result.position.get(j).iterator();
 				int ii=0;
@@ -458,8 +469,8 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				}
 				
 				ii=0;
-				double[] methyState = new double[value.size()];
-				Iterator<ObservationReal> it2 = value.iterator();
+				double[] methyState = new double[methy.size()];
+				Iterator<ObservationMethy> it2 = methy.iterator();
 				while(it2.hasNext()){
 					methyState[ii] = it2.next().value;
 					ii++;
@@ -1249,6 +1260,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		public ArrayList<LinkedList<GenomeLoc>> position;
 		public ArrayList<LinkedList<Integer>> numCT;
 		public ArrayList<LinkedList<Integer>> numC;
+		public ArrayList<LinkedList<ObservationMethy>> methy;
 //		public HashMap<GenomeLoc, Integer> numCtLeftBound;
 //		public HashMap<GenomeLoc, Integer> numCLeftBound;
 //		public HashMap<GenomeLoc, Integer> numCtRightBound;
@@ -1259,6 +1271,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	public class Datapoint{
 		public ObservationReal value;
 		public GenomeLoc position;
+		public ObservationMethy methy;
 		public int numCT;
 		public int numC;
 		public int hmmState;
@@ -1275,6 +1288,8 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			this.value = value;
 			this.numCT = numCT;
 			this.numC = numC;
+			this.methy = new ObservationMethy(value.value);
+			methy.setCoverage(numCT);
 		}
 		
 		public Datapoint(GenomeLoc position, ObservationReal value, int numCT, int numC, int hmmState){

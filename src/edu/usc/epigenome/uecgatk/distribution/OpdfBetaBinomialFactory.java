@@ -5,7 +5,7 @@ package edu.usc.epigenome.uecgatk.distribution;
 
 import java.util.Collection;
 
-import edu.usc.epigenome.uecgatk.NOMeSeqWalker.ObservationMethy;
+import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 import be.ac.ulg.montefiore.run.jahmm.OpdfFactory;
 
 /**
