@@ -47,6 +47,7 @@ import edu.usc.epigenome.uecgatk.YapingWriter.bedObjectWriterImp;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBeta;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaBinomialFactory;
 import edu.usc.epigenome.uecgatk.distribution.OpdfBetaFactory;
+import edu.usc.epigenome.uecgatk.hmm.BbViterbiCalculator;
 import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteVCFConstants;
 import edu.usc.epigenome.uecgatk.NOMeSeqWalker.OpdfBetaWriter;
@@ -99,14 +100,14 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	@Argument(fullName = "hmm_file", shortName = "hmm", doc = "read/write HMM model from/to a file, default: read HMM parameters from a file", required = true)
 	public String hmmFile = null;
 	
-	@Argument(fullName = "max_gap_size", shortName = "gap", doc = "max gap size, default: 10000000", required = false)
-	public int gap = 10000000;
+	@Argument(fullName = "max_gap_size", shortName = "gap", doc = "max gap size, default: 1000000", required = false)
+	public int gap = 1000000;
 	
 	@Argument(fullName = "min_data_point", shortName = "dataP", doc = "minimum data point, default: 2", required = false)
 	public int dataP = 2;
 	
-	@Argument(fullName = "chunk_size", shortName = "chunk", doc = "chunk size used for half local comparison, default: 100000", required = false)
-	public int chunk = 100000;
+	@Argument(fullName = "tolerence_level", shortName = "tol", doc = "tolerence level for the converge, default: 1e-5", required = false)
+	public double tol = 1e-5;
 	
 	@Argument(fullName = "halfLocal_mode", shortName = "halfLocal", doc = "enable the halfLocal mode for decoding step p value calculation, default: not enabled", required = false)
 	public boolean halfLocal = false;
@@ -125,11 +126,11 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	
 	private static int STATES=states;
 	
-	private double TOLERENCE=1e-5;
+	private double TOLERENCE=tol;
 	
 	private int MAXIMUM_GAP_SIZE=gap; // maximum gap allowed for split different sequence for training & decoding
 	
-	private int MAXIMUM_DATA_POINTS=1000000000;
+	
 	
 	private int MINIMUM_DATA_POINTS=dataP;
 	
@@ -258,7 +259,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		if(!train && halfLocal)
 			numC = sum.numC.remove(sum.numC.size()-1);
 		if(!position.isEmpty()){
-			if(!train && halfLocal){
+		//	if(!train && halfLocal){
 				/*
 				if(slidingWindowLeft.getLength() < window || slidingWindowLeft.getGchNum() < gchInWindow || slidingWindowLeft.getCtReadsNum() < ctInWindow){ // in the beginning of the chromosome
 					slidingWindowLeft.addLast(value);
@@ -314,27 +315,30 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				sum.numCT.add(numCT);
 				return sum;
 				*/
-			}
-			else{
-				if( position.size() >= MAXIMUM_DATA_POINTS|| position.peekLast().distance(value.position) >= MAXIMUM_GAP_SIZE || !position.peekLast().onSameContig(value.position)){
+		//	}
+		//	else{
+				if( position.peekLast().distance(value.position) >= MAXIMUM_GAP_SIZE || !position.peekLast().onSameContig(value.position)){
 					if(position.size() >= MINIMUM_DATA_POINTS){
 						sum.position.add(position);
 						sum.value.add(data);
+						sum.methy.add(methy);
 						sum.numCT.add(numCT);
 					}
 					
 					LinkedList<GenomeLoc> newPosition = new LinkedList<GenomeLoc>();
 					LinkedList<ObservationReal> newValue = new LinkedList<ObservationReal>();
+					LinkedList<ObservationMethy> newMethy = new LinkedList<ObservationMethy>();
 					LinkedList<Integer> newNumCT = new LinkedList<Integer>();
 					newPosition.offerLast(value.position);
 					newValue.offerLast(value.value);
 					newNumCT.offerLast(value.numCT);
 					sum.position.add(newPosition);
 					sum.value.add(newValue);
+					sum.methy.add(newMethy);
 					sum.numCT.add(newNumCT);
 					return sum;
 				}
-			}
+		//	}
 			
 			
 		}
@@ -363,22 +367,30 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	}
 	
 	public void onTraversalDone(Datum result) {
-	//	ArrayList<List<ObservationReal>> values = new ArrayList<List<ObservationReal>>();
+		ArrayList<ArrayList<ObservationReal>> listValues = new ArrayList<ArrayList<ObservationReal>>();
+		ArrayList<ArrayList<ObservationMethy>> listMethys = new ArrayList<ArrayList<ObservationMethy>>();
+		ArrayList<ArrayList<GenomeLoc>> listPositions = new ArrayList<ArrayList<GenomeLoc>>();
+		ArrayList<ArrayList<Integer>> listNumCTs = new ArrayList<ArrayList<Integer>>();
 		System.out.println("sequence data size: " + result.value.size());
 		for(int z = 0; z < result.value.size(); z++){
 			System.out.println("size: " + result.value.get(z).size() + "\tlength: " + result.position.get(z).peekLast().distance(result.position.get(z).peekFirst()));
-			if(result.value.get(z).size() < dataP){
-				result.value.remove(z);
-				result.methy.remove(z);
-				result.position.remove(z);
-				result.numCT.remove(z);
-				z--;
+			if(result.value.get(z).size() >= dataP){
+			//	result.value.remove(z);
+			//	result.methy.remove(z);
+			//	result.position.remove(z);
+			//	result.numCT.remove(z);
+			//	z--;
+				listValues.add( new ArrayList<ObservationReal>(result.value.get(z)));
+				listMethys.add( new ArrayList<ObservationMethy>(result.methy.get(z)));
+				listPositions.add( new ArrayList<GenomeLoc>(result.position.get(z)));
+				listNumCTs.add( new ArrayList<Integer>(result.numCT.get(z)));
+				
 			}	
 		}
 	//	values.add(result.value);
 		if(train){
 			System.out.println("training....");
-			hmm = buildInitHmmByBeta(result.value);
+			hmm = buildInitHmmByBeta(listValues);
 			BaumWelchScaledLearner bwl = new BaumWelchScaledLearner();
 
 			Hmm<ObservationReal> prevHmm = null;
@@ -407,7 +419,8 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				}
 				System.out.println("HMM pre:\n" + prevHmm);
 				
-				hmm = bwl.iterate(hmm, result.value);
+				//hmm = bwl.iterate(hmm, result.value);
+				hmm = bwl.iterate(hmm, listValues);
 				distance = klc.distance(prevHmm, hmm);
 				System.out.println("Distance at iteration " + i + ": " +
 						distance);
@@ -459,7 +472,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 			
 			for(LinkedList<ObservationMethy> methy : result.methy){
 				//int[] hiddenState = hmm.mostLikelyStateSequence(value);
-				int[] hiddenState = (new ViterbiCalculator(methy, hmm)).stateSequence();
+				int[] hiddenState = (new BbViterbiCalculator(methy, hmm)).stateSequence();
 				GenomeLoc[] loci = new GenomeLoc[result.position.get(j).size()];
 				Iterator<GenomeLoc> it = result.position.get(j).iterator();
 				int ii=0;
@@ -533,7 +546,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		return hmm;
 	}
 	
-	private static Hmm<ObservationReal> buildInitHmmByBeta(ArrayList<LinkedList<ObservationReal>> seqs)
+	private static Hmm<ObservationReal> buildInitHmmByBeta(ArrayList<ArrayList<ObservationReal>> seqs)
 	{	
 
 		KMeansLearner<ObservationReal> kl = new KMeansLearner<ObservationReal>(STATES, new OpdfBetaFactory(),
