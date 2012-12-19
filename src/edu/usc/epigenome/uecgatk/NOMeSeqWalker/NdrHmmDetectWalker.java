@@ -88,6 +88,9 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	@Output(fullName = "segment_file", shortName = "segment", doc = "write segment of NDR region into a file (no training mode)", required = false)
 	public String segmentFile = null;
 	
+	@Output(fullName = "segment_file_2", shortName = "segment2", doc = "write segment of NDR region into a file (no training mode)", required = false)
+	public String segmentFile2 = null;
+	
 	@Output(fullName = "MPR_segment_file", shortName = "mprSeg", doc = "write segment of MPR/NPR region into a file (no training mode)", required = false)
 	public String mprSegFile = null;
 	
@@ -142,6 +145,8 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 	
 	private bedObjectWriterImp nprSegWriter = null;
 	
+	private bedObjectWriterImp segWriter2 = null;
+	
 
 	
 //	public SlidingWindow slidingWindowLeft;
@@ -154,6 +159,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		if(!train){
 			bedWriter = new bedObjectWriterImp(new File(resultFile));
 			segWriter = new bedObjectWriterImp(new File(segmentFile));
+		//	segWriter2 = new bedObjectWriterImp(new File(segmentFile2));
 			nprSegWriter = new bedObjectWriterImp(new File(mprSegFile));
 			if(halfLocal){
 			//	slidingWindowLeft = new SlidingWindow(ctInWindow, gchInWindow, window);
@@ -403,28 +409,35 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				e.printStackTrace();
 			}
 			int ndrState = 0;
-			double maxMean = 0;
-			int nprState = 1;
-			double minMean = 1.1;
+		//	int ndrState2 = 1;
+		//	double maxMean = Math.max(((OpdfBeta)hmm.getOpdf(0)).mean(), Math.max(((OpdfBeta)hmm.getOpdf(1)).mean(), ((OpdfBeta)hmm.getOpdf(2)).mean()));
+			double maxMean = Math.max(((OpdfBeta)hmm.getOpdf(1)).mean(), ((OpdfBeta)hmm.getOpdf(0)).mean());
+			int nprState = 2;
+		//	double minMean = Math.min(((OpdfBeta)hmm.getOpdf(0)).mean(), Math.min(((OpdfBeta)hmm.getOpdf(1)).mean(), ((OpdfBeta)hmm.getOpdf(2)).mean()));
+			double minMean = Math.min(((OpdfBeta)hmm.getOpdf(1)).mean(), ((OpdfBeta)hmm.getOpdf(0)).mean());
 			//suppose NDR region have the highest mean GCH methyation value, NPR region have lowest mean GCH methylation value
 			for(int m = 0; m < hmm.nbStates(); m++){
-				if(((OpdfBeta)hmm.getOpdf(m)).mean() > maxMean){
-					maxMean = ((OpdfBeta)hmm.getOpdf(m)).mean();
+				if(((OpdfBeta)hmm.getOpdf(m)).mean() >= maxMean){
 					ndrState = m;
 				}
-				if(((OpdfBeta)hmm.getOpdf(m)).mean() < minMean){
-					minMean = ((OpdfBeta)hmm.getOpdf(m)).mean();
+				else if(((OpdfBeta)hmm.getOpdf(m)).mean() <= minMean ){
+
 					nprState = m;
 				}
+				else{
+			//		ndrState2 = m;
+				}
 			}
-			
+		//	System.err.println(nprState + "\t" + ndrState2 + "\t" + ndrState);
 		//	double[] randomSeqs = getPermutatedSeqs(result.value, hmm, ndrState);
 			
 			int j=0;
 			
 			for(ArrayList<ObservationMethy> methy : listMethys){
+			//for(ArrayList<ObservationReal> methy : listValues){
 				//int[] hiddenState = hmm.mostLikelyStateSequence(value);
 				int[] hiddenState = (new BbViterbiCalculator(methy, hmm)).stateSequence();
+				//int[] hiddenState = (new ViterbiCalculator(methy, hmm)).stateSequence();
 				GenomeLoc[] loci = new GenomeLoc[listPositions.get(j).size()];
 				Iterator<GenomeLoc> it = listPositions.get(j).iterator();
 				int ii=0;
@@ -436,6 +449,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				ii=0;
 				double[] methyState = new double[methy.size()];
 				Iterator<ObservationMethy> it2 = methy.iterator();
+				//Iterator<ObservationReal> it2 = methy.iterator();
 				while(it2.hasNext()){
 					methyState[ii] = it2.next().value;
 					ii++;
@@ -465,14 +479,15 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 				
 				//getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, ndrState, segWriter, true);
 				//getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, nprState, nprSegWriter, false);
-				getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, numCState, ndrState, segWriter, true);
-				getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, numCState, nprState, nprSegWriter, false);
+				getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, numCState, ndrState, segWriter, true, hmm);
+			//	getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, numCState, ndrState2, segWriter2, true);
+				getNPRSegmentByHalfLocalCompar(hiddenState, methyState, loci, numCTState, numCState, nprState, nprSegWriter, false, hmm);
 				
 				
 				for(int i = 0; i < hiddenState.length; i++){
 					List<Object> tmp = new ArrayList<Object>();
 					tmp.add(hiddenState[i]);
-					tmp.add(methyState[i]);
+					tmp.add(numCState[i]);
 					tmp.add(numCTState[i]);
 					//tmp.add(result.numCLeftBound.get(loci));
 					//tmp.add(result.numCtLeftBound.get(loci));
@@ -486,6 +501,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 
 			bedWriter.close();
 			segWriter.close();
+		//	segWriter2.close();
 			nprSegWriter.close();
 		}
 	}
@@ -998,7 +1014,7 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 		}
 		*/
 
-		private void getNPRSegmentByHalfLocalCompar(int[] hiddenState, double[] methyState, GenomeLoc[] loci, int[] numCTState, int[] numCState, int nprState, bedObjectWriterImp writer, boolean reverseP){
+		private void getNPRSegmentByHalfLocalCompar(int[] hiddenState, double[] methyState, GenomeLoc[] loci, int[] numCTState, int[] numCState, int nprState, bedObjectWriterImp writer, boolean reverseP, Hmm<ObservationReal> hmm){
 			//hash the ct reads in the adjacent window information
 			
 		
@@ -1134,7 +1150,9 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 					if(preState != nprState){
 						if(hiddenState[i] == nprState){
 								chr = loci[i].getContig();
-								start =(int)((loci[i].getStart() + preLoc.getStart())/2) ;
+								double weight = hmm.getAij(preState, hiddenState[i]);
+								//start =(int)((loci[i].getStart() + preLoc.getStart())/2) ;
+								start =(int)( (loci[i].getStart() - preLoc.getStart()) * weight + preLoc.getStart()) ;
 								startLoc = loci[i];
 								numC_npr = numCState[i];
 								numT_npr = numCTState[i] - numCState[i];
@@ -1152,7 +1170,9 @@ public class NdrHmmDetectWalker extends RodWalker<NdrHmmDetectWalker.Datapoint, 
 						}
 						else{
 						//	System.err.println(preLoc);
-							end = (int)((loci[i].getStart() + preLoc.getStart())/2);
+							//end = (int)((loci[i].getStart() + preLoc.getStart())/2);
+							double weight = hmm.getAij(preState, hiddenState[i]);
+							end =(int)( (loci[i].getStart() - preLoc.getStart()) * weight + preLoc.getStart()) ;
 							//int numGch_back = backGround.numCLeftBound.size();
 							
 						//	System.err.println(startLoc);
