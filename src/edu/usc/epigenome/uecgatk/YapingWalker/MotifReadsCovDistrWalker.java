@@ -47,6 +47,8 @@ import org.broadinstitute.sting.gatk.filters.*;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BaseUtilsMore;
 import edu.usc.epigenome.uecgatk.YapingWalker.MotifFreqInGenomeWalker.Datum;
+import edu.usc.epigenome.uecgatk.filter.InvertedDupsReadFilter;
+import edu.usc.epigenome.uecgatk.filter.NotProperPairedReadFilter;
 
 /**
  * @author yaping
@@ -134,13 +136,13 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 				value[9] = 1;
 				double numPos = notOverlappedCoverage(context, false);
 				double numNeg = notOverlappedCoverage(context, true);
-				value[7] = numPos/(numNeg+numPos);
-				value[8] = numPos/(numNeg+numPos);
-				value[10] = firstEndNum(context)/(double)cov;
+				value[7] = numNeg;
+				value[8] = numPos;
+				value[10] = firstEndNum(context);
 				if(tracker.getValues(dbsnp).isEmpty()){
-					value[13] = 1;
-					value[11] = Double.compare(value[10], 0.0) == 0 ? 0 : mismatchFraction(ref, context, true) / (value[10] * value[2]);
-					value[12] = Double.compare(value[10], 1.0) == 0 ? 0 : mismatchFraction(ref, context, false) / ((1-value[10]) * value[2]);
+					value[13] = cov;
+					value[11] = mismatchFraction(ref, context, true);
+					value[12] = mismatchFraction(ref, context, false);
 				}
 
 				//System.err.println(value[8] + "\t" + numPos + "\t" + numNeg);
@@ -164,18 +166,20 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 				value[9] = 1;
 				double numPos = notOverlappedCoverage(context, false);
 				double numNeg = notOverlappedCoverage(context, true);
-				value[7] = numNeg/(numNeg+numPos);
-				value[8] = numPos/(numNeg+numPos);
-				value[10] = firstEndNum(context)/(double)cov;
+				value[7] = numNeg;
+				value[8] = numPos;
+				value[10] = firstEndNum(context);
 				//System.err.println(value[7] + "\t" + numPos + "\t" + numNeg);
 				if(tracker.getValues(dbsnp).isEmpty()){
-					value[13] = 1;
-					value[11] = Double.compare(value[10], 0.0) == 0 ? 0 : mismatchFraction(ref, context, true) / (value[10] * value[2]);
-					value[12] = Double.compare(value[10], 1.0) == 0 ? 0 : mismatchFraction(ref, context, false) / ((1-value[10]) * value[2]);
+					value[13] = cov;
+					value[11] = mismatchFraction(ref, context, true);
+					value[12] = mismatchFraction(ref, context, false);
 				}
 			}
 			covDistr.println(value[2] + "\t" + value[4]);
 		}
+		//if(Double.isNaN(value[12]))
+			//System.err.println(ref.getLocus() + "\t" + mismatchFraction(ref, context, true) + "\t" + firstEndNum(context) + "\t" + notOverlappedCoverage(context) + "\t" + (context.hasBasePileup() && !context.getBasePileup().isEmpty()));
 		summary.addValue(value);
 		
 		 return null;
@@ -205,19 +209,19 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 		logger.info("Motif coverage ratio (in CGI vs. NOT in CGI) : " + String.format("%.3f", (sum[5]/sum[4])/(sum[6]/(sum[1] - sum[4]))));
 		
 		logger.info("Motif strand bias mean (Pos/Neg strand) : " + String.format("%.3f", sum[8]/sum[9]));
-		logger.info("Motif strand bias standard deviation (Pos/Neg strand) : " + sd[8]);
+		//logger.info("Motif strand bias standard deviation (Pos/Neg strand) : " + sd[8]);
 		
-		logger.info("Motif strand bias mean (Motif_strand/No_Motif_strand) : " + String.format("%.3f", sum[7]/sum[9]));
-		logger.info("Motif strand bias standard deviation (Motif_strand/No_Motif_strand) : " + sd[7]);
+		logger.info("Motif strand bias mean (Motif_strand/No_Motif_strand) : " + String.format("%.3f", sum[7]/(sum[7]+sum[8])));
+		//logger.info("Motif strand bias standard deviation (Motif_strand/No_Motif_strand) : " + sd[7]);
 		
-		logger.info("Motif 1st end ratio mean (1st_end/total_reads) : " + String.format("%.3f", sum[10]/sum[9]));
-		logger.info("Motif 1st end ratio standard deviation (Pos/Neg strand) : " + sd[10]);
-
+		logger.info("Motif 1st end ratio mean (1st_end/total_reads) : " + String.format("%.3f", sum[10]/(sum[7]+sum[8])));
+		//logger.info("Motif 1st end ratio standard deviation (Pos/Neg strand) : " + sd[10]);
+		//System.err.println(sum[12]+"\t" + sum[13]);
 		logger.info("Motif 1st end mismatch rate mean (%) : " + String.format("%.3f", 100*sum[11]/sum[13]));
-		logger.info("Motif 1st end ratio standard deviation (Pos/Neg strand) : " + sd[11]);
+		//logger.info("Motif 1st end ratio standard deviation (Pos/Neg strand) : " + sd[11]);
 		
 		logger.info("Motif 2nd end mismatch rate mean (%) : " + String.format("%.3f", 100*sum[12]/sum[13]));
-		logger.info("Motif 2nd end ratio standard deviation (Pos/Neg strand) : " + sd[12]);
+		//logger.info("Motif 2nd end ratio standard deviation (Pos/Neg strand) : " + sd[12]);
 		
 		logger.info("Finished!");
 	}

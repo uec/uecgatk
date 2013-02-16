@@ -302,7 +302,7 @@ public class MethyPatternFeatureByBedWalker extends LocusWalker<Boolean, Boolean
 						e.printStackTrace();
 					}
 	    		 }
-	    		 if(noItself && (bedValues.get(0).getChr().equalsIgnoreCase(chr) && bedValues.get(0).getStart()==bedStart)){
+	    		 if(noItself && (bedValues.get(0).getChr().equalsIgnoreCase(chr) && bedValues.get(0).getStart()==bedStart)){ // bug? should be bedStart-1?
 	    			 cov = -1;
 	    		 }
 	    		 cov = 1;

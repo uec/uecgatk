@@ -36,5 +36,10 @@ public class BisulfiteEnums {
         EMIT_VARIANT_AND_CYTOSINES //output all cytosines, and all variants, for performance test usage
     }
 	
+	public enum INVERT_DUPS {
+		USE_ONLY_1ST_END,
+		USE_BOTH_END,
+		NOT_TO_USE
+	}
 	
 }

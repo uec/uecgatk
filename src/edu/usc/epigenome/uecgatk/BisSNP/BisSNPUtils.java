@@ -18,6 +18,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 
 import edu.usc.epigenome.uecgatk.YapingWalker.NDRargumentCollection;
+
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
@@ -358,7 +359,7 @@ public class BisSNPUtils {
 				ReferenceContext tmpRef = new ReferenceContext(refContext.getGenomeLocParser(),loc, refContext.getWindow(),refContext.getBases());
 				refBytesRev[i] = tmpRef.getBase();
 			}
-			refBytesRev = BaseUtils.simpleReverseComplement(refBytesRev);
+			refBytesRev = BaseUtilsMore.simpleReverse(refBytesRev);
 			for(int i=0; i<bases.length; i++){
 				if(BaseUtilsMore.iupacCodeEqualNotConsiderMethyStatus(bases[i], refBytesRev[i])){
 					matches++;

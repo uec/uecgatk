@@ -18,6 +18,11 @@ public class BetaBinomialDistribution implements RandomDistribution {
 
 	
 	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	/**
      * @uml.property name="trials"
      */
     private int trials;
@@ -48,12 +53,15 @@ public class BetaBinomialDistribution implements RandomDistribution {
 
 	/* (non-Javadoc)
 	 * @see be.ac.ulg.montefiore.run.distributions.RandomDistribution#generate()
+	 * see Random number generation and Monte Carlo methods / James E. Gentle -2nd ed. 2003
+	 * page 187, chapter 5.2.7 
 	 */
 	@Override
 	public double generate() {
-		Beta randomBeta =  new Beta(alpha, beta, new MersenneTwister64());
-		Binomial randomBinomial = new Binomial(trials, randomBeta.nextDouble(), new MersenneTwister64());
-		return randomBinomial.nextDouble();
+	////	Beta randomBeta =  new Beta(alpha, beta, new MersenneTwister64());
+	//	Binomial randomBinomial = new Binomial(trials, randomBeta.nextDouble(), new MersenneTwister64());
+	//	return randomBinomial.nextDouble();
+		return -1;
 	}
 
 	/* (non-Javadoc)

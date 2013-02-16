@@ -9,6 +9,7 @@ import java.util.Collection;
 
 import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 
+import be.ac.ulg.montefiore.run.jahmm.Observation;
 import be.ac.ulg.montefiore.run.jahmm.ObservationReal;
 import be.ac.ulg.montefiore.run.jahmm.Opdf;
 
@@ -240,13 +241,14 @@ public class OpdfBeta implements Opdf<ObservationReal> {
 	 * 
 	 */
 	private double bisectionToFindFunctionRoot(double theta){
-		double x = 0, a = 0.01, b = 10000;
+		double x = 0, a = 0.01, b = 1000000;
 		
 	    double dx = b-a;
 	    int k = 0;
 	    while (Math.abs(dx) > epi ) {
 	      x = ((a+b)/2);
-	      if (((Gamma.digamma(a)-theta)*(Gamma.digamma(x)-theta)) < 0) {
+	     // if (((Gamma.digamma(a)-theta)*(Gamma.digamma(x)-theta)) < 0) {
+	      if (((digammaFunction(a)-theta)*(digammaFunction(x)-theta)) < 0) {
 	        b  = x;
 	        dx = b-a;
 	      }

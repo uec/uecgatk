@@ -18,6 +18,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.INVERT_DUPS;
+
 /**
  * @author yaping
  * @contact lyping1986@gmail.com
@@ -259,7 +261,15 @@ public class BisulfiteContextsGenotypeLikelihoods {
 				// Inverted dups, count only one end
 				if (samRecord.getAlignmentStart() == samRecord.getMateAlignmentStart() && samRecord.getReadNegativeStrandFlag() == samRecord.getMateNegativeStrandFlag())
 				{
-					if (samRecord.getSecondOfPairFlag()) continue;
+					if(BAC.invDups == INVERT_DUPS.USE_ONLY_1ST_END){
+						if (samRecord.getSecondOfPairFlag()) continue;
+					}
+					else if(BAC.invDups == INVERT_DUPS.NOT_TO_USE){
+						continue;
+					}
+					else{
+						
+					}
    				}
 	        	if (Paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
 				{

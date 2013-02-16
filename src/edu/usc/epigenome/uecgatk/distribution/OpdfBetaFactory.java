@@ -29,6 +29,14 @@ public class OpdfBetaFactory implements OpdfFactory<OpdfBeta> {
 	}
 	
 	public OpdfBeta factor(int nState) {
+		if(nState == 0)
+			return new OpdfBeta(0.3,1.0);
+		else
+			return new OpdfBeta(5,1.1);
+	}
+	
+	/*
+	public OpdfBeta factor(int nState) {
 		switch(nState){
 		case 0:
 			return new OpdfBeta(0.3,2.8);
@@ -39,5 +47,5 @@ public class OpdfBetaFactory implements OpdfFactory<OpdfBeta> {
 		}
 		
 	}
-
+	*/
 }

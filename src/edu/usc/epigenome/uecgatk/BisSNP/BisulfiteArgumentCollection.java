@@ -18,6 +18,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.INVERT_DUPS;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.cytosineContextParameters;
 import edu.usc.epigenome.uecgatk.YapingWriter.SortingFormatWriterBase;
 
@@ -62,6 +63,9 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
 	
 	@Argument(fullName = "use_badly_mated_reads", shortName = "badMate", doc = "use badly mated reads for calling", required = false)
     public boolean USE_BADLY_MATED_READS = false;
+	
+	@Argument(fullName = "invert_dups_usage", shortName = "invDups", doc = "how to use the end when met inverted dups reads[USE_ONLY_1ST_END, USE_BOTH_END, NOT_TO_USE]. (Default: USE_ONLY_1ST_END)", required = false)
+    public INVERT_DUPS invDups = INVERT_DUPS.USE_ONLY_1ST_END;
 	
 	@Argument(fullName = "use_baq_for_calculation", shortName = "useBAQ", doc = "use BAQ for genotype calculation", required = false)
     public boolean useBAQ = false;
@@ -193,6 +197,7 @@ public class BisulfiteArgumentCollection extends UnifiedArgumentCollection {
         //bac.makeCytosine();
         //bac.cytosineDefined = cytosineDefined;
         
+        bac.invDups = invDups;
         bac.cTypeThreshold = cTypeThreshold;
         bac.testLocus = testLocus;
         bac.minConv = minConv;

@@ -8,6 +8,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMUtils;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteDiploidSNPGenotypePriors;
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.INVERT_DUPS;
+
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
@@ -148,7 +150,15 @@ public class BisulfiteDiploidSNPGenotypeLikelihoods implements Cloneable  {
     		// Inverted dups, count only one end
     		if (samRecord.getAlignmentStart() == samRecord.getMateAlignmentStart() && samRecord.getReadNegativeStrandFlag() == samRecord.getMateNegativeStrandFlag())
     		{
-    			if (samRecord.getSecondOfPairFlag()) return 0;
+    			if(BAC.invDups == INVERT_DUPS.USE_ONLY_1ST_END){
+					if (samRecord.getSecondOfPairFlag()) return 0;
+				}
+				else if(BAC.invDups == INVERT_DUPS.NOT_TO_USE){
+					return 0;
+				}
+				else{
+					
+				}
     			//System.err.printf("Inverted dup %d%s (%s)\n", samRecord.getAlignmentStart(), samRecord.getReadNegativeStrandFlag()?"-":"+", PicardUtils.getReadString(samRecord, true));
     		}
         	if (paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())

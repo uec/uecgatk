@@ -7,6 +7,8 @@ import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.commons.math3.special.Gamma;
+
 import edu.usc.epigenome.uecgatk.hmm.ObservationMethy;
 
 import be.ac.ulg.montefiore.run.distributions.GaussianDistribution;
@@ -135,29 +137,31 @@ public class OpdfBetaBinomial implements Opdf<ObservationMethy> {
 		// Compute alpha
 		double alpha = 0.;
 		double logP = 0.;
-
+		i = 0;
 		for (ObservationMethy o : co){
 			
-			logP += Math.log(o.value);
+			//logP += Math.log(o.value);
+			logP += Math.log(o.value) * weights[i++];
 		//	System.err.println(logP + "\tvalue: " + o.value);
 		//	System.err.println(weights[i-1] + "\t" + d  + "\t" + o.value + "\t" + mean);
 			
 		}
-		logP /= co.size();
+		//logP /= co.size();
 		logP += digammaFunction(distribution.getAlpha() + distribution.getBeta());
 		alpha = bisectionToFindFunctionRoot(logP);
 		System.err.println(logP + "\talpha: " + alpha);
 		// Compute beta
 		double beta = 0.;
 		double log1minusP = 0.;
-
+		i = 0;
 		for (ObservationMethy o : co) {
-			log1minusP += Math.log(1-o.value);
+			//log1minusP += Math.log(1-o.value);
+			log1minusP += Math.log(1-o.value) * weights[i++];
 		//	System.err.println("log1minusP: " + log1minusP + "\tvalue: " + o.value);
 			if(Double.isNaN(log1minusP))
 				System.exit(1);
 		}
-		log1minusP /= co.size();
+		//log1minusP /= co.size();
 		log1minusP += digammaFunction(distribution.getAlpha() + distribution.getBeta());
 		beta = bisectionToFindFunctionRoot(log1minusP);
 		System.err.println(co.size() + "\t" + log1minusP + "\tbeta: " + beta);
@@ -185,24 +189,26 @@ public class OpdfBetaBinomial implements Opdf<ObservationMethy> {
 			// Compute alpha
 			double alpha = 0.;
 			double logP = 0.;
-
+			i = 0;
 			for (ObservationMethy o : co){
 				
-				logP += Math.log(o.value);
+				//logP += Math.log(o.value);
+				logP += Math.log(o.value)  * weights[i++];
 			//	System.err.println(weights[i-1] + "\t" + d  + "\t" + o.value + "\t" + mean);
 				
 			}
-			logP /= co.size();
+			//logP /= co.size();
 			alpha = bisectionToFindFunctionRoot(logP);
 			
 			// Compute beta
 			double beta = 0.;
 			double log1minusP = 0.;
-
+			i = 0;
 			for (ObservationMethy o : co) {
-				log1minusP += Math.log(1-o.value);
+				//log1minusP += Math.log(1-o.value);
+				log1minusP += Math.log(1-o.value) * weights[i++];
 			}
-			log1minusP /= co.size();
+			//log1minusP /= co.size();
 			beta = bisectionToFindFunctionRoot(log1minusP);
 			
 			distribution = new BetaBinomialDistribution((int)trials, alpha, beta);
@@ -214,13 +220,14 @@ public class OpdfBetaBinomial implements Opdf<ObservationMethy> {
 		 * 
 		 */
 		private double bisectionToFindFunctionRoot(double theta){
-			double x = 0, a = 0.01, b = 10000;
+			double x = 0, a = 0.01, b = 1000000;
 			
 		    double dx = b-a;
 		    int k = 0;
 		    while (Math.abs(dx) > epi ) {
 		      x = ((a+b)/2);
 		      if (((digammaFunction(a)-theta)*(digammaFunction(x)-theta)) < 0) {
+		      //if (((Gamma.digamma(a)-theta)*(Gamma.digamma(x)-theta)) < 0) {
 		        b  = x;
 		        dx = b-a;
 		      }

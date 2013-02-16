@@ -66,6 +66,8 @@ import edu.usc.epigenome.uecgatk.YapingWriter.GetCytosineContext;
 import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
 import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 
+import edu.usc.epigenome.uecgatk.filter.*;
+
 /**
  * @author yaping
  * @contact lyping1986@gmail.com
@@ -73,7 +75,7 @@ import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQMode;
 
 // require input bam file, reference sequence, dbSNP rod, -L interval list bed file, -B feature list bed file
 @BisBAQMode(QualityMode = BisBAQ.QualityMode.ADD_TAG, ApplicationTime = BisBAQ.ApplicationTime.ON_INPUT)
-@ReadFilters( {UnmappedReadFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters( {UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class } ) // Filter out all reads with zero mapping quality
 @Reference(window=@Window(start=-500,stop=500))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.NONE)

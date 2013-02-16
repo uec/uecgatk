@@ -14,6 +14,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteDiploidSNPGenotypeLikelihoods;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteDiploidSNPGenotypePriors;
+import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.INVERT_DUPS;
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.MethylSNPModel;
 import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisBAQ;
 
@@ -130,7 +131,8 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
         
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            ReadBackedPileup pileup =AlignmentContextUtils.stratify(sample.getValue(),contextType).getBasePileup();
+        	// when pairs of reads overlapped, get rid of both of them when disagree, get rid of bad base qual reads when they agree
+            ReadBackedPileup pileup =AlignmentContextUtils.stratify(sample.getValue(),contextType).getBasePileup().getOverlappingFragmentFilteredPileup();
             if(useBAQ){
             	pileup = createBAQedPileup( pileup);
             }
@@ -181,7 +183,16 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
     				// Inverted dups, count only one end
     				if (samRecord.getAlignmentStart() == samRecord.getMateAlignmentStart() && samRecord.getReadNegativeStrandFlag() == samRecord.getMateNegativeStrandFlag())
     				{
-    					if (samRecord.getSecondOfPairFlag()) continue;
+    					if(BAC.invDups == INVERT_DUPS.USE_ONLY_1ST_END){
+    						if (samRecord.getSecondOfPairFlag()) continue;
+    					}
+    					else if(BAC.invDups == INVERT_DUPS.NOT_TO_USE){
+    						continue;
+    					}
+    					else{
+    						
+    					}
+    					
        				}
     	        	if (Paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
     				{
@@ -987,8 +998,16 @@ public class BisulfiteSNPGenotypeLikelihoodsCalculationModel{
  				// Inverted dups, count only one end
  				if (samRecord.getAlignmentStart() == samRecord.getMateAlignmentStart() && samRecord.getReadNegativeStrandFlag() == samRecord.getMateNegativeStrandFlag())
  				{
- 					if (samRecord.getSecondOfPairFlag()) continue;
-    				}
+					if(BAC.invDups == INVERT_DUPS.USE_ONLY_1ST_END){
+						if (samRecord.getSecondOfPairFlag()) continue;
+					}
+					else if(BAC.invDups == INVERT_DUPS.NOT_TO_USE){
+						continue;
+					}
+					else{
+						
+					}
+    			}
  	        	if (Paired  && !BAC.USE_BADLY_MATED_READS && !samRecord.getProperPairFlag())
  				{
  					continue;
