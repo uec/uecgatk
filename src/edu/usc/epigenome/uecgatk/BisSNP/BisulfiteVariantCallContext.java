@@ -17,6 +17,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+
 /**
  * @author yaping
  * @contact lyping1986@gmail.com
@@ -49,7 +50,12 @@ public class BisulfiteVariantCallContext {
 		this.ref = ref;
 		this.BCGLs = BCGLs;
 		this.vc = vc;
-		setSummaryAcrossReadsGroup();
+		if(BCGLs == null && vc != null){
+			 setSummaryOnVariantContext();
+		}
+		else if(BCGLs != null){
+			setSummaryAcrossReadsGroup();
+		}
 		
 	}
 	
@@ -100,6 +106,25 @@ public class BisulfiteVariantCallContext {
 	   		 }
 	     }
 	        return false;
+	}
+	
+	private void setSummaryOnVariantContext() {
+		summary = new summaryAcrossReadsGroup();
+		summary.cytosinePatternConfirmedSet = new HashSet<String>();
+		if( !vc.getGenotypes().isEmpty()){
+			summary.cytosinePatternConfirmedSet.add(vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, "."));
+			summary.numC += 0;
+			summary.numT += 0;
+			summary.numA += 0;
+			summary.numG += 0;
+			if(!vc.getGenotype(0).getAttributeAsString(BisulfiteVCFConstants.BEST_C_PATTERN, ".").equalsIgnoreCase(".")){
+				summary.numC += vc.getGenotype(0).getAttributeAsInt(BisulfiteVCFConstants.NUMBER_OF_C_KEY, 0);
+				summary.numT += vc.getGenotype(0).getAttributeAsInt(BisulfiteVCFConstants.NUMBER_OF_T_KEY, 0);
+			}
+			
+			summary.cytosinePatternConfirmedList = summary.cytosinePatternConfirmedSet.toString();
+		}
+		
 	}
 	
 	private void setSummaryAcrossReadsGroup(){
