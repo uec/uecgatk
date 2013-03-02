@@ -110,6 +110,8 @@ public class DmrInBisulfiteVcfWalker extends RodWalker<BisulfiteVariantCallConte
 		int controlPreAddLen = controlWindow.getWindowLen();
 		int casePostAddLen = 0;
 		int controlPostAddLen = 0;
+		boolean dataAddCase = false;
+		boolean dataAddControl = false;
 		if(!case_bindings.isEmpty() || !control_bindings.isEmpty()){
 			if(!case_bindings.isEmpty()){
 				VariantContext vc_case = case_bindings.get(0);
@@ -118,7 +120,7 @@ public class DmrInBisulfiteVcfWalker extends RodWalker<BisulfiteVariantCallConte
 				}
 				
 				BisulfiteVariantCallContext bvcCase = new BisulfiteVariantCallContext(null, vc_case, context, ref);
-				caseWindow.add(bvcCase, true);
+				dataAddCase = caseWindow.add(bvcCase, true);
 				//System.err.println(bvcCase.getVariantContext().getGenotype(0).getAttributeAsString("CP", "."));
 			}
 			if(!control_bindings.isEmpty()){
@@ -128,11 +130,14 @@ public class DmrInBisulfiteVcfWalker extends RodWalker<BisulfiteVariantCallConte
 				}
 				
 				BisulfiteVariantCallContext bvcControl = new BisulfiteVariantCallContext(null, vc_control, context, ref);
-				controlWindow.add(bvcControl, true);
+				dataAddControl = controlWindow.add(bvcControl, true);
 				//System.err.println(bvcControl.getVariantContext());
 			}
+			//if(!controlWindow.getWindow().isEmpty() && controlWindow.getWindow().peekFirst().ref.getLocus().getStart() == 7002987){
+			//	System.err.println(controlWindow.getWindow().peekFirst().ref.getLocus() + "\t" + controlWindow.getWindow().peekLast().ref.getLocus() + "\t" + controlWindow.getWindowLen() + "\t" + controlPreAddLen + "\t" + controlPostAddLen );
+			//}
 			
-			if(casePreAddLen <= windowLen && casePostAddLen > windowLen && controlPreAddLen <= windowLen && controlPostAddLen > windowLen){
+			if(casePreAddLen <= windowLen && casePostAddLen > windowLen && controlPreAddLen <= windowLen && controlPostAddLen > windowLen && (dataAddCase || dataAddControl)){
 				List<Object> content = new ArrayList<Object>();
 				boolean haveData = false;
 				for(String pattern : cytosinePattern){
@@ -142,14 +147,26 @@ public class DmrInBisulfiteVcfWalker extends RodWalker<BisulfiteVariantCallConte
 						double methy_case = caseWindow.getCytosineMethyWeightMean(pattern);
 						double methy_control = controlWindow.getCytosineMethyWeightMean(pattern);
 						if(matrixWriter != null){
-							
+							//content.add(caseWindow.getWindow().peekFirst().ref.getLocus());
+							//content.add(caseWindow.getWindow().peekLast().ref.getLocus());
 							content.add(methy_case);
-							content.add(methy_control);
+							//content.add(caseWindow.getCytosineMethyMean(pattern));
+						//	content.add(caseWindow.getCytosineNum(pattern));
 							
+						//	content.add(caseWindow.getCytosineCReads(pattern));
+						//	content.add(caseWindow.getCytosineCTReads(pattern));
+							content.add(methy_control);
+						//	content.add(controlWindow.getCytosineMethyMean(pattern));
+						//	content.add(controlWindow.getCytosineNum(pattern));
+							
+						//	content.add(controlWindow.getCytosineCReads(pattern));
+						//	content.add(controlWindow.getCytosineCTReads(pattern));
+							double[] methy_vector_case = caseWindow.getMethyVector(pattern);
+							double[] methy_vector_control = controlWindow.getMethyVector(pattern);
+							content.add(methyChangesPvalue(methy_vector_case, methy_vector_control));
 						}
 						if(dmrWriter != null){
-							Double[] methy_vector_case = caseWindow.getMethyVector(pattern);
-							Double[] methy_vector_control = controlWindow.getMethyVector(pattern);
+							
 						}
 						
 					}
@@ -195,6 +212,12 @@ public class DmrInBisulfiteVcfWalker extends RodWalker<BisulfiteVariantCallConte
 		
 		logger.info("Finished!");
 	}
+	
+	public double methyChangesPvalue(double[] methy_vector_case, double[] methy_vector_control){
+		TTest ttest = new TTest();
+		return ttest.tTest(methy_vector_case, methy_vector_control);
+	}
+	
 	/*
 	public methyStatusChanges methyChanges(double methy_case, double methy_control, double[] methy_vector_case, double[] methy_vector_control){
 		TTest ttest = new TTest();
