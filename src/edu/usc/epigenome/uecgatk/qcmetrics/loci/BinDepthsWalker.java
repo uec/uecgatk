@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 //import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
@@ -17,6 +18,8 @@ import java.io.PrintStream;
 import java.util.Random;
 
 import org.apache.commons.math.stat.descriptive.*;
+
+import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
 
 
@@ -32,6 +35,7 @@ import org.apache.commons.math.stat.descriptive.*;
  * report stats upon these windows
  */
 @By(DataSource.REFERENCE)
+@ReadFilters( {NonUniqueFilter.class} ) // Filter out all reads with zero mapping quality
 public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>  
 {
     @Output
