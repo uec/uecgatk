@@ -240,7 +240,7 @@ public class MotifReadsCovDistrWalker extends LocusWalker<Long, Long> implements
 		byte[] refBytes = new byte[motif.length()];
 		byte[] motifSeq = motif.getBytes();
 		if(negStrand)
-			motifSeq = BaseUtilsMore.simpleReverseIupacCodeComplement(motifSeq);
+			motifSeq = BaseUtilsMore.simpleIupacCodeComplement(motifSeq);
 		int start = negStrand? -(motif.length()-1) : 0;
 		int end = negStrand? 0 : motif.length()-1;
 		
