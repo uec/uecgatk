@@ -57,6 +57,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     SummaryStatistics statsNoMem;
     protected double PROBABILITY = 1.0;
     long[] coverage = new long[100000000];
+    Random rand = new Random();
 
     public void initialize() 
     {
@@ -125,7 +126,7 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	if(SAMPLESIZE > 0)
     	{   		
     		int dsDepth = 0;
-    		Random rand = new Random();
+    		
     		for(int i = 0; i <  context.getBasePileup().getBases().length; i++)
     			if(rand.nextDouble() < PROBABILITY)
     				dsDepth++;
