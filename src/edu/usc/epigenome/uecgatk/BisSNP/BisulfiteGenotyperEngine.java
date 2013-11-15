@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import edu.usc.epigenome.uecgatk.BisSNP.BisulfiteEnums.OUTPUT_MODE;
-import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisulfiteHaplotypeScore;
+//ZR import edu.usc.epigenome.uecgatk.bisulfiteIndels.BisulfiteHaplotypeScore;
 
 /*
  * Bis-SNP/BisSNP: It is a genotyping and methylation calling in bisulfite treated 

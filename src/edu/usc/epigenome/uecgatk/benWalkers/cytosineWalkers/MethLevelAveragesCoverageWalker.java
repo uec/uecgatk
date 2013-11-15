@@ -34,8 +34,8 @@ public class MethLevelAveragesCoverageWalker extends MethLevelAveragesWalker {
 		// The built in functions for read filters didn't work so we have to get them this way.
 		ReadMetrics rm = this.getToolkit().getCumulativeMetrics();
 		long totalReads =  rm.getNumReadsSeen();
-		Map<Class,Long> counts = rm.getCountsByFilter();
-		for (Class c : counts.keySet())
+		Map<String,Long> counts = rm.getCountsByFilter();
+		for (String c : counts.keySet())
 		{
 			long numbad = counts.get(c);
 			totalReads -= numbad;
@@ -49,11 +49,11 @@ public class MethLevelAveragesCoverageWalker extends MethLevelAveragesWalker {
 		
 		
 		header.add("NumCoveredPositions");
-		list.add(String.format("%.0f", depthSummarizer.getNumVals()));
+		//ZR list.add(String.format("%.0f", depthSummarizer.getNumVals()));
 		header.add("CoveredPositionMeanReads");
-		list.add(String.format("%.1f", depthSummarizer.getValMean()));
+		//ZR list.add(String.format("%.1f", depthSummarizer.getValMean()));
 		header.add("GCfrac");
-		list.add(String.format("%.2f", (double)this.numGCs / (double)depthSummarizer.getNumVals()));
+		//ZR list.add(String.format("%.2f", (double)this.numGCs / (double)depthSummarizer.getNumVals()));
 		
 		
 		for (String key : iupacPatterns)
@@ -68,7 +68,7 @@ public class MethLevelAveragesCoverageWalker extends MethLevelAveragesWalker {
 			}
 			header.add(String.format("pct_%s", key));
 			header.add(String.format("meth_%s", key));
-			list.add(String.format("%.3f", numVals / (double)depthSummarizer.getNumVals()));
+			//ZR list.add(String.format("%.3f", numVals / (double)depthSummarizer.getNumVals()));
 			list.add(String.format("%.3f", valMean));		
 
 		}

@@ -22,7 +22,7 @@ public class NotProperPairedReadFilter extends ReadFilter {
 	/* (non-Javadoc)
 	 * @see net.sf.picard.filter.SamRecordFilter#filterOut(net.sf.samtools.SAMRecord, net.sf.samtools.SAMRecord)
 	 */
-	@Override
+	
 	public boolean filterOut(SAMRecord arg0, SAMRecord arg1) {
 		// TODO Auto-generated method stub
 		return false;
