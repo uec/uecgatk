@@ -2,7 +2,6 @@
 <classpath>
 	<classpathentry excluding="edu/usc/epigenome/uecgatk/bisulfitesnpmodel/" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="lib" path="lib/GenomeAnalysisTK.jar" sourcepath="/gatk/java/src"/>
 	<classpathentry kind="lib" path="lib/batik-anim.jar"/>
 	<classpathentry kind="lib" path="lib/batik-css.jar"/>
 	<classpathentry kind="lib" path="lib/batik-dom.jar"/>
@@ -13,15 +12,16 @@
 	<classpathentry kind="lib" path="lib/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/charts4j-1.2.jar"/>
 	<classpathentry kind="lib" path="lib/heatMap.jar"/>
-	<classpathentry kind="lib" path="lib/sam-1.26.jar"/>
 	<classpathentry kind="lib" path="lib/tuple.jar"/>
 	<classpathentry kind="lib" path="lib/UscKeck.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis-ext.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis.jar"/>
-	<classpathentry kind="lib" path="lib/AnalyzeCovariates.jar"/>
-	<classpathentry kind="lib" path="lib/StingUtils.jar"/>
 	<classpathentry kind="lib" path="lib/commons-math-2.2.jar"/>
 	<classpathentry kind="lib" path="lib/genomeLibs.jar"/>
 	<classpathentry kind="lib" path="lib/biojava-live.jar"/>
+	<classpathentry kind="lib" path="lib/AnalyzeCovariates-1.5-3-gbb2c10b.jar"/>
+	<classpathentry kind="lib" path="lib/GenomeAnalysisTK-1.5-3-gbb2c10b.jar"/>
+	<classpathentry kind="lib" path="lib/sam-1.61.jar"/>
+	<classpathentry kind="lib" path="lib/StingUtils-1.5-3-gbb2c10b.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
