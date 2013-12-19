@@ -10,8 +10,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,8 +19,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math3.fitting.PolynomialFitter;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
-import org.apache.commons.math3.ml.clustering.Cluster;
-import org.apache.commons.math3.ml.clustering.Clusterable;
 import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
 import org.apache.commons.math3.ml.clustering.MultiKMeansPlusPlusClusterer;
 import org.apache.commons.math3.optim.nonlinear.vector.jacobian.LevenbergMarquardtOptimizer;
@@ -49,11 +47,16 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     PrintStream out;
     
     @Argument(fullName="winSize", shortName="winsize", doc="window width", required=false)
-    protected int WINSIZE = 50;
+    protected int WINSIZE = 30;
     @Argument(fullName="dumpvals", shortName="wig", doc="dumps coverage for each window", required=false)
     protected Boolean dump = false;
     
+    @Argument(fullName="numClusters", shortName="clust", doc="number of clusters to use for filtering", required=false)
+    protected int NUMBER_OF_CLUSTERS = 3;
 
+    @Argument(fullName="curveWindow", shortName="curve", doc="number of windows to use for polynomial fitting", required=false)
+    int CURVE_WINDOW = 3;
+    
     protected int current_contig;
     int current_index;
     protected String current_contigName;
@@ -63,10 +66,11 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     	SummaryStatistics heightStats = new SummaryStatistics();
     };
     Stats stats = new Stats();
-    protected double PROBABILITY = 1.0;
-    short[] coverage = new short[100_000_000];
-    float[] coverageDeriv = new float[100_000_000];
-    int curveWindow = 3;
+    HashMap<String,short[]> cov = new HashMap<>();
+    HashMap<String,float[]> covDv = new HashMap<>();
+    
+
+    
     int threads = 4;
 
     public void initialize() 
@@ -95,7 +99,7 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     	int contig = ref.getLocus().getContigIndex();
     	String contigName = ref.getLocus().getContig();
     	long pos = context.getPosition();
-    	int depth = context.getBasePileup().getBases().length;
+    	
     	
     	if(pos % WINSIZE == 0)
     		current_index++;
@@ -109,13 +113,29 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     		//reset counts for new contig
     		current_contig=contig;
     		current_contigName = contigName;
-    		current_index = 0;	    		
+    		current_index = 0;
+    		cov.clear();
+    		covDv.clear();
+    		for(String s : context.getBasePileup().getSamples())
+    		{
+    			cov.put(s,new short[100_000_000]);
+    			covDv.put(s,new float[100_000_000]);
+    		}
     	}
     	
     		
     	else
-    		if(depth > coverage[current_index]) 
-    			coverage[current_index] = (short) depth;
+    		for(String s : context.getBasePileup().getSamples())
+    		{
+    			if(!cov.containsKey(s))
+    			{
+    				cov.put(s,new short[100_000_000]);
+        			covDv.put(s,new float[100_000_000]);
+    			}
+    			if(context.getBasePileup().getPileupForSample(s).getBases().length > cov.get(s)[current_index]) 
+    				 cov.get(s)[current_index] = (short) context.getBasePileup().getPileupForSample(s).getBases().length;
+    		}
+    		
     	
     	return null;
     }
@@ -160,22 +180,187 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     	if(dump)
     	{
 			out.printf("fixedStep  chrom=%s start=%d step=%d span=%d%n", current_contigName, pos, WINSIZE,WINSIZE);
-			for(int i=0; i < (curveWindow-1)/2;i++)
+			for(int i=0; i < (CURVE_WINDOW-1)/2;i++)
 				out.printf("%f%n", 0.0f);
     	}
     	
-    	//Phase One: polynomial fit, then derive
-    	calculateDeriv(coverage,coverageDeriv,contigLength);
+    	HashMap<String,ArrayList<Peak>> samplePeaks = new HashMap<>();
+    	//for each sample or bam
+    	for(String s : cov.keySet())
+    	{
+	    	//Phase 1: polynomial fit, then derive
+	    	calculateDeriv(cov.get(s),covDv.get(s),contigLength);
+	    	
+	    	//PHASE 2, detect transitions
+	    	ArrayList<Peak> peaks = detectTransitions(cov.get(s),covDv.get(s),contigLength);
+	    	
+	    	//Phase 3: remove noise using clustering
+	    	ArrayList<Peak> passFilter = optimizePeaks(peaks);
+	    	
+	    	//Phase 4: optimize (inline) peak summit locations
+	    	optimizePeakCenters(passFilter,cov.get(s));
+	    	samplePeaks.put(s, passFilter);
+	    	
+	    	//cleanup, set sample names
+	    	for(Peak p : passFilter)
+	    	{
+	    		p.setSample(s);
+	    		p.setContig(current_contigName);
+	    	}
+	    	
+	    	
+    	}
     	
-    	//PHASE two, detect transitions
-    	System.err.println("Phase Two: Thread on " + current_contigName);
+    	
+    	
+    	//Find overlaps
+    	ArrayList<Peak> mergedPeaks = new ArrayList<>();
+    	for(String s : samplePeaks.keySet())
+    	{
+    		mergedPeaks.addAll(samplePeaks.get(s));
+    	}
+    	
+    	ArrayList<ArrayList<Peak>> mergedBucketedPeaks = new ArrayList<>();
+    	Collections.sort(mergedPeaks);
+    	for(Peak p : mergedPeaks)
+    	{
+    		if(mergedBucketedPeaks.size() == 0)
+    		{
+    			ArrayList<Peak> toAdd = new ArrayList<>();
+    			toAdd.add(p);
+    			mergedBucketedPeaks.add(toAdd);
+    		}
+    		else
+    		{
+    			Boolean matched = false;
+    			for(Peak x : mergedBucketedPeaks.get(mergedBucketedPeaks.size() -1))
+    				if (p.getSummit() - x.getSummit() < 3)
+    						matched = true;
+    			if(matched)
+    				 mergedBucketedPeaks.get(mergedBucketedPeaks.size() -1).add(p);
+    			else
+    			{
+        			ArrayList<Peak> toAdd = new ArrayList<>();
+        			toAdd.add(p);
+        			mergedBucketedPeaks.add(toAdd);
+        		}
+    		}
+    	}
+    	
+    	System.err.println(mergedPeaks.size() + " individual peaks, grouped into " + mergedBucketedPeaks.size());
+    	
+    	
+    	
+    	
+    	
+    	
+    	
+    	
+    	if(samplePeaks.keySet().size() == 1)
+    	{
+    		String onlyKey = samplePeaks.keySet().toArray(new String[1])[0];
+    		System.err.println("writing contig vals to wig for " + current_contigName );
+	    	int j=0;
+	    	for(int i= (CURVE_WINDOW-1)/2;i<=contigLength;i++)
+	    	{
+	    		if(i > samplePeaks.get(onlyKey).get(j).getEnd() && j < (samplePeaks.get(onlyKey).size()-1))
+	    			j++;
+	    		if(i >= samplePeaks.get(onlyKey).get(j).getStart() && i <= samplePeaks.get(onlyKey).get(j).getEnd())
+	    		{
+	    			if(i == samplePeaks.get(onlyKey).get(j).getSummit())
+	    				out.printf("%f%n", samplePeaks.get(onlyKey).get(j).getHeight());
+	    			else
+	    				out.printf("%f%n", samplePeaks.get(onlyKey).get(j).getHeight() / 2);
+	    		}
+	    		else
+	    			out.printf("%f%n", 0f);
+	    	}
+    	}
+    }
+    
+    
+    
+    ArrayList<Peak> optimizePeaks( ArrayList<Peak> peaks)
+    {
+    	System.err.println("Clustering results");
+    	MultiKMeansPlusPlusClusterer<Peak> clusterOptimizer = new MultiKMeansPlusPlusClusterer<Peak>(new KMeansPlusPlusClusterer<Peak>(NUMBER_OF_CLUSTERS),100);
+    	
+    	
+    	List<CentroidCluster<Peak>> clusters = clusterOptimizer.cluster(peaks);
+    	Collections.sort(clusters,new Comparator<CentroidCluster<Peak>>(){
+			@Override
+			public int compare(CentroidCluster<Peak> o1, CentroidCluster<Peak> o2)
+			{
+				return new Double(o1.getCenter().getPoint()[0]).compareTo(o2.getCenter().getPoint()[0]);
+			}});
+    	
+    	for(CentroidCluster<Peak> cp : clusters)
+    		System.err.println("\tCluster Center:" + cp.getCenter().getPoint()[0] + ", size=" + cp.getPoints().size());
+    	
+    	//the smallest group contains the "noise", trash it.
+    	ArrayList<Peak> passFilter = new ArrayList<>();
+    	for(int i = 1; i < clusters.size();i++)
+    		passFilter.addAll(clusters.get(i).getPoints());
+    	
+    	//sort the filtered peaks by position
+    	Collections.sort(passFilter);
+
+    	System.err.println((peaks.size() - passFilter.size()) + "/" + peaks.size() + " removed = " + passFilter.size() + " total peaks");
+    	
+    	// merge peaks that are too close
+    	int removed = 0;
+    	for (int i=passFilter.size()-1; i > 0; i--) 
+    	{
+    		
+    		if(passFilter.get(i).getStart() - passFilter.get(i-1).getEnd() < 3)
+        	{
+        		//merge	
+    			passFilter.get(i-1).setEnd(passFilter.get(i).getEnd());
+    			if(passFilter.get(i-1).getHeight() < passFilter.get(i).getHeight())
+    				passFilter.get(i-1).setHeight(passFilter.get(i).getHeight());
+    			passFilter.remove(i);
+        		removed++;
+        	}    	    
+    	}
+    	
+    	System.err.println(removed + "/" + (removed + passFilter.size()) + " merged = " + passFilter.size() + " total peaks");
+    	return passFilter;
+    }
+    	
+    void optimizePeakCenters(ArrayList<Peak> passFilter, final short[] coverageWindows)
+    {
+    	System.err.println("Optimizing Peak Summits");
+    	//phase 5: optimize peak centers
+    	for(Peak peak : passFilter)
+    	{
+    		//get total area, ignore the smallest 20% of peak in this calc
+     		float integral = 0;
+    		for(int i=peak.getStart();i<=peak.getEnd();i++)
+    			if(1.0f * coverageWindows[i] > peak.getHeight() * 0.2)
+    				integral+=coverageWindows[i];
+    		float half_integral = 0;
+    		
+    		//get the midpoint
+    		for(int i=peak.getStart();half_integral < 0.5 * integral && i<=peak.getEnd();i++)
+    		{
+    			if(1.0f * coverageWindows[i] > peak.getHeight() * 0.2)
+    				half_integral+=coverageWindows[i];
+    			peak.setSummit(i);
+    		}    		
+    	}
+    }
+    
+    
+    ArrayList<Peak> detectTransitions(final short[] coverageWindows, final float[] coverageWindowsDerivitive,int lastIndex)
+    {
+       	System.err.println("Phase Two: Thread on " + current_contigName);
     	float sum = 0; 
     	float prevSum = 0;
     	ArrayList<Peak> peaks = new ArrayList<Peak>();
     	Peak p = null;
-    	for(int i= (curveWindow-1)/2;i<=contigLength;i++)
+    	for(int i= (CURVE_WINDOW-1)/2;i<=lastIndex;i++)
     	{	
-    		sum += coverageDeriv[i];
+    		sum += coverageWindowsDerivitive[i];
     		
     		//starting peak
     		if(p==null && prevSum <= 0 && sum > 0)
@@ -185,9 +370,9 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     		}
     		
     		//max height;
-    		if(p!=null && coverage[i] > p.height)
+    		if(p!=null && coverageWindows[i] > p.getHeight())
     		{
-    			p.setHeight(coverage[i]);
+    			p.setHeight(coverageWindows[i]);
     			p.setSummit(i);
     		}
     		
@@ -204,101 +389,11 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     		prevSum = sum;    		
     	}
     	
-    	System.err.println("Width: " + stats.widthStats.getMean() + " +- "+ stats.widthStats.getStandardDeviation());
-    	System.err.println("Height" + stats.heightStats.getMean() + " +- "+ stats.heightStats.getStandardDeviation());
-    	
-    	//Phase 3
-    	//remove noise
-    	
-    	//using clustering
-    	System.err.println("Clustering results");
-    	KMeansPlusPlusClusterer<Peak> clusterer = new KMeansPlusPlusClusterer<>(3);
-    	MultiKMeansPlusPlusClusterer<Peak> clusterOptimizer = new MultiKMeansPlusPlusClusterer<Peak>(clusterer,20);
+    	System.err.println("Width Avg: " + stats.widthStats.getMean() + " +- "+ stats.widthStats.getStandardDeviation());
+    	System.err.println("Height Avg: " + stats.heightStats.getMean() + " +- "+ stats.heightStats.getStandardDeviation());
     	
     	
-    	List<CentroidCluster<Peak>> clusters = clusterOptimizer.cluster(peaks);
-    	Collections.sort(clusters,new Comparator<CentroidCluster<Peak>>(){
-			@Override
-			public int compare(CentroidCluster<Peak> o1, CentroidCluster<Peak> o2)
-			{
-				return new Double(o1.getCenter().getPoint()[0]).compareTo(o2.getCenter().getPoint()[0]);
-			}});
-    	
-    	for(CentroidCluster<Peak> cp : clusters)
-    		System.err.println("Cluster Center:" + cp.getCenter().getPoint()[0]);
-    	
-    	ArrayList<Peak> passFilter = new ArrayList<>();
-    	//passFilter.addAll(clusters.get(0).getPoints());
-    	passFilter.addAll(clusters.get(1).getPoints());
-    	passFilter.addAll(clusters.get(2).getPoints());
-    	
-    	//sort the filtered collection
-    	Collections.sort(passFilter,new Comparator<Peak>(){
-			@Override
-			public int compare(Peak o1, Peak o2)
-			{
-				return new Integer(o1.getStart()).compareTo(o2.getStart());
-			}});    	
-//    	int removed = 0;
-//    	for (int i=peaks.size()-1; i> -1; i--) 
-//    	{
-//    		
-//    		if(
-//        	peaks.get(i).getWidth() < stats.widthStats.getMean() + stats.widthStats.getStandardDeviation() &&
-//        	peaks.get(i).getHeight() < stats.heightStats.getMean() + stats.heightStats.getStandardDeviation())
-//        	{
-//        			peaks.remove(i);
-//        			removed++;
-//        	}    	    
-//    	}
-//    	System.err.println(removed + "/" + stats.heightStats.getN() + " removed = " + peaks.size());
-    	System.err.println((peaks.size() - passFilter.size()) + "/" + peaks.size() + " removed = " + passFilter.size());
-    	
-    	
-    	peaks=passFilter;
-    	
-    	
-    	//phase 4 optimize peak centers
-    	for(Peak peak : peaks)
-    	{
-    		//using polynomial fitting
-//    		double[] guess = {10.0,10.0,10.0};
-//        	PolynomialFitter fitter = new PolynomialFitter(new LevenbergMarquardtOptimizer());
-//        	for(int i=peak.getStart();i<=peak.getEnd();i++)
-//        		fitter.addObservedPoint(i,coverage[i]);
-//        	double[] results = fitter.fit(guess);
-//        	final PolynomialFunction fitted = new PolynomialFunction(results);
-    		float integral = 0;
-    		for(int i=peak.getStart();i<=peak.getEnd();i++)
-    			integral+=coverage[i];
-    		float half_integral = 0;
-    		for(int i=peak.getStart();half_integral < 0.5 * integral && i<=peak.getEnd();i++)
-    		{
-    			half_integral+=coverage[i];
-    			peak.setSummit(i);
-    		}
-    		
-    		
-    	}
-    	
-    	
-    	System.err.println("writing contig vals to wig for " + current_contigName );
-    	int j=0;
-    	for(int i= (curveWindow-1)/2;i<=contigLength;i++)
-    	{
-    		if(i > peaks.get(j).getEnd() && j < (peaks.size()-1))
-    			j++;
-    		if(i >= peaks.get(j).getStart() && i <= peaks.get(j).getEnd())
-    		{
-    			if(i == peaks.get(j).getSummit())
-    				out.printf("%f%n", peaks.get(j).getHeight());
-    			else
-    				out.printf("%f%n", peaks.get(j).getHeight() / 2);
-    		}
-    		else
-    			out.printf("%f%n", 0f);
-    	}
-   
+    	return peaks;
     }
    
     float[] calculateDeriv(final short[] coverageWindows, final float[] coverageWindowsDerivitive, int lastIndex)    
@@ -326,17 +421,16 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     
     void computePhaseOne(int start,int end,short[] coverageWindows, float[] coverageWindowsDerivitive)
     {
-    	System.err.println("Phase One: Thread on " + current_contigName + ": " + start + ":" + end);
     	double[] guess = {10.0,10.0,10.0};
     	PolynomialFitter fitter = new PolynomialFitter(new LevenbergMarquardtOptimizer());
-    	for(int i= start + (curveWindow-1)/2;i<=end;i++)
+    	for(int i= start + (CURVE_WINDOW-1)/2;i<=end;i++)
     	{
     		fitter.clearObservations();
-    		for(int j = 0;j<curveWindow;j++)
-    			fitter.addObservedPoint(j, coverage[ (i - ((curveWindow-1)/2)) + j ]);
+    		for(int j = 0;j<CURVE_WINDOW;j++)
+    			fitter.addObservedPoint(j, coverageWindows[ (i - ((CURVE_WINDOW-1)/2)) + j ]);
     		double[] results = fitter.fit(guess);
     		final PolynomialFunction fitted = new PolynomialFunction(results);
-    		coverageDeriv[i] = (float) fitted.derivative().value((curveWindow-1)/2);
+    		coverageWindowsDerivitive[i] = (float) fitted.derivative().value((CURVE_WINDOW-1)/2);
     		//System.err.println(i +  "\t" + coverageDeriv[i]);
     	}
     	System.err.println("Phase One: Thread on " + current_contigName + ": " + start + ":" + end + " complete");
