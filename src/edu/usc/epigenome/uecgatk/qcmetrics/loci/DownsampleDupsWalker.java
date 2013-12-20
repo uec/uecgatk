@@ -2,7 +2,7 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import net.sf.samtools.SAMRecord;
 
-import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;

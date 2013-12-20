@@ -17,7 +17,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Random;
 
-import org.apache.commons.math.stat.descriptive.*;
+import org.apache.commons.math3.stat.descriptive.*;
 
 import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 

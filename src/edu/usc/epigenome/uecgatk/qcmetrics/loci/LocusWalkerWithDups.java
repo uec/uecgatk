@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
  since gatk hardcoded dup filter in, had to roll my own and remove it.
  */
 @By(DataSource.READS)
-@Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
+@Requires({DataSource.READS,DataSource.REFERENCE})
 @PartitionBy(PartitionType.INTERVAL)
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class,FailsVendorQualityCheckFilter.class})
 public abstract class LocusWalkerWithDups<MapType, ReduceType> extends Walker<MapType, ReduceType> {
