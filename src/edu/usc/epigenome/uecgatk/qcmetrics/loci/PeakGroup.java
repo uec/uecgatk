@@ -1,7 +1,6 @@
 package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class PeakGroup extends ArrayList<SinglePeak> implements Peak,Comparable<Peak>
 {
@@ -11,6 +10,7 @@ public class PeakGroup extends ArrayList<SinglePeak> implements Peak,Comparable<
 	 */
 	private static final long serialVersionUID = 1L;
 	private String[] sample_names;
+	PeakDiffCalc diffcalc;
 	
 	
 	public PeakGroup()
@@ -22,6 +22,13 @@ public class PeakGroup extends ArrayList<SinglePeak> implements Peak,Comparable<
 	{
 		super();
 		this.sample_names = samples;
+	}
+	
+	
+	public PeakGroup(PeakDiffCalc diffcalc)
+	{
+		super();
+		this.diffcalc = diffcalc;
 	}
 	
 	@Override
@@ -66,17 +73,7 @@ public class PeakGroup extends ArrayList<SinglePeak> implements Peak,Comparable<
 	@Override
 	public float getHeight()
 	{
-		HashMap<String,Float> sampleTotal = new HashMap<>();
-		for(String s : sample_names)
-			sampleTotal.put(s, 0f);
-		
-		for(Peak p : this)
-			sampleTotal.put(p.getSample(), sampleTotal.get(p.getSample()) + (p.getHeight() * this.getSampleIndex(p.getSample())));
-		
-		float total = 0f;
-		for(float f : sampleTotal.values())
-			total += f;
-		return total;
+		return diffcalc.calcDiff(this);
 	}
 
 	@Override
@@ -119,19 +116,19 @@ public class PeakGroup extends ArrayList<SinglePeak> implements Peak,Comparable<
 	@Override
 	public void setSample(String sample) 	{ }
 	
-	private int getSampleIndex(String mySampleName)
-	{
-		for (int i=0;i< sample_names.length; i++)
-		{
-			if(sample_names[i].equals(mySampleName))
-				return i % 2 == 0 ? 1 : -1;
-		}
-		return 0;
-	}
-
 	@Override
 	public int compareTo(Peak o)
 	{
 		return new Integer(this.getStart()).compareTo(o.getStart());
+	}
+
+	@Override
+	public void setArea(float area) {}
+
+	@Override
+	public float getArea()
+	{
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

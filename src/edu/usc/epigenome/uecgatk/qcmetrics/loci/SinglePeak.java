@@ -11,6 +11,7 @@ public class SinglePeak implements Peak,Clusterable,Comparable<Peak>
 	int end;
 	float height;
 	int summit;
+	float area;
 	
 	public SinglePeak(){};
 	public SinglePeak(String contig,int start,int end, int peak, float height, int summit)
@@ -95,5 +96,16 @@ public class SinglePeak implements Peak,Clusterable,Comparable<Peak>
 	public void setSample(String sample)
 	{
 		this.sample = sample;
+	}
+	@Override
+	public void setArea(float area)
+	{
+		this.area = area;
+		
+	}
+	@Override
+	public float getArea()
+	{
+		return area;
 	}
 }

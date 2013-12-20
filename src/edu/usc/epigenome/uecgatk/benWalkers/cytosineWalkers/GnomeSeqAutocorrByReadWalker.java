@@ -9,10 +9,10 @@ import java.util.Set;
 
 import org.broadinstitute.sting.commandline.Argument;
 
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByread;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerAllpairsAutocorrByreadWcontext;
 import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerParams;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgWalkerAllpairsAutocorrByread;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgWalkerAllpairsAutocorrByreadWcontext;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 
 /**

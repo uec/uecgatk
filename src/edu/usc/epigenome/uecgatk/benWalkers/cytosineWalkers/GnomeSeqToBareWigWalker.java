@@ -65,7 +65,7 @@ public class GnomeSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineWalke
 		// TODO Auto-generated method stub
 		super.initialize();
 		
-		if (this.getToolkit().getArguments().numberOfThreads>1)
+		if (this.getToolkit().getArguments().numberOfDataThreads>1)
 		{
 			System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
 			System.exit(1);

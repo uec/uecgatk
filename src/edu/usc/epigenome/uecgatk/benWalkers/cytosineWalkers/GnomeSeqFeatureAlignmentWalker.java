@@ -85,7 +85,7 @@ Map<String,FeatAlignerEachfeat>>
 			// so creating a large datastructure is very inefficient.  FeatAlignerEachfeat is now selfgrowing,
 			// so we can create a small one to start out with
 			//if (nThreads<0) nThreads = this.getToolkit().getArguments().numberOfThreads;
-			if (this.getToolkit().getArguments().numberOfThreads>1)
+			if (this.getToolkit().getArguments().numberOfDataThreads>1)
 			{
 				nFeats = threadedNfeatsStart;
 			}
@@ -251,8 +251,8 @@ Map<String,FeatAlignerEachfeat>>
 	protected void alertNewContig(String newContig) 
 	{
 		
-		System.err.printf("Number of threads = %d\n",this.getToolkit().getArguments().numberOfThreads);
-		if (this.getToolkit().getArguments().numberOfThreads == 1)
+		System.err.printf("Number of threads = %d\n",this.getToolkit().getArguments().numberOfDataThreads);
+		if (this.getToolkit().getArguments().numberOfDataThreads == 1)
 		{
 			if (this.prevContig != null) this.feats.unload_coord_filtered_features();
 			if (this.feats != null)

@@ -81,12 +81,12 @@ public class BisulfitePileupBenEngine implements BisulfitePileupEngine {
 		// *** NOTE :: JUST USING POSITIONS THAT ARE C IN REFERENCE :: NEED TO CHECK SAMPLE GENOME ****
 		boolean isC = false;
 		boolean negStrand = false;
-		if (ref.getBase() == BaseUtils.C)
+		if (ref.getBase() == BaseUtils.Base.C.base)
 		{
 			isC = true;
 			negStrand = false;
 		}
-		else if (ref.getBase() == BaseUtils.G)
+		else if (ref.getBase() == BaseUtils.Base.G.base)
 		{
 			isC = true;
 			negStrand = true;
@@ -124,18 +124,22 @@ public class BisulfitePileupBenEngine implements BisulfitePileupEngine {
 				}
 				else
 				{
-
-					switch (contextSeqStranded[i])
-					{
-					case BaseUtils.A:
-					case BaseUtils.C:
-					case BaseUtils.T:
+					if(contextSeqStranded[i] == BaseUtils.Base.A.base || contextSeqStranded[i] == BaseUtils.Base.C.base || contextSeqStranded[i] == BaseUtils.Base.T.base)
 						contextSeqStrandedIupac[i] = (byte)'H';
-						break;
-					default:
+					else
 						contextSeqStrandedIupac[i] = contextSeqStranded[i];
-						break;		
-					}
+					
+//					switch (contextSeqStranded[i])
+//					{
+//					case BaseUtils.Base.A.base:
+//					case BaseUtils.Base.C.base:
+//					case BaseUtils.Base.T.base:
+//						contextSeqStrandedIupac[i] = (byte)'H';
+//						break;
+//					default:
+//						contextSeqStrandedIupac[i] = contextSeqStranded[i];
+//						break;		
+//					}
 				}
 			}
 

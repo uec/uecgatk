@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.broadinstitute.sting.commandline.Argument;
 
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalker;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgWalker.CpgWalkerWindowWigWriter;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgWalker;
+import edu.usc.epigenome.uecgatk.benWalkers.CpgWalkerWindowWigWriter;
 import edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers.BisulfiteSeqToCytosineWindowWalker.ContextConditions;
 
 public class BisulfiteSeqToCytosineVariableWigWalker extends
