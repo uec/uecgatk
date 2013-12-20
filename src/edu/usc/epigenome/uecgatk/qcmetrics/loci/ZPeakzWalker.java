@@ -215,36 +215,70 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
 	    	
     	}
     	
+    	//phase 5. diff peak 
+    	ArrayList<PeakGroup> mergedBucketedPeaks = findPeakDiffs(samplePeaks);
     	
     	
+    	//phase 6, write the wig
+    	System.err.println("writing peaks diffs for " + this.current_contigName);
+    	int j=0;
+    	for(int i= (CURVE_WINDOW-1)/2;i<=contigLength;i++)
+    	{
+    		if(i > mergedBucketedPeaks.get(j).getEnd() && j < (mergedBucketedPeaks.size()-1))
+    			j++;
+    		if(i >= mergedBucketedPeaks.get(j).getStart() && i <= mergedBucketedPeaks.get(j).getEnd())
+    		{
+    			if(i == mergedBucketedPeaks.get(j).getSummit())
+    				out.printf("%f%n",mergedBucketedPeaks.get(j).getHeight());
+    			else
+    				out.printf("%f%n",mergedBucketedPeaks.get(j).getHeight() / 2);
+    		}
+    		else
+    			out.printf("%f%n", 0f);
+    	}
+    	
+    	
+    	
+//    	
+//    	if(samplePeaks.keySet().size() == 1)
+//    		writePeaks2(samplePeaks.get(samplePeaks.keySet().toArray(new String[1])[0]),contigLength);
+//    	else
+//    		writePeaks(mergedBucketedPeaks,contigLength);
+    	
+    	
+    }
+    
+    ArrayList<PeakGroup> findPeakDiffs(HashMap<String,ArrayList<SinglePeak>> samplePeaks)
+    {
     	//Find overlaps
+    	String[] sampleNames = samplePeaks.keySet().toArray(new String[samplePeaks.keySet().size()]);
     	ArrayList<SinglePeak> mergedPeaks = new ArrayList<>();
     	for(String s : samplePeaks.keySet())
     	{
     		mergedPeaks.addAll(samplePeaks.get(s));
     	}
     	
-    	ArrayList<PeakGroup> mergedBucketedPeaks = new ArrayList<>();
+    	ArrayList<PeakGroup> mergedBucketedPeaks = new ArrayList<PeakGroup>();
     	Collections.sort(mergedPeaks);
     	for(SinglePeak p : mergedPeaks)
     	{
     		if(mergedBucketedPeaks.size() == 0)
     		{
-    			PeakGroup toAdd = new PeakGroup();
+    			PeakGroup toAdd = new PeakGroup(sampleNames);
     			toAdd.add(p);
     			mergedBucketedPeaks.add(toAdd);
     		}
     		else
     		{
     			Boolean matched = false;
-    			for(SinglePeak x : mergedBucketedPeaks.get(mergedBucketedPeaks.size() -1))
+    			for(Peak x : mergedBucketedPeaks.get(mergedBucketedPeaks.size() -1))
     				if (p.getSummit() - x.getSummit() < 3)
     						matched = true;
     			if(matched)
     				 mergedBucketedPeaks.get(mergedBucketedPeaks.size() -1).add(p);
     			else
     			{
-    				PeakGroup toAdd = new PeakGroup();
+    				PeakGroup toAdd = new PeakGroup(sampleNames);
         			toAdd.add(p);
         			mergedBucketedPeaks.add(toAdd);
         		}
@@ -252,38 +286,8 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     	}
     	
     	System.err.println(mergedPeaks.size() + " individual peaks, grouped into " + mergedBucketedPeaks.size());
-    	
-    	
-    	if(samplePeaks.keySet().size() == 1)
-    	{
-    		String onlyKey = samplePeaks.keySet().toArray(new String[1])[0];
-    		System.err.println("writing contig vals to wig for " + current_contigName );
-	    	int j=0;
-	    	for(int i= (CURVE_WINDOW-1)/2;i<=contigLength;i++)
-	    	{
-	    		if(i > samplePeaks.get(onlyKey).get(j).getEnd() && j < (samplePeaks.get(onlyKey).size()-1))
-	    			j++;
-	    		if(i >= samplePeaks.get(onlyKey).get(j).getStart() && i <= samplePeaks.get(onlyKey).get(j).getEnd())
-	    		{
-	    			if(i == samplePeaks.get(onlyKey).get(j).getSummit())
-	    				out.printf("%f%n", samplePeaks.get(onlyKey).get(j).getHeight());
-	    			else
-	    				out.printf("%f%n", samplePeaks.get(onlyKey).get(j).getHeight() / 2);
-	    		}
-	    		else
-	    			out.printf("%f%n", 0f);
-	    	}
-    	}
-    	else
-    	{
-    		
-    		
-    		
-    		
-    	}
+    	return mergedBucketedPeaks;
     }
-    
-    
     
     ArrayList<SinglePeak> optimizePeaks( ArrayList<SinglePeak> singlePeaks)
     {

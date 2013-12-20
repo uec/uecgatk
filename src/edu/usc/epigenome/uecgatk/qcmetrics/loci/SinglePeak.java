@@ -2,7 +2,7 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import org.apache.commons.math3.ml.clustering.Clusterable;
 
-public class SinglePeak implements Clusterable,Comparable<SinglePeak>
+public class SinglePeak implements Peak,Clusterable,Comparable<Peak>
 {
 
 	String contig;
@@ -21,51 +21,61 @@ public class SinglePeak implements Clusterable,Comparable<SinglePeak>
 		this.height = height;
 		this.summit = summit;
 	};
+	@Override
 	public String getContig()
 	{
 		return contig;
 	}
+	@Override
 	public void setContig(String contig)
 	{
 		this.contig = contig;
 	}
+	@Override
 	public int getStart()
 	{
 		return start;
 	}
+	@Override
 	public void setStart(int start)
 	{
 		this.start = start;
 	}
+	@Override
 	public int getEnd()
 	{
 		return end;
 	}
+	@Override
 	public void setEnd(int end)
 	{
 		this.end = end;
 	}
+	@Override
 	public float getHeight()
 	{
 		return height;
 	}
+	@Override
 	public void setHeight(float height)
 	{
 		this.height = height;
 	}
+	@Override
 	public int getWidth()
 	{
 		return end-start;
 	}
+	@Override
 	public int getSummit()
 	{
 		return summit;
 	}
+	@Override
 	public void setSummit(int summit)
 	{
 		this.summit = summit;
 	}
-	
 	
 	@Override
 	public double[] getPoint()
@@ -74,11 +84,9 @@ public class SinglePeak implements Clusterable,Comparable<SinglePeak>
 	}
 	
 	@Override
-	public int compareTo(SinglePeak o)
+	public int compareTo(Peak o)
 	{
-		// TODO Auto-generated method stub
 		return new Integer(this.getStart()).compareTo(o.getStart());
-		
 	}
 	public String getSample()
 	{
