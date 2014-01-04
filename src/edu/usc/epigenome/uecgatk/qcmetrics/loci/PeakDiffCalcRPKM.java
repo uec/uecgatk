@@ -7,7 +7,7 @@ public class PeakDiffCalcRPKM implements PeakDiffCalc
 {
 	String[] sample_names;
 	HashMap<String,Long> totalReads;
-	PeakDiffCalcRPKM(HashMap<String,Long> totalReads)
+	PeakDiffCalcRPKM(HashMap<String,Long> totalReads,HashMap<String,short[]> cov)
 	{
 		this.totalReads = totalReads;
 		sample_names = totalReads.keySet().toArray(new String[ totalReads.keySet().size()]);

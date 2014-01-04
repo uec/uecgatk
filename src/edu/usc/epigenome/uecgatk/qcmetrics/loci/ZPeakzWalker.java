@@ -257,7 +257,7 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     			sum += cov.get(s)[i];
     		totalReads.put(s, sum);
     	}
-    	PeakDiffCalcRPKM diffcalc = new PeakDiffCalcRPKM(totalReads);
+    	PeakDiffCalcRPKM diffcalc = new PeakDiffCalcRPKM(totalReads,cov);
     	//PeakDiffCalcSimple diffcalc = new PeakDiffCalcSimple(sampleNames);
     	
     	ArrayList<PeakGroup> mergedBucketedPeaks = new ArrayList<PeakGroup>();
