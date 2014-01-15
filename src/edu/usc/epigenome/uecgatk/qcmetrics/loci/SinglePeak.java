@@ -81,7 +81,8 @@ public class SinglePeak implements Peak,Clusterable,Comparable<Peak>
 	@Override
 	public double[] getPoint()
 	{
-		return new double[] {this.getHeight()};
+		//return new double[] {this.getHeight()};
+		return new double[] {this.getHeight(),this.getArea()};
 	}
 	
 	@Override

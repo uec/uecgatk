@@ -7,6 +7,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -55,8 +56,10 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     protected int NUMBER_OF_CLUSTERS = 5;
 
     @Argument(fullName="numClustersToKeep", shortName="clustkeep", doc="number of clusters to use for filtering", required=false)
-    protected int NUMBER_OF_CLUSTERS_TO_KEEP = 3;
+    protected int NUMBER_OF_CLUSTERS_TO_KEEP = 4;
     
+    @Argument(fullName="CsvFileToWrite", shortName="csv", doc="write diff to this csv", required=false)
+    protected String CSV_OUTPUT = null;
     
     @Argument(fullName="curveWindow", shortName="curve", doc="number of windows to use for polynomial fitting", required=false)
     int CURVE_WINDOW = 3;
@@ -236,6 +239,21 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
     		else
     			out.printf("%f%n", 0f);
     	}
+    	
+    	//phase 6.1 write the peaks xls
+    	if(CSV_OUTPUT != null)
+    	try
+		{
+    		
+			PrintWriter writer = new PrintWriter(CSV_OUTPUT, "UTF-8");
+			for(PeakGroup p : mergedBucketedPeaks)
+			{
+				writer.println(this.current_contigName + "\t" + (p.getStart() * WINSIZE)  + "\t" + (p.getEnd() * WINSIZE) + "\t\t\t\t" + p.getHeight() + "\tzpeakz");
+			}
+			writer.close();
+		} catch (Exception e) 	{ 	e.printStackTrace();}
+    	
+    	
     }
     
     ArrayList<PeakGroup> findPeakDiffs(HashMap<String,ArrayList<SinglePeak>> samplePeaks,int lastIndex)
@@ -319,7 +337,12 @@ public class ZPeakzWalker extends LocusWalker<Boolean,Boolean>
 			}});
     	
     	for(CentroidCluster<SinglePeak> cp : clusters)
-    		System.err.println("\tCluster Center:" + cp.getCenter().getPoint()[0] + ", size=" + cp.getPoints().size());
+    	{
+    		System.err.print("\tCluster: size=" + cp.getPoints().size() + "\tcenter=[");
+    		for(double d :cp.getCenter().getPoint())
+    			System.err.print(d + " ");
+    		System.err.println("]");
+    	}
     	
     	//the smallest group(s) contains the "noise", trash it.
     	ArrayList<SinglePeak> passFilter = new ArrayList<>();
