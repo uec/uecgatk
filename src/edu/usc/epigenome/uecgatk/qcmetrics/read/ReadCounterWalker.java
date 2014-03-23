@@ -22,13 +22,13 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-
 package edu.usc.epigenome.uecgatk.qcmetrics.read;
+
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -64,7 +64,7 @@ public class ReadCounterWalker extends ReadWalker <Long,Long> implements TreeRed
     }
 
 
-    public Long map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
+    public Long map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) 
     {
     	return ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) ? 0L : 1L;
     }

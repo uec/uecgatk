@@ -147,7 +147,7 @@ public class NmerWithRef {
 	public boolean contextBaseIsG(int relInd)
 	{
 		byte base = contextBaseAtRelativeIndex(relInd);
-		return (base == BaseUtils.G);
+		return (base == BaseUtils.Base.G.base);
 	}
 	
 	public boolean nextBaseG()
@@ -184,7 +184,7 @@ public class NmerWithRef {
 	
 	protected byte contextBaseAtGlobalIndex(int inIndex)
 	{
-		byte base = BaseUtils.N;
+		byte base = BaseUtils.Base.N.base;
 		try
 		{
 			if (this.context == null)
@@ -269,7 +269,7 @@ public class NmerWithRef {
 		byte[] out = new byte[inLength];
 		for (int i = 0; i < inLength; i++)
 		{
-			out[i] = BaseUtils.N;
+			out[i] = BaseUtils.Base.N.base;
 		}
 		return out;
 	}

@@ -63,7 +63,7 @@ public class BisulfiteSeqToBareWigWalker extends LocusWalkerToBisulfiteCytosineW
 
 		if (!bedMode && !csvMode)
 		{	
-			if (this.getToolkit().getArguments().numberOfThreads>1)
+			if (this.getToolkit().getArguments().numberOfDataThreads>1)
 			{
 				System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
 				System.exit(1);

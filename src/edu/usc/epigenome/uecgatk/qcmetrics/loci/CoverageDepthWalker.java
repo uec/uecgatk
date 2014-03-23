@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Output;
 import java.io.PrintStream;
-import org.apache.commons.math.stat.descriptive.*;
+import org.apache.commons.math3.stat.descriptive.*;
 
 
 

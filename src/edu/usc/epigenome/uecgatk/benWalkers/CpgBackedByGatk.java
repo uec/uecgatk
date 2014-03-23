@@ -6,8 +6,10 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 //ZR import org.jfree.util.Log;
 
-import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
-import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContextCounter;
+
+
+import edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers.Cpg;
+import edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers.CpgRead;
 
 public class CpgBackedByGatk extends Cpg {
 
@@ -108,6 +110,12 @@ public class CpgBackedByGatk extends Cpg {
 		}
 		
 		return out;
+	}
+
+	public void addRead(CpgRead cRead)
+	{
+		// TODO Auto-generated method stub
+		
 	}
 	
 	

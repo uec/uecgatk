@@ -16,12 +16,10 @@
 	<classpathentry kind="lib" path="lib/UscKeck.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis-ext.jar"/>
 	<classpathentry kind="lib" path="lib/xml-apis.jar"/>
-	<classpathentry kind="lib" path="lib/commons-math-2.2.jar"/>
 	<classpathentry kind="lib" path="lib/genomeLibs.jar"/>
 	<classpathentry kind="lib" path="lib/biojava-live.jar"/>
-	<classpathentry kind="lib" path="lib/AnalyzeCovariates-1.5-3-gbb2c10b.jar"/>
-	<classpathentry kind="lib" path="lib/GenomeAnalysisTK-1.5-3-gbb2c10b.jar"/>
 	<classpathentry kind="lib" path="lib/sam-1.61.jar"/>
-	<classpathentry kind="lib" path="lib/StingUtils-1.5-3-gbb2c10b.jar"/>
+	<classpathentry kind="lib" path="lib/GenomeAnalysisTK-2.7-4-g6f46d11.jar"/>
+	<classpathentry kind="lib" path="lib/commons-math3-3.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

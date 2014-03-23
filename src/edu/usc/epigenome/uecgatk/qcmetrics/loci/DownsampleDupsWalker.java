@@ -2,7 +2,7 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 
 import net.sf.samtools.SAMRecord;
 
-import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -48,16 +48,18 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     
     public void initialize() 
     {
+    	Long epoch = System.currentTimeMillis();
+    	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
     	System.err.println();
     	CommandLineGATK readcount = new CommandLineGATK();
-    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", "tmpLineCounterStats.txt" };
+    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
     	try
 		{
 			CommandLineGATK.start(readcount, countargs);
 	
 			// Open the file that is the first 
 			// command line parameter
-			FileInputStream fstream = new FileInputStream("tmpLineCounterStats.txt");
+			FileInputStream fstream = new FileInputStream(tmpFileName);
 			// Get the object of DataInputStream
 			DataInputStream in = new DataInputStream(fstream);
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));

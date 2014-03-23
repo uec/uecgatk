@@ -2,20 +2,22 @@ package edu.usc.epigenome.uecgatk.benWalkers;
 
 import edu.usc.epigenome.genomeLibs.PicardUtils;
 import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
+
 import org.biojava.bio.seq.StrandedFeature;
 import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +33,7 @@ import java.util.List;
  * We only have one type here, because we have to do internal reduce steps
  */
 @ReadFilters( {MappingQualityFilter.class} ) // Filter out all reads with zero mapping quality
-@Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
+@Requires( {DataSource.READS, DataSource.REFERENCE} ) // This walker requires both -I input.bam and -R reference.fasta
 public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType> extends ReadWalker<MapType,ReduceType> implements TreeReducible<ReduceType> {
 
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
@@ -64,7 +66,7 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 	abstract protected MapType processReadCytosines(ReadWithCpgMeths read);
 
 	@Override
-	public MapType map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
+	public MapType map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) 
 	{
     	GenomeLoc thisLoc = ref.getLocus();
     	String thisContig = thisLoc.getContig();
@@ -98,15 +100,15 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
     		byte refBase = refSeq[i];
     		byte readBase = readSeq[i];
     		
-			boolean isC = BaseUtils.basesAreEqual(refBase, BaseUtils.C) && 
-			(BaseUtils.basesAreEqual(readBase, BaseUtils.C) || BaseUtils.basesAreEqual(readBase, BaseUtils.T));
+			boolean isC = BaseUtils.basesAreEqual(refBase, BaseUtils.Base.C.base) && 
+			(BaseUtils.basesAreEqual(readBase, BaseUtils.Base.C.base) || BaseUtils.basesAreEqual(readBase, BaseUtils.Base.T.base));
 			
 			if (isC)
 			{
-				boolean isMethylated = BaseUtils.basesAreEqual(readBase, BaseUtils.C);
+				boolean isMethylated = BaseUtils.basesAreEqual(readBase, BaseUtils.Base.C.base);
 				if (!isMethylated) nConvSeen++; // For 5' methylation filter
 
-				if (this.outputCph || BaseUtils.basesAreEqual(readSeq[i+1], BaseUtils.G))
+				if (this.outputCph || BaseUtils.basesAreEqual(readSeq[i+1], BaseUtils.Base.G.base))
 				{
 					String cContext = getCytosineContext(i, readSeq, refSeq);
 					
@@ -161,10 +163,10 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
    			else
    			{
    				// Use only by comparing to refseq.  Otherwise it will be totally screwed up in bisulfite mode.
-   				byte contextBase = BaseUtils.N;
-   				if (refSeq[i] == BaseUtils.C)
+   				byte contextBase = BaseUtils.Base.N.base;
+   				if (refSeq[i] == BaseUtils.Base.C.base)
    				{
-   					if ((readSeq[i] == BaseUtils.C) || (readSeq[i] == BaseUtils.T))
+   					if ((readSeq[i] == BaseUtils.Base.C.base) || (readSeq[i] == BaseUtils.Base.T.base))
    						contextBase = refSeq[i];
    				}
    				else
@@ -177,9 +179,9 @@ public abstract class ReadWalkerToBisulfiteCytosineReadWalker<MapType,ReduceType
 //   				
 //   				switch (readSeq[i]) // Ok to use bisulfite read since C/T go to same IUPAC code
 //   				{
-//   				case BaseUtils.A:
-//   				case BaseUtils.C:
-//   				case BaseUtils.T:
+//   				case BaseUtils.Base.A.base:
+//   				case BaseUtils.Base.C.base:
+//   				case BaseUtils.Base.T.base:
 //   					contextSeqIupac[contextPos] = (byte)'H';
 //   					break;
 //   				default:

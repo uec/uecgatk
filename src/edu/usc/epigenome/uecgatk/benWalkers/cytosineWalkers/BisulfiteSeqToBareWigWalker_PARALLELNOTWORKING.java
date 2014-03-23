@@ -1,18 +1,12 @@
 package edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers;
 
 import java.io.File;
-import java.io.PrintStream;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.wiggle.WiggleHeader;
-
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgSummarizers.CpgMethLevelSummarizer;
 import edu.usc.epigenome.uecgatk.benWalkers.CpgBackedByGatk;
 import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker;
 import edu.usc.epigenome.uecgatk.benWalkers.WiggleHeaderCytosines;
@@ -66,7 +60,7 @@ public class BisulfiteSeqToBareWigWalker_PARALLELNOTWORKING extends LocusWalkerT
 		// TODO Auto-generated method stub
 		super.initialize();
 		
-		if (this.getToolkit().getArguments().numberOfThreads>1)
+		if (this.getToolkit().getArguments().numberOfDataThreads>1)
 		{
 			System.err.println("GnomeSeqToBareWigWalker does not yet implement multi-threaded mode. Use -nt 1");
 			System.exit(1);

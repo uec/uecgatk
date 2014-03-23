@@ -27,13 +27,14 @@ package edu.usc.epigenome.uecgatk.qcmetrics.read;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+
 import java.util.*;
 import java.io.*;
 
@@ -63,8 +64,8 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
     	 if ( LABEL == null ) throw new ReviewedStingException("Prefix for output file(s) must be specified");
     }
 
-
-    public HashMap<String,Long> map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) 
+   
+    public HashMap<String,Long> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) 
     {
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY) return null;
         
@@ -115,4 +116,7 @@ public class BaseQualityWalker extends ReadWalker<HashMap<String,Long>,HashMap<S
     	for(String s : sortedKeys)
     		out.println(LABEL + "," + s + "," + result.get(s));    	
     }
+
+
+	
  }

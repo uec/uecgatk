@@ -22,8 +22,7 @@ import edu.usc.epigenome.uecgatk.benWalkers.LocusWalkerToBisulfiteCytosineWalker
  * Reducetype = Map<String,CpgMethLevelSummarizer>. The key is the cytosine context, the value is a meth summarizer
  *
  */
-public class MethLevelAveragesWalker 
-	extends LocusWalkerToBisulfiteCytosineWalker<Pair<String,Double>, Map<String,CpgMethLevelSummarizer>> {
+public class MethLevelAveragesWalker extends LocusWalkerToBisulfiteCytosineWalker<Pair<String,Double>, Map<String,CpgMethLevelSummarizer>> {
 
     @Argument(fullName = "iupacPatterns", shortName = "pats", doc = "A list of IUPAC contexts to interrogate", required = false)
     public String[] iupacPatterns = new String[]{"HCG","GCH","HCA", "HCT","HCC"};

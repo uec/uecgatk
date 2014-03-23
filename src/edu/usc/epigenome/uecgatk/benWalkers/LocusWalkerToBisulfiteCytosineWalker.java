@@ -2,12 +2,9 @@ package edu.usc.epigenome.uecgatk.benWalkers;
 
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMRecord;
-
 import edu.usc.epigenome.genomeLibs.PicardUtils;
-import edu.usc.epigenome.genomeLibs.MethylDb.Cpg;
-import edu.usc.epigenome.genomeLibs.MethylDb.CpgRead;
-import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContext;
 import edu.usc.epigenome.uecgatk.BaseUtilsMore;
+import edu.usc.epigenome.uecgatk.benWalkers.cytosineWalkers.CpgRead;
 
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
@@ -45,7 +42,7 @@ import java.util.List;
  * Must implement tree-reducible to get parallel execution.
  */
 @ReadFilters( {MappingQualityFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
-@Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
+@Requires( {DataSource.READS, DataSource.REFERENCE} ) // This walker requires both -I input.bam and -R reference.fasta
 public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> extends LocusWalker<MapType,ReduceType> implements TreeReducible<ReduceType> {
 
     @Argument(fullName = "outputCph", shortName = "cph", doc = "Output CpHs in addition to Cpgs", required = false)
@@ -143,12 +140,12 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 		// *** NOTE :: JUST USING POSITIONS THAT ARE C IN REFERENCE :: NEED TO CHECK SAMPLE GENOME ****
 		boolean isC = false;
     	boolean negStrand = false;
-    	if (ref.getBase() == BaseUtils.C)
+    	if (ref.getBase() == BaseUtils.Base.C.base)
     	{
     		isC = true;
     		negStrand = false;
     	}
-    	else if (ref.getBase() == BaseUtils.G)
+    	else if (ref.getBase() == BaseUtils.Base.G.base)
     	{
     		isC = true;
     		negStrand = true;
@@ -186,18 +183,21 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
        			}
        			else
        			{
-
-       				switch (contextSeqStranded[i])
-       				{
-       				case BaseUtils.A:
-       				case BaseUtils.C:
-       				case BaseUtils.T:
+       				if(contextSeqStranded[i] == BaseUtils.Base.A.base || contextSeqStranded[i] == BaseUtils.Base.C.base || contextSeqStranded[i] == BaseUtils.Base.T.base)
        					contextSeqStrandedIupac[i] = (byte)'H';
-       					break;
-       				default:
+       				else
        					contextSeqStrandedIupac[i] = contextSeqStranded[i];
-       					break;		
-       				}
+//       				switch (contextSeqStranded[i])
+//       				{
+//       				case BaseUtils.Base.A.base:
+//       				case BaseUtils.Base.C.base:
+//       				case BaseUtils.Base.T.base:
+//       					contextSeqStrandedIupac[i] = (byte)'H';
+//       					break;
+//       				default:
+//       					contextSeqStrandedIupac[i] = contextSeqStranded[i];
+//       					break;		
+//       				}
        			}
        		}
     	
@@ -298,7 +298,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 //    	//**************************************************************
 //    	//*** These would ideally be set based on the reads rather than the reference
-//    	boolean nextBaseGref = BaseUtils.basesAreEqual(contextSeqRefStrandedIupac[2],BaseUtils.G);
+//    	boolean nextBaseGref = BaseUtils.basesAreEqual(contextSeqRefStrandedIupac[2],BaseUtils.Base.G.base);
 //    	char nextBaseRef = (char)contextSeqRefStrandedIupac[2];
 //    	char prevBaseRef = (char)contextSeqRefStrandedIupac[0];
     	char nextBaseRef = (char)contextSeqRefStranded[2];
@@ -360,8 +360,8 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     			prevBaseSeqCstrand = BaseUtils.simpleComplement(nextBaseSeqReadStrand); // Note that we swap with prev Base to change orientation
 //        	   	System.err.printf("\tCytosine rev strand, now nextSeq=%c, prevSeq=%c\n", nextBaseSeqCstrand, prevBaseSeqCstrand);
     	   	}
-    	   	boolean nextBaseSeqG = BaseUtils.basesAreEqual(nextBaseSeqCstrand,BaseUtils.G); 
-    	   	boolean prevBaseSeqG = BaseUtils.basesAreEqual(prevBaseSeqCstrand,BaseUtils.G); 
+    	   	boolean nextBaseSeqG = BaseUtils.basesAreEqual(nextBaseSeqCstrand,BaseUtils.Base.G.base); 
+    	   	boolean prevBaseSeqG = BaseUtils.basesAreEqual(prevBaseSeqCstrand,BaseUtils.Base.G.base); 
 
 
     		// *** cytosine itself
@@ -385,7 +385,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
 //    			out.printf("Got base on NON-C strand: %c\n", (char)baseGstrand);
     			totalReadsOpposite++;
-    			if (BaseUtils.basesAreEqual(baseGstrand, BaseUtils.A)) aReadOpposite++;
+    			if (BaseUtils.basesAreEqual(baseGstrand, BaseUtils.Base.A.base)) aReadOpposite++;
     		}
     		else
     		{
@@ -393,9 +393,9 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 
     			//    				out.printf("\t\tGot base on C strand: %c\n", (char)baseCstrand);
 
-    			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.C);
-    			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.T);
-    			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.A) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.G);
+    			boolean isC = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.Base.C.base);
+    			boolean isT = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.Base.T.base);
+    			boolean isAG = BaseUtils.basesAreEqual(baseCstrand, BaseUtils.Base.A.base) || BaseUtils.basesAreEqual(baseCstrand, BaseUtils.Base.G.base);
     			
     			int cycle = pe.getOffset();
     			int readCycleQual = pe.getQual();
@@ -428,6 +428,7 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
     					);
 
     			cOut.addRead(cRead);
+    			
 //    			System.err.printf("\tAdding read (%d, BASEQ %d): %s\n", thisLoc.getStart(), pe.getQual(), cRead.toString());
     		}
     	}
@@ -546,11 +547,11 @@ public abstract class LocusWalkerToBisulfiteCytosineWalker<MapType,ReduceType> e
 	    		boolean conv = false;
 	    		if (secondEnd)
 	    		{
-	    			conv = ((refBase==BaseUtils.G) && (readBase==BaseUtils.A));
+	    			conv = ((refBase==BaseUtils.Base.G.base) && (readBase==BaseUtils.Base.A.base));
 	    		}
 	    		else
 	    		{
-	    			conv = ((refBase==BaseUtils.C) && (readBase==BaseUtils.T));
+	    			conv = ((refBase==BaseUtils.Base.C.base) && (readBase==BaseUtils.Base.T.base));
 	    		}
 	    		if (conv) numConv++;
 	    		

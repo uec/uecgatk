@@ -17,7 +17,7 @@ import org.usckeck.genome.ChromFeatures;
 
 import edu.usc.epigenome.genomeLibs.FeatAligners.FeatAligner;
 import edu.usc.epigenome.genomeLibs.GenomicRange.GenomicRangeWithRefpoint;
-import edu.usc.epigenome.genomeLibs.MethylDb.CytosineContextCounter;
+
 
 public class CpgBackedByGatkWithAlignmentRelCoords extends CpgBackedByGatk {
 

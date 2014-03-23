@@ -98,8 +98,8 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
     @Override
     protected void alertNewContig(String newContig)
     {
-    	System.err.printf("Number of threads = %d\n",this.getToolkit().getArguments().numberOfThreads);
-    	if (this.getToolkit().getArguments().numberOfThreads == 1)
+    	System.err.printf("Number of threads = %d\n",this.getToolkit().getArguments().numberOfDataThreads);
+    	if (this.getToolkit().getArguments().numberOfDataThreads == 1)
     	{
     		if (this.prevContig != null) this.feats.unload_coord_filtered_features();
     		if (this.feats != null)
@@ -167,7 +167,7 @@ public class GnomeSeqFeatureAlignmentReadWalker extends
 	{
 		int nFeats = this.getnFeats();
 
-		if (this.getToolkit().getArguments().numberOfThreads>1)
+		if (this.getToolkit().getArguments().numberOfDataThreads>1)
 		{
 			nFeats = threadedNfeatsStart;
 		}
