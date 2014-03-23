@@ -38,48 +38,52 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
     @Output
     PrintStream out;
     
-    @Argument(fullName="samplesize", shortName="p", doc="number of reads to sample", required=true)
-    protected long SAMPLESIZE = 5000000L;
+    @Argument(fullName="samplesize", shortName="p", doc="number of reads to sample", required=false)
+    protected long SAMPLESIZE = 0L;
 
     @Argument(fullName="numberTrials", shortName="trials", doc="the number of trials", required=true)
     protected int NUMTRIALS = 10;
 
-    protected double PROBABILITY = 0.5;
+    protected double PROBABILITY = 1;
     
     public void initialize() 
     {
-    	Long epoch = System.currentTimeMillis();
-    	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
-    	System.err.println();
-    	CommandLineGATK readcount = new CommandLineGATK();
-    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
-    	try
-		{
-			CommandLineGATK.start(readcount, countargs);
-	
-			// Open the file that is the first 
-			// command line parameter
-			FileInputStream fstream = new FileInputStream(tmpFileName);
-			// Get the object of DataInputStream
-			DataInputStream in = new DataInputStream(fstream);
-			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			String strLine;
-			//Read File Line By Line
-			while ((strLine = br.readLine()) != null)   
+    	if(SAMPLESIZE > 0)
+    	{
+	    	Long epoch = System.currentTimeMillis();
+	    	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
+	    	System.err.println();
+	    	CommandLineGATK readcount = new CommandLineGATK();
+	    	String[] countargs = {"-T", "ReadCounter", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+	    	try
 			{
-				System.err.println ("total reads found: " + strLine);
-				PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
-				System.err.println("Downsampling to: " + SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
-			}
-			//Close the input stream
-			in.close();
-				  
-		} catch (Exception e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+				CommandLineGATK.start(readcount, countargs);
 		
+				// Open the file that is the first 
+				// command line parameter
+				FileInputStream fstream = new FileInputStream(tmpFileName);
+				// Get the object of DataInputStream
+				DataInputStream in = new DataInputStream(fstream);
+				BufferedReader br = new BufferedReader(new InputStreamReader(in));
+				String strLine;
+				//Read File Line By Line
+				while ((strLine = br.readLine()) != null)   
+				{
+					System.err.println ("total reads found: " + strLine);
+					PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
+					System.err.println("Downsampling to: " + SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
+				}
+				//Close the input stream
+				in.close();
+					  
+			} catch (Exception e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	else 
+    		NUMTRIALS = 1;
 		
     }
     
@@ -128,7 +132,7 @@ public class DownsampleDupsWalker extends LocusWalker<Integer[],Integer[]>  impl
 	    	//build the random subset and add to hashmap for dup checking
 	    	for(SAMRecord read : reads)
 	    	{
-	    		if(rand.nextDouble() < PROBABILITY)
+	    		if(PROBABILITY >= 1 || rand.nextDouble() < PROBABILITY)
 	    		{
 	    			DupSamRecord r = new DupSamRecord(read);
 	    			sampledPositions.add(r);
