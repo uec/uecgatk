@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-//import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
@@ -19,6 +18,8 @@ import java.io.PrintStream;
 import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.*;
+
+import java.util.concurrent.atomic.AtomicLongArray;
 
 import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
@@ -36,14 +37,13 @@ import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
  * report stats upon these windows
  */
 @By(DataSource.REFERENCE)
-@ReadFilters( {NonUniqueFilter.class} ) // Filter out all reads with zero mapping quality
-public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>  
+@ReadFilters( {NonUniqueFilter.class,NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
+public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>
 {
     @Output
     PrintStream out;
     
-    @Argument(fullName="winSize", shortName="winsize", doc="window width", required=false)
-    protected int WINSIZE = 50000;
+  
     @Argument(fullName="dumpvals", shortName="dumpv", doc="dumps coverage for each window", required=false)
     protected Boolean dump = false;
     @Argument(fullName="downsample", shortName="p", doc="number of reads to sample", required=false)
@@ -54,10 +54,12 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     protected int current_contig;
     int count_index;
     protected String current_contigName;
+    protected int WINSIZE=1;
     
-    SummaryStatistics statsNoMem;
+    SynchronizedSummaryStatistics statsNoMem;
     protected double PROBABILITY = 1.0;
-    long[] coverage = new long[10000000];
+    AtomicLongArray coverage = new AtomicLongArray(100000);
+    
     Random rand = new Random();
 
     public void initialize() 
@@ -67,17 +69,25 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     	 current_contigName = "";
     	 current_window = 0;
     	 count_index = 0;
-    	 statsNoMem = new SummaryStatistics();
-    	 
-    	 out.println("track type=wiggle_0 name=\"coverage\" description=\"winsize=" + WINSIZE + "\"");
+    	 statsNoMem = new SynchronizedSummaryStatistics();
+    	 if (dump  && this.getToolkit().getArguments().numberOfDataThreads > 1)
+    	 {
+    		 System.err.println("Cannot create wigs when running in parallel mode (ex: -nt 4)");
+    		 dump = false;
+    	 }
+    	 if(dump)
+    		 out.println("track type=wiggle_0 name=\"coverage\" description=\"winsize=" + WINSIZE + "\"");
     	 
     	if(SAMPLESIZE > 0)
     	{
     		Long epoch = System.currentTimeMillis();
         	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
+        	
 	    	CommandLineGATK readcount = new CommandLineGATK();
-	    	//
-	     	String[] countargs = {"-T", "ReadCounterWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+	    	
+	    	String region = this.getToolkit().getArguments().intervalArguments.intervals.get(0).toString();
+	    	
+	    	String[] countargs = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS","-L",region, "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
 	     	try
 	 		{
 	 			CommandLineGATK.start(readcount, countargs);
@@ -91,11 +101,13 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
 	 			String strLine;
 	 			//Read File Line By Line
 	 			while ((strLine = br.readLine()) != null)   
-	 			{
-	 				System.err.println ("total reads found: " + strLine);
-	 				PROBABILITY = 1.0 * SAMPLESIZE / Long.parseLong(strLine) ;
-	 				System.err.println("Downsampling to: " + SAMPLESIZE + " / " + strLine + " = " + PROBABILITY );
-	 			}
+	 				if(strLine.contains("#window sum="))
+	 				{
+	 					System.err.println ("total bases found: " + strLine);
+	 					PROBABILITY = 1.0 * SAMPLESIZE / Double.parseDouble(strLine.replace("#window sum=", ""));
+	 					System.err.println("Downsampling to: " + SAMPLESIZE + " / " + Double.parseDouble(strLine.replace("#window sum=", "")) + " = " + PROBABILITY );
+	 				}
+	 			
 	 			//Close the input stream
 	 			in.close();
 	 				  
@@ -123,76 +135,47 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
-    	int contig = ref.getLocus().getContigIndex();
-    	String contigName = ref.getLocus().getContig();
-    	long pos = context.getPosition();
+    	
+    	
     	int depth = context.getBasePileup().getBases().length;
     	if(SAMPLESIZE > 0)
     	{   		
     		int dsDepth = 0;
     		
-    		for(int i = 0; i <  context.getBasePileup().getBases().length; i++)
+    		for(int i = 0; i < depth; i++)
     			if(rand.nextDouble() < PROBABILITY)
     				dsDepth++;
     		depth = dsDepth;
     	}
     	
+    	coverage.incrementAndGet(depth);
+    	statsNoMem.addValue(1.0 * depth);
     	
-    	
-    	if(current_contig != contig)
-    	{
-    		current_contig=contig;
-    		current_contigName = contigName;
-    		if(dump)
-    			out.printf("fixedStep  chrom=%s start=%d step=%d span=%d%n", current_contigName, pos, WINSIZE,WINSIZE);
-    		
-    	}
-    	
-    	if(pos % WINSIZE == 0)
-    	{
-    		if(current_contig != -1)
-    		{
-    			if(dump)
-    				out.printf("%f%n", 1.0 * count / count_index);
-    			coverage[(int) Math.round((100.0 * count / count_index))]++;
-    			statsNoMem.addValue(1.0 * count / count_index);
-    		}
-    		count=0;
-    		count_index=0;
-    		current_window = pos;
-    		
-    		
-    	}
-    	count += depth;
-    	count_index ++;
     	return null;
     }
 
     
-    
-    /**
-     * Provides an initial value for the reduce function. and array of 0's
-     * @return always return true.
-     */
+    //Reduce is not used in this analysis, so we fudge them into being true;
     @Override
     public Boolean reduceInit() 
     { 
     	return true;
     }
 
-    /**
-     * Combines the result of the latest map with the accumulator.  In inductive terms,
-     * this represents the step loci[x + 1] = loci[x] + 1
-     * @param just a bogus param for the override. 
-     * @param just a bogus param for the override. 
-     * @return always truen true.
-     */
     @Override
     public Boolean reduce(Boolean value, Boolean val2) {
         
     	return true;
     }
+    
+	@Override
+	public Boolean treeReduce(Boolean arg0, Boolean arg1)
+	{
+		return true;
+	}
 
+	
+	
     /**
      * Retrieves the final result of the traversal.
      * @param just a bogus param for the override. 
@@ -200,22 +183,39 @@ public class BinDepthsWalker extends LocusWalker<Boolean,Boolean>
     @Override
     public void onTraversalDone(Boolean t) 
     {
+    
+    	
+    	double percentile = .02;
+    	long total = 0;
+    	for(int i = 0; i <  coverage.length(); i++)
+    	{
+    		total += coverage.get(i);
+    		while(total > (statsNoMem.getN() * percentile))
+    		{
+    			out.println("#"+ Math.round(percentile * 100) + " percentile=" +  i);
+    			percentile += 0.02;
+    		}
+    	}
+    	
+    	for(int i = 0; i <  coverage.length(); i++)
+    	{
+    		total += coverage.get(i);
+    		while(total > (statsNoMem.getN() * percentile))
+    		{
+    			out.println("#"+ Math.round(percentile * 100) + " hist_percentile=" +  coverage.get(i));
+    			percentile += 0.02;
+    		}
+    	}
+    	
+    	out.println("#window sum=" + statsNoMem.getSum());
     	out.println("#window size=" + WINSIZE);
     	out.println("#window count=" + statsNoMem.getN());
     	out.println("#mean=" + statsNoMem.getMean());
     	out.println("#max=" + statsNoMem.getMax());
     	out.println("#std dev=" + statsNoMem.getStandardDeviation());
-    	
-    	double percentile = .02;
-    	long total = 0;
-    	for(int i = 0; i <  coverage.length; i++)
-    	{
-    		total += coverage[i];
-    		while(total > (statsNoMem.getN() * percentile))
-    		{
-    			out.println("#"+ Math.round(percentile * 100) + " percentile=" + (1.0 * i / 100.0));
-    			percentile += 0.02;
-    		}
-    	}
     }
+    
+    
+
+	
  }
