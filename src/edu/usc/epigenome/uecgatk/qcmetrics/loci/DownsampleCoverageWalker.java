@@ -15,11 +15,13 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.*;
 
 import java.util.concurrent.atomic.AtomicLongArray;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
@@ -57,10 +59,24 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     protected int WINSIZE=1;
     
     SynchronizedSummaryStatistics statsNoMem;
+    
     protected double PROBABILITY = 1.0;
-    AtomicLongArray coverage = new AtomicLongArray(100000);
+    AtomicLongArray coverage = new AtomicLongArray(2000);
+       
+    
+   
+    
+    static final int PROBABILITY_DISTANCE = 100_000_000;
+    static final int MAX_PROBABILITIES = 20;
+    
+    ArrayList<AtomicLongArray> coverages = new ArrayList<>();
+    ArrayList<SynchronizedSummaryStatistics> statsNoMemList = new ArrayList<>();
+    AtomicReferenceArray<Double> PROBABILITIES = new AtomicReferenceArray<>(MAX_PROBABILITIES);
+    
+    
     
     Random rand = new Random();
+    
 
     public void initialize() 
     {
@@ -84,11 +100,21 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
         	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
         	
 	    	CommandLineGATK readcount = new CommandLineGATK();
+	    	String[] countargs;
 	    	
-	    	String region = this.getToolkit().getArguments().intervalArguments.intervals.get(0).toString();
+	    	if(this.getToolkit().getArguments().intervalArguments.intervals.size() > 0 )
+	    	{
+	    		String[] countargsTMP = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS","-L",this.getToolkit().getArguments().intervalArguments.intervals.get(0).toString(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+	    		countargs = countargsTMP;
+	    	}
 	    	
-	    	String[] countargs = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS","-L",region, "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
-	     	try
+	    	else
+	    	{
+	    		String[] countargsTMP = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS", "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+	    		countargs = countargsTMP;
+	    	}
+	    	
+	    	try
 	 		{
 	 			CommandLineGATK.start(readcount, countargs);
 	 	
@@ -100,13 +126,24 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
 	 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
 	 			String strLine;
 	 			//Read File Line By Line
+	 			Double sumBases = 0d;
 	 			while ((strLine = br.readLine()) != null)   
+	 			{
 	 				if(strLine.contains("#window sum="))
 	 				{
+	 					sumBases = Double.parseDouble(strLine.replace("#window sum=", ""));
 	 					System.err.println ("total bases found: " + strLine);
-	 					PROBABILITY = 1.0 * SAMPLESIZE / Double.parseDouble(strLine.replace("#window sum=", ""));
-	 					System.err.println("Downsampling to: " + SAMPLESIZE + " / " + Double.parseDouble(strLine.replace("#window sum=", "")) + " = " + PROBABILITY );
+	 					PROBABILITY = 1.0 * SAMPLESIZE / sumBases;
+	 					System.err.println("Downsampling to: " + SAMPLESIZE + " / " + sumBases + " = " + PROBABILITY );
 	 				}
+	 			}
+	 			
+	 			for(int i = 0; i < MAX_PROBABILITIES && (PROBABILITY_DISTANCE * (i+1)) < sumBases; i++)
+	 			{
+	 				PROBABILITIES.set(i, (PROBABILITY_DISTANCE * (i+1)) / sumBases);
+	 				coverages.add(new AtomicLongArray(2000));
+	 				statsNoMemList.add(new SynchronizedSummaryStatistics());
+	 			}
 	 			
 	 			//Close the input stream
 	 			in.close();
@@ -135,17 +172,20 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     @Override
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
-    	
-    	
     	int depth = context.getBasePileup().getBases().length;
+    	
     	if(SAMPLESIZE > 0)
-    	{   		
-    		int dsDepth = 0;
+    	{
+    		for(int i=0;i<coverages.size();i++)
+    		{
+    			int dsDepth=0;
+    			for(int j = 0; j < depth; j++)
+    				if(rand.nextDouble() < PROBABILITIES.get(i))
+    					dsDepth++;
     		
-    		for(int i = 0; i < depth; i++)
-    			if(rand.nextDouble() < PROBABILITY)
-    				dsDepth++;
-    		depth = dsDepth;
+    			coverages.get(i).incrementAndGet(dsDepth);
+    	    	statsNoMemList.get(i).addValue(1.0 * dsDepth);
+    		}
     	}
     	
     	coverage.incrementAndGet(depth);
@@ -164,7 +204,6 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
 
     @Override
     public Boolean reduce(Boolean value, Boolean val2) {
-        
     	return true;
     }
     
@@ -183,29 +222,14 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     @Override
     public void onTraversalDone(Boolean t) 
     {
-    
-    	
-    	double percentile = .02;
     	long total = 0;
-    	for(int i = 0; i <  coverage.length(); i++)
+    	out.print("#Cov_hist ");
+    	for(int i = 0; i <  coverage.length() && (1.01d * total) < statsNoMem.getSum(); i++)
     	{
-    		total += coverage.get(i);
-    		while(total > (statsNoMem.getN() * percentile))
-    		{
-    			out.println("#"+ Math.round(percentile * 100) + " percentile=" +  i);
-    			percentile += 0.02;
-    		}
+    		total += i * coverage.get(i);
+    		out.print(coverage.get(i) + " ");
     	}
-    	
-    	for(int i = 0; i <  coverage.length(); i++)
-    	{
-    		total += coverage.get(i);
-    		while(total > (statsNoMem.getN() * percentile))
-    		{
-    			out.println("#"+ Math.round(percentile * 100) + " hist_percentile=" +  coverage.get(i));
-    			percentile += 0.02;
-    		}
-    	}
+    	out.println();
     	
     	out.println("#window sum=" + statsNoMem.getSum());
     	out.println("#window size=" + WINSIZE);
@@ -213,9 +237,23 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     	out.println("#mean=" + statsNoMem.getMean());
     	out.println("#max=" + statsNoMem.getMax());
     	out.println("#std dev=" + statsNoMem.getStandardDeviation());
-    }
-    
-    
-
-	
+    	
+    	for(int i=0;i<coverages.size();i++)
+		{
+    		long SampleSize = (i+1) *  PROBABILITY_DISTANCE;
+	    	double percentile = .02;
+	    	total = 0;
+	    	out.print("#Percentiles " + SampleSize + "=") ;
+	    	for(int j = 0; j <  coverages.get(i).length(); j++)
+	    	{
+	    		total += coverages.get(i).get(j);
+	    		while(total > (statsNoMemList.get(i).getN() * percentile))
+	    		{
+	    			out.print(j + " ");
+	    			percentile += 0.02;
+	    		}
+	    	}
+	    	out.println();
+		}
+    }	
  }
