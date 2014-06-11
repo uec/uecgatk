@@ -2,13 +2,18 @@ package edu.usc.epigenome.uecgatk.qcmetrics.loci;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityFilter;
+import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
+import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Output;
+
 import java.io.PrintStream;
+
 import org.apache.commons.math3.stat.descriptive.*;
+
+import edu.usc.epigenome.uecgatk.WalkerTypes.LocusWalkerUnfiltered;
+import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
 
 
@@ -26,8 +31,8 @@ import org.apache.commons.math3.stat.descriptive.*;
  * that it's on the same chromosome.
  */
 @By(DataSource.REFERENCE)
-@ReadFilters( {MappingQualityFilter.class, BadMateFilter.class, NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
-public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>  
+@ReadFilters( {NonUniqueFilter.class,NotPrimaryAlignmentFilter.class,UnmappedReadFilter.class,FailsVendorQualityCheckFilter.class} ) // Filter out all reads with zero mapping quality
+public class CoverageDepthWalker extends LocusWalkerUnfiltered<Boolean,Boolean> implements TreeReducible<Boolean>  
 {
     @Output
     PrintStream out;
@@ -38,7 +43,9 @@ public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements
 
     public void initialize() 
     {
+    	
     	 stats = new SynchronizedSummaryStatistics();
+    	 
     }
     
     /**
@@ -58,6 +65,7 @@ public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements
     {
     	stats.addValue(1.0 * context.getBasePileup().getBases().length);
     	return true;
+    	
     }
 
     
@@ -92,13 +100,11 @@ public class CoverageDepthWalker extends LocusWalker<Boolean,Boolean> implements
     @Override
     public void onTraversalDone(Boolean t) 
     {
-    	out.println("loci visited=" + stats.getN());
-    	out.println("mean=" + stats.getMean());
-    	out.println("max=" + stats.getMax());
-    	out.println("std dev=" + stats.getStandardDeviation());
-    	//#this take too long
-    	//for(double i=10.0; i<=100.0; i+=10.0)
-    	//	out.println(i + " percentile=" + stats.getPercentile(i));    	
+    	out.println("#loci visited=" + stats.getN());
+    	out.println("#mean=" + stats.getMean());
+    	out.println("#max=" + stats.getMax());
+    	out.println("#std dev=" + stats.getStandardDeviation());
+    	out.println("#window sum=" + stats.getSum());    	    	
     }
 
 	@Override

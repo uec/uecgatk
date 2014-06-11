@@ -5,7 +5,9 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
+import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -23,6 +25,7 @@ import org.apache.commons.math3.stat.descriptive.*;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
+import edu.usc.epigenome.uecgatk.WalkerTypes.LocusWalkerUnfiltered;
 import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
 
@@ -39,114 +42,85 @@ import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
  * report stats upon these windows
  */
 @By(DataSource.REFERENCE)
-@ReadFilters( {NonUniqueFilter.class,NotPrimaryAlignmentFilter.class} ) // Filter out all reads with zero mapping quality
-public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>
+@ReadFilters( {NonUniqueFilter.class,NotPrimaryAlignmentFilter.class,UnmappedReadFilter.class,FailsVendorQualityCheckFilter.class} ) // Filter out all reads with zero mapping quality
+public class DownsampleCoverageWalker extends LocusWalkerUnfiltered<Boolean,Boolean> implements TreeReducible<Boolean>
 {
     @Output
     PrintStream out;
     
-  
-    @Argument(fullName="dumpvals", shortName="dumpv", doc="dumps coverage for each window", required=false)
-    protected Boolean dump = false;
-    @Argument(fullName="downsample", shortName="p", doc="number of reads to sample", required=false)
-    protected long SAMPLESIZE = 0;
+    @Argument(fullName="subsample_increment", shortName="subinc", doc="subsample the reads at increments of this length", required=false)
+    protected int PROBABILITY_DISTANCE = 100_000_000;
     
-    protected  long count;
-    protected  long current_window;
-    protected int current_contig;
-    int count_index;
-    protected String current_contigName;
-    protected int WINSIZE=1;
-    
-    SynchronizedSummaryStatistics statsNoMem;
-    
-    protected double PROBABILITY = 1.0;
-    AtomicLongArray coverage = new AtomicLongArray(2000);
-       
-    
+    @Argument(fullName="max_subsamples", shortName="maxsubs", doc="maximum number of subsamples", required=false)
+    protected int MAX_PROBABILITIES = 20;
    
-    
-    static final int PROBABILITY_DISTANCE = 100_000_000;
-    static final int MAX_PROBABILITIES = 20;
-    
     ArrayList<AtomicLongArray> coverages = new ArrayList<>();
     ArrayList<SynchronizedSummaryStatistics> statsNoMemList = new ArrayList<>();
-    AtomicReferenceArray<Double> PROBABILITIES = new AtomicReferenceArray<>(MAX_PROBABILITIES);
-    
-    
-    
-    Random rand = new Random();
+    AtomicReferenceArray<Double> PROBABILITIES = new AtomicReferenceArray<>(MAX_PROBABILITIES+1);
+    private Random RAND = new Random();
+	private Double TOTALBP = 0d;
     
 
     public void initialize() 
     {
-    	 count=0;
-    	 current_contig = -1;
-    	 current_contigName = "";
-    	 current_window = 0;
-    	 count_index = 0;
-    	 statsNoMem = new SynchronizedSummaryStatistics();
-    	 if (dump  && this.getToolkit().getArguments().numberOfDataThreads > 1)
-    	 {
-    		 System.err.println("Cannot create wigs when running in parallel mode (ex: -nt 4)");
-    		 dump = false;
-    	 }
-    	 if(dump)
-    		 out.println("track type=wiggle_0 name=\"coverage\" description=\"winsize=" + WINSIZE + "\"");
-    	 
-    	if(SAMPLESIZE > 0)
+    
+ 		Long epoch = System.currentTimeMillis();
+    	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
+    	
+    	CommandLineGATK readcount = new CommandLineGATK();
+    	String[] countargs;
+    	
+    	if(this.getToolkit().getArguments().intervalArguments.intervals != null && this.getToolkit().getArguments().intervalArguments.intervals.size() > 0 )
     	{
-    		Long epoch = System.currentTimeMillis();
-        	String tmpFileName = "tmpLineCounterStats" + epoch.toString() + ".txt";
-        	
-	    	CommandLineGATK readcount = new CommandLineGATK();
-	    	String[] countargs;
-	    	
-	    	if(this.getToolkit().getArguments().intervalArguments.intervals.size() > 0 )
-	    	{
-	    		String[] countargsTMP = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS","-L",this.getToolkit().getArguments().intervalArguments.intervals.get(0).toString(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
-	    		countargs = countargsTMP;
-	    	}
-	    	
-	    	else
-	    	{
-	    		String[] countargsTMP = {"-T", "DownsampleCoverageWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS", "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
-	    		countargs = countargsTMP;
-	    	}
-	    	
-	    	try
-	 		{
-	 			CommandLineGATK.start(readcount, countargs);
-	 	
-	 			// Open the file that is the first 
-	 			// command line parameter
-	 			FileInputStream fstream = new FileInputStream(tmpFileName);
-	 			// Get the object of DataInputStream
-	 			DataInputStream in = new DataInputStream(fstream);
-	 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-	 			String strLine;
-	 			//Read File Line By Line
-	 			Double sumBases = 0d;
-	 			while ((strLine = br.readLine()) != null)   
-	 			{
-	 				if(strLine.contains("#window sum="))
-	 				{
-	 					sumBases = Double.parseDouble(strLine.replace("#window sum=", ""));
-	 					System.err.println ("total bases found: " + strLine);
-	 					PROBABILITY = 1.0 * SAMPLESIZE / sumBases;
-	 					System.err.println("Downsampling to: " + SAMPLESIZE + " / " + sumBases + " = " + PROBABILITY );
-	 				}
-	 			}
-	 			
-	 			for(int i = 0; i < MAX_PROBABILITIES && (PROBABILITY_DISTANCE * (i+1)) < sumBases; i++)
-	 			{
-	 				PROBABILITIES.set(i, (PROBABILITY_DISTANCE * (i+1)) / sumBases);
-	 				coverages.add(new AtomicLongArray(2000));
-	 				statsNoMemList.add(new SynchronizedSummaryStatistics());
-	 			}
-	 			
-	 			//Close the input stream
-	 			in.close();
+    		String[] countargsTMP = {"-T", "CoverageDepthWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS","-L",this.getToolkit().getArguments().intervalArguments.intervals.get(0).toString(), "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+    		countargs = countargsTMP;
+    	}
+    	
+    	else
+    	{
+    		String[] countargsTMP = {"-T", "CoverageDepthWalker", "-R", this.getToolkit().getArguments().referenceFile.getPath(),"-nt",new Integer(this.getToolkit().getArguments().numberOfDataThreads).toString(),"-U","ALLOW_N_CIGAR_READS", "-I", this.getToolkit().getArguments().samFiles.get(0), "-o", tmpFileName };
+    		countargs = countargsTMP;
+    	}
+    	
+    	try
+ 		{
+ 			CommandLineGATK.start(readcount, countargs);
+ 	
+ 			// Open the file that is the first 
+ 			// command line parameter
+ 			FileInputStream fstream = new FileInputStream(tmpFileName);
+ 			// Get the object of DataInputStream
+ 			DataInputStream in = new DataInputStream(fstream);
+ 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+ 			String strLine;
+ 			//Read File Line By Line
+ 		
+ 			while ((strLine = br.readLine()) != null)   
+ 			{
+ 				if(strLine.contains("#window sum="))
+ 				{
+ 					TOTALBP = Double.parseDouble(strLine.replace("#window sum=", ""));
+ 					System.err.println ("total bases found: " + TOTALBP);
+ 				}
+ 			}
+ 			
+ 			for(int i = 0; i < MAX_PROBABILITIES && (PROBABILITY_DISTANCE * (i+1)) < TOTALBP; i++)
+ 			{
+ 				PROBABILITIES.set(i, (PROBABILITY_DISTANCE * (i+1)) / TOTALBP);
+ 				System.err.println("Will calculate downsample at: " + (PROBABILITY_DISTANCE * (i+1)) + " / " + TOTALBP + " = " + PROBABILITIES.get(i) );
+ 				coverages.add(new AtomicLongArray(2000));
+ 				statsNoMemList.add(new SynchronizedSummaryStatistics());
+ 			}
+ 			
+ 			//add a counter for non-subsampled
+ 			
+ 			PROBABILITIES.set(coverages.size(), 1.0);
+ 			coverages.add(new AtomicLongArray(2000));
+			statsNoMemList.add(new SynchronizedSummaryStatistics());
+			System.err.println("Will calculate downsample at: " + TOTALBP + " / " + TOTALBP + " = " + PROBABILITIES.get(coverages.size()-1) );
+ 			
+ 			//Close the input stream
+ 			in.close();
 	 				  
 	 		} catch (Exception e)
 	 		{
@@ -154,7 +128,7 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
 	 			e.printStackTrace();
 	 		}
     	 
-    	}
+    	
     }
     
     /**
@@ -173,24 +147,16 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
     	int depth = context.getBasePileup().getBases().length;
-    	
-    	if(SAMPLESIZE > 0)
-    	{
-    		for(int i=0;i<coverages.size();i++)
-    		{
-    			int dsDepth=0;
-    			for(int j = 0; j < depth; j++)
-    				if(rand.nextDouble() < PROBABILITIES.get(i))
-    					dsDepth++;
-    		
-    			coverages.get(i).incrementAndGet(dsDepth);
-    	    	statsNoMemList.get(i).addValue(1.0 * dsDepth);
-    		}
-    	}
-    	
-    	coverage.incrementAndGet(depth);
-    	statsNoMem.addValue(1.0 * depth);
-    	
+		for(int i=0;i<coverages.size();i++)
+		{
+			int dsDepth=0;
+			for(int j = 0; j < depth; j++)
+				if(RAND.nextDouble() < PROBABILITIES.get(i))
+					dsDepth++;
+		
+			coverages.get(i).incrementAndGet(dsDepth);
+	    	statsNoMemList.get(i).addValue(1.0 * dsDepth);
+		}
     	return null;
     }
 
@@ -223,24 +189,9 @@ public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> imple
     public void onTraversalDone(Boolean t) 
     {
     	long total = 0;
-    	out.print("#Cov_hist ");
-    	for(int i = 0; i <  coverage.length() && (1.01d * total) < statsNoMem.getSum(); i++)
-    	{
-    		total += i * coverage.get(i);
-    		out.print(coverage.get(i) + " ");
-    	}
-    	out.println();
-    	
-    	out.println("#window sum=" + statsNoMem.getSum());
-    	out.println("#window size=" + WINSIZE);
-    	out.println("#window count=" + statsNoMem.getN());
-    	out.println("#mean=" + statsNoMem.getMean());
-    	out.println("#max=" + statsNoMem.getMax());
-    	out.println("#std dev=" + statsNoMem.getStandardDeviation());
-    	
     	for(int i=0;i<coverages.size();i++)
 		{
-    		long SampleSize = (i+1) *  PROBABILITY_DISTANCE;
+    		long SampleSize = (long) (PROBABILITIES.get(i) *  TOTALBP);
 	    	double percentile = .02;
 	    	total = 0;
 	    	out.print("#Percentiles " + SampleSize + "=") ;
