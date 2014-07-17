@@ -49,7 +49,7 @@ public class DownsampleCoverageWalker extends LocusWalkerUnfiltered<Boolean,Bool
     PrintStream out;
     
     @Argument(fullName="subsample_increment", shortName="subinc", doc="subsample the reads at increments of this length", required=false)
-    protected int PROBABILITY_DISTANCE = 100_000_000;
+    protected int PROBABILITY_DISTANCE = 200_000_000;
     
     @Argument(fullName="max_subsamples", shortName="maxsubs", doc="maximum number of subsamples", required=false)
     protected int MAX_PROBABILITIES = 20;
@@ -120,13 +120,13 @@ public class DownsampleCoverageWalker extends LocusWalkerUnfiltered<Boolean,Bool
 			System.err.println("Will calculate downsample at: " + TOTALBP + " / " + TOTALBP + " = " + PROBABILITIES.get(coverages.size()-1) );
  			
  			//Close the input stream
- 			in.close();
-	 				  
-	 		} catch (Exception e)
-	 		{
+ 			in.close();	 				  
+	 	} 
+    	catch (Exception e)
+	 	{
 	 			// TODO Auto-generated catch block
 	 			e.printStackTrace();
-	 		}
+	 	}
     	 
     	
     }
