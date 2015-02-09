@@ -24,8 +24,6 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-
-import edu.usc.epigenome.uecgatk.WalkerTypes.LocusWalkerUnfiltered;
 import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
 
 
@@ -43,7 +41,7 @@ import edu.usc.epigenome.uecgatk.filters.NonUniqueFilter;
  */
 @By(DataSource.REFERENCE)
 @ReadFilters( {NonUniqueFilter.class,NotPrimaryAlignmentFilter.class,UnmappedReadFilter.class,FailsVendorQualityCheckFilter.class} ) // Filter out all reads with zero mapping quality
-public class DownsampleCoverageWalker extends LocusWalkerUnfiltered<Boolean,Boolean> implements TreeReducible<Boolean>
+public class DownsampleCoverageWalker extends LocusWalker<Boolean,Boolean> implements TreeReducible<Boolean>
 {
     @Output
     PrintStream out;
